@@ -23,8 +23,6 @@ set_env() {
         return 1
     fi
 
-    eval "$(/opt/homebrew/bin/brew shellenv)"
-
     if [[ -s "$HOME/.zprofile" ]]; then
         echo >> "$HOME/.zprofile"
     fi
