@@ -14,6 +14,7 @@ main() {
         && bash "./terminal/omz.sh" "$@"
 
     [[ -f "./brew_bundle/Brewfile" ]] \
+        && eval "$(/opt/homebrew/bin/brew shellenv)" \
         && brew bundle --file="./brew_bundle/Brewfile"
 }
 
