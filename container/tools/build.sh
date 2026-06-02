@@ -51,7 +51,7 @@ main() {
         FROM="dev-container/tools/protobuf"
     fi
 
-    if false && $TOOLS_THRIFT && [[ -f "./thrift/build.sh" ]]; then
+    if $TOOLS_THRIFT && [[ -f "./thrift/build.sh" ]]; then
         bash ./thrift/build.sh --from "$FROM" --image-tag "$IMAGE_TAG" "$@"
         FROM="dev-container/tools/thrift"
     fi
