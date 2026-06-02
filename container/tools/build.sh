@@ -2,7 +2,6 @@
 
 set -euo pipefail
 
-FROM="${FROM:-"dev-container/terminal"}"
 IMAGE_TAG="${IMAGE_TAG:-"latest"}"
 TOOLS_PROTOBUF="${TOOLS_PROTOBUF:-false}"
 TOOLS_THRIFT="${TOOLS_THRIFT:-false}"
@@ -11,15 +10,6 @@ parse_args() {
     POSITIONAL=()
     while (($# > 0)); do
         case "$1" in
-            --from)
-                numOfArgs=1 # number of switch arguments
-                if (($# < numOfArgs + 1)); then
-                    shift $#
-                else
-                    FROM="$2"
-                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
-                fi
-                ;;
             --image-tag)
                 numOfArgs=1 # number of switch arguments
                 if (($# < numOfArgs + 1)); then
@@ -46,19 +36,33 @@ parse_args() {
 }
 
 main() {
-    if $TOOLS_PROTOBUF && [[ -f "./protobuf/build.sh" ]]; then
-        bash ./protobuf/build.sh --from "$FROM" --image-tag "$IMAGE_TAG" "$@"
-        FROM="dev-container/tools/protobuf"
+    from="dev-container/dev"
+
+    if $TOOLS_PROTOBUF; then
+        image="dev-container/tools/protobuf"
+        docker build \
+            -f ./protobuf/Dockerfile \
+            -t "$image:$IMAGE_TAG" \
+            --build-arg "from=$from:$IMAGE_TAG" \
+            ./protobuf
+        from="$image"
     fi
 
-    if false && $TOOLS_THRIFT && [[ -f "./thrift/build.sh" ]]; then
-        bash ./thrift/build.sh --from "$FROM" --image-tag "$IMAGE_TAG" "$@"
-        FROM="dev-container/tools/thrift"
+    if $TOOLS_THRIFT; then
+        image="dev-container/tools/thrift"
+        docker build \
+            -f ./thrift/Dockerfile \
+            -t "$image:$IMAGE_TAG" \
+            --build-arg "from=$from:$IMAGE_TAG" \
+            ./thrift
+        from="$image"
     fi
 
-    docker build . \
-        -t "dev-container/tools:$IMAGE_TAG" \
-        --build-arg "from=$FROM:$IMAGE_TAG"
+    bash ../finish/build.sh \
+        --from "$from" \
+        --image "dev-container/tools" \
+        --image-tag "$IMAGE_TAG" \
+        "$@"
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then

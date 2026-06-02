@@ -47,37 +47,21 @@ parse_args() {
 }
 
 main() {
-    if [[ -f "./base/build.sh" ]]; then
-        bash "./base/build.sh" --image-tag "$IMAGE_TAG" --user "$USER" "$@"
-    fi
+    bash "./base/build.sh" --image-tag "$IMAGE_TAG" --user "$USER" "$@"
+    bash "./terminal/build.sh" --image-tag "$IMAGE_TAG" --user "$USER" "$@"
+    bash "./dev/build.sh" --image-tag "$IMAGE_TAG" "$@"
+    bash "./tools/build.sh" --image-tag "$IMAGE_TAG" "$@"
 
-    if [[ -f "./terminal/build.sh" ]]; then
-        bash "./terminal/build.sh" --image-tag "$IMAGE_TAG" --user "$USER" "$@"
-    fi
-
-    if [[ -f "./dev/build.sh" ]]; then
-        bash "./dev/build.sh" \
-            --from "dev-container/terminal" \
-            --image-tag "$IMAGE_TAG" \
-            --user "$USER" \
-            "$@"
-    fi
-
-    if [[ -f "./tools/build.sh" ]]; then
-        bash "./tools/build.sh" \
-            --from "dev-container/dev" \
-            --image-tag "$IMAGE_TAG" \
-            --user "$USER" \
-            "$@"
-    fi
-
-    docker build . \
-        -t "dev-container/main:$IMAGE_TAG" \
-        --build-arg "from=dev-container/tools:$IMAGE_TAG"
+    bash ./finish/build.sh \
+        --from "dev-container/tools" \
+        --image "dev-container/main" \
+        --image-tag "$IMAGE_TAG" \
+        "$@"
 
     [[ ! -d "$HOME/Projects" ]] && mkdir -p "$HOME/Projects"
 
-    docker run -d \
+    docker run \
+        -d \
         --privileged \
         --init \
         --shm-size=2g \

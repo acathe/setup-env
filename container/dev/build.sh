@@ -2,7 +2,6 @@
 
 set -euo pipefail
 
-FROM="${FROM:-"dev-container/terminal"}"
 IMAGE_TAG="${IMAGE_TAG:-"latest"}"
 DEV_BASH="${DEV_BASH:-false}"
 DEV_CPP="${DEV_CPP:-false}"
@@ -14,15 +13,6 @@ parse_args() {
     POSITIONAL=()
     while (($# > 0)); do
         case "$1" in
-            --from)
-                numOfArgs=1 # number of switch arguments
-                if (($# < numOfArgs + 1)); then
-                    shift $#
-                else
-                    FROM="$2"
-                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
-                fi
-                ;;
             --image-tag)
                 numOfArgs=1 # number of switch arguments
                 if (($# < numOfArgs + 1)); then
@@ -61,34 +51,63 @@ parse_args() {
 }
 
 main() {
-    if $DEV_BASH && [[ -f "./bash/build.sh" ]]; then
-        bash ./bash/build.sh --from "$FROM" --image-tag "$IMAGE_TAG" "$@"
-        FROM="dev-container/dev/bash"
+    from="dev-container/terminal"
+
+    if $DEV_BASH; then
+        image="dev-container/dev/bash"
+        docker build \
+            -f ./bash/Dockerfile \
+            -t "$image:$IMAGE_TAG" \
+            --build-arg "from=$from:$IMAGE_TAG" \
+            ./bash
+        from="$image"
     fi
 
-    if false && $DEV_CPP && [[ -f "./cpp/build.sh" ]]; then
-        bash ./cpp/build.sh --from "$FROM" --image-tag "$IMAGE_TAG" "$@"
-        FROM="dev-container/dev/cpp"
+    if false && $DEV_CPP; then
+        image="dev-container/dev/cpp"
+        docker build \
+            -f ./cpp/Dockerfile \
+            -t "$image:$IMAGE_TAG" \
+            --build-arg "from=$from:$IMAGE_TAG" \
+            ./cpp
+        from="$image"
     fi
 
-    if $DEV_GO && [[ -f "./go/build.sh" ]]; then
-        bash ./go/build.sh --from "$FROM" --image-tag "$IMAGE_TAG" "$@"
-        FROM="dev-container/dev/go"
+    if $DEV_GO; then
+        image="dev-container/dev/go"
+        docker build \
+            -f ./go/Dockerfile \
+            -t "$image:$IMAGE_TAG" \
+            --build-arg "from=$from:$IMAGE_TAG" \
+            ./go
+        from="$image"
     fi
 
-    if $DEV_PYTHON && [[ -f "./python/build.sh" ]]; then
-        bash ./python/build.sh --from "$FROM" --image-tag "$IMAGE_TAG" "$@"
-        FROM="dev-container/dev/python"
+    if $DEV_PYTHON; then
+        image="dev-container/dev/python"
+        docker build \
+            -f ./python/Dockerfile \
+            -t "$image:$IMAGE_TAG" \
+            --build-arg "from=$from:$IMAGE_TAG" \
+            ./python
+        from="$image"
     fi
 
-    if $DEV_RUST && [[ -f "./rust/build.sh" ]]; then
-        bash ./rust/build.sh --from "$FROM" --image-tag "$IMAGE_TAG" "$@"
-        FROM="dev-container/dev/rust"
+    if $DEV_RUST; then
+        image="dev-container/dev/rust"
+        docker build \
+            -f ./rust/Dockerfile \
+            -t "$image:$IMAGE_TAG" \
+            --build-arg "from=$from:$IMAGE_TAG" \
+            ./rust
+        from="$image"
     fi
 
-    docker build . \
-        -t "dev-container/dev:$IMAGE_TAG" \
-        --build-arg "from=$FROM:$IMAGE_TAG"
+    bash ../finish/build.sh \
+        --from "$from" \
+        --image "dev-container/dev" \
+        --image-tag "$IMAGE_TAG" \
+        "$@"
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
