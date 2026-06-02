@@ -53,7 +53,7 @@ parse_args() {
 main() {
     from="dev-container/terminal"
 
-    if $DEV_BASH && [[ -f "./bash/build.sh" ]]; then
+    if $DEV_BASH; then
         image="dev-container/dev/bash"
         docker build \
             -f ./bash/Dockerfile \
@@ -63,7 +63,7 @@ main() {
         from="$image"
     fi
 
-    if false && $DEV_CPP && [[ -f "./cpp/build.sh" ]]; then
+    if false && $DEV_CPP; then
         image="dev-container/dev/cpp"
         docker build \
             -f ./cpp/Dockerfile \
@@ -73,7 +73,7 @@ main() {
         from="$image"
     fi
 
-    if $DEV_GO && [[ -f "./go/build.sh" ]]; then
+    if $DEV_GO; then
         image="dev-container/dev/go"
         docker build \
             -f ./go/Dockerfile \
@@ -83,7 +83,7 @@ main() {
         from="$image"
     fi
 
-    if $DEV_PYTHON && [[ -f "./python/build.sh" ]]; then
+    if $DEV_PYTHON; then
         image="dev-container/dev/python"
         docker build \
             -f ./python/Dockerfile \
@@ -93,7 +93,7 @@ main() {
         from="$image"
     fi
 
-    if $DEV_RUST && [[ -f "./rust/build.sh" ]]; then
+    if $DEV_RUST; then
         image="dev-container/dev/rust"
         docker build \
             -f ./rust/Dockerfile \

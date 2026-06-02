@@ -47,21 +47,10 @@ parse_args() {
 }
 
 main() {
-    if [[ -f "./base/build.sh" ]]; then
-        bash "./base/build.sh" --image-tag "$IMAGE_TAG" --user "$USER" "$@"
-    fi
-
-    if [[ -f "./terminal/build.sh" ]]; then
-        bash "./terminal/build.sh" --image-tag "$IMAGE_TAG" --user "$USER" "$@"
-    fi
-
-    if [[ -f "./dev/build.sh" ]]; then
-        bash "./dev/build.sh" --image-tag "$IMAGE_TAG" "$@"
-    fi
-
-    if [[ -f "./tools/build.sh" ]]; then
-        bash "./tools/build.sh" --image-tag "$IMAGE_TAG" "$@"
-    fi
+    bash "./base/build.sh" --image-tag "$IMAGE_TAG" --user "$USER" "$@"
+    bash "./terminal/build.sh" --image-tag "$IMAGE_TAG" --user "$USER" "$@"
+    bash "./dev/build.sh" --image-tag "$IMAGE_TAG" "$@"
+    bash "./tools/build.sh" --image-tag "$IMAGE_TAG" "$@"
 
     bash ./finish/build.sh \
         --from "dev-container/tools" \

@@ -38,7 +38,7 @@ parse_args() {
 main() {
     from="dev-container/dev"
 
-    if $TOOLS_PROTOBUF && [[ -f "./protobuf/build.sh" ]]; then
+    if $TOOLS_PROTOBUF; then
         image="dev-container/tools/protobuf"
         docker build \
             -f ./protobuf/Dockerfile \
@@ -48,7 +48,7 @@ main() {
         from="$image"
     fi
 
-    if $TOOLS_THRIFT && [[ -f "./thrift/build.sh" ]]; then
+    if $TOOLS_THRIFT; then
         image="dev-container/tools/thrift"
         docker build \
             -f ./thrift/Dockerfile \
