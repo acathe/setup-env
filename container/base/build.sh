@@ -2,6 +2,7 @@
 
 set -euo pipefail
 
+IMAGE_TAG="${IMAGE_TAG:-"latest"}"
 USER="${USER:-}"
 ENCODING="${LANG#*.}"
 LANG="${LANG%.*}"
@@ -12,6 +13,15 @@ parse_args() {
     POSITIONAL=()
     while (($# > 0)); do
         case "$1" in
+            --image-tag)
+                numOfArgs=1 # number of switch arguments
+                if (($# < numOfArgs + 1)); then
+                    shift $#
+                else
+                    IMAGE_TAG="$2"
+                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
+                fi
+                ;;
             --user)
                 numOfArgs=1 # number of switch arguments
                 if (($# < numOfArgs + 1)); then
@@ -67,7 +77,7 @@ parse_args() {
 
 main() {
     docker build . \
-        -t dev-container/base \
+        -t "dev-container/base:$IMAGE_TAG" \
         --build-arg "user=$USER" \
         --build-arg "lang=$LANG" \
         --build-arg "encoding=$ENCODING" \

@@ -2,12 +2,33 @@
 
 set -euo pipefail
 
+IMAGE_TAG="${IMAGE_TAG:-"latest"}"
+CONTAINER="${CONTAINER:-"dev-container"}"
 USER="${USER:-}"
 
 parse_args() {
     POSITIONAL=()
     while (($# > 0)); do
         case "$1" in
+            --image-tag)
+                numOfArgs=1 # number of switch arguments
+                if (($# < numOfArgs + 1)); then
+                    shift $#
+                else
+                    IMAGE_TAG="$2"
+                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
+                fi
+                ;;
+            --container)
+                numOfArgs=1 # number of switch arguments
+                if (($# < numOfArgs + 1)); then
+                    shift $#
+                else
+                    CONTAINER="$2"
+                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
+                fi
+                ;;
+
             --user)
                 numOfArgs=1 # number of switch arguments
                 if (($# < numOfArgs + 1)); then
@@ -26,36 +47,42 @@ parse_args() {
 }
 
 main() {
-    [[ -f "./base/build.sh" ]] \
-        && bash "./base/build.sh" --user "$USER" "$@"
+    if [[ -f "./base/build.sh" ]]; then
+        bash "./base/build.sh" --image-tag "$IMAGE_TAG" --user "$USER" "$@"
+    fi
 
-    [[ -f "./terminal/build.sh" ]] \
-        && bash "./terminal/build.sh" --user "$USER" "$@"
+    if [[ -f "./terminal/build.sh" ]]; then
+        bash "./terminal/build.sh" --image-tag "$IMAGE_TAG" --user "$USER" "$@"
+    fi
 
-    [[ -f "./dev/build.sh" ]] \
-        && bash "./dev/build.sh" \
+    if [[ -f "./dev/build.sh" ]]; then
+        bash "./dev/build.sh" \
+            --from "dev-container/terminal" \
+            --image-tag "$IMAGE_TAG" \
             --user "$USER" \
-            --from "dev-container/terminal:latest" \
             "$@"
+    fi
 
-    [[ -f "./tools/build.sh" ]] \
-        && bash "./tools/build.sh" \
+    if [[ -f "./tools/build.sh" ]]; then
+        bash "./tools/build.sh" \
+            --from "dev-container/dev" \
+            --image-tag "$IMAGE_TAG" \
             --user "$USER" \
-            --from "dev-container/dev:latest" \
             "$@"
+    fi
 
     docker build . \
-        -t dev-container/main \
-        --build-arg "from=dev-container/tools:latest"
+        -t "dev-container/main:$IMAGE_TAG" \
+        --build-arg "from=dev-container/tools:$IMAGE_TAG"
 
     [[ ! -d "$HOME/Projects" ]] && mkdir -p "$HOME/Projects"
 
     docker run -d \
         --privileged \
         --init \
-        --name dev-container \
+        --name "$CONTAINER" \
         -v "$HOME/Projects:/home/$USER/Projects" \
-        dev-container/main
+        "dev-container/main:$IMAGE_TAG"
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then

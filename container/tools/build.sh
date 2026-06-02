@@ -2,7 +2,8 @@
 
 set -euo pipefail
 
-FROM="${FROM:-"dev-container/terminal:latest"}"
+FROM="${FROM:-"dev-container/terminal"}"
+IMAGE_TAG="${IMAGE_TAG:-"latest"}"
 TOOLS_PROTOBUF="${TOOLS_PROTOBUF:-false}"
 TOOLS_THRIFT="${TOOLS_THRIFT:-false}"
 
@@ -16,6 +17,15 @@ parse_args() {
                     shift $#
                 else
                     FROM="$2"
+                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
+                fi
+                ;;
+            --image-tag)
+                numOfArgs=1 # number of switch arguments
+                if (($# < numOfArgs + 1)); then
+                    shift $#
+                else
+                    IMAGE_TAG="$2"
                     shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
                 fi
                 ;;
@@ -37,18 +47,18 @@ parse_args() {
 
 main() {
     if $TOOLS_PROTOBUF && [[ -f "./protobuf/build.sh" ]]; then
-        bash ./protobuf/build.sh --from "$FROM" "$@"
-        FROM="dev-container/tools/protobuf:latest"
+        bash ./protobuf/build.sh --from "$FROM" --image-tag "$IMAGE_TAG" "$@"
+        FROM="dev-container/tools/protobuf"
     fi
 
     if false && $TOOLS_THRIFT && [[ -f "./thrift/build.sh" ]]; then
-        bash ./thrift/build.sh --from "$FROM" "$@"
-        FROM="dev-container/tools/thrift:latest"
+        bash ./thrift/build.sh --from "$FROM" --image-tag "$IMAGE_TAG" "$@"
+        FROM="dev-container/tools/thrift"
     fi
 
     docker build . \
-        -t dev-container/tools \
-        --build-arg "from=$FROM"
+        -t "dev-container/tools:$IMAGE_TAG" \
+        --build-arg "from=$FROM:$IMAGE_TAG"
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then

@@ -1,4 +1,6 @@
-FROM dev-container/base:latest
+ARG from=dev-container/base:latest
+
+FROM ${from}
 
 ARG user
 ARG git_user_name
