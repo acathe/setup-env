@@ -7,15 +7,18 @@ main() {
         xcode-select --install
     fi
 
-    [[ -f "./terminal/homebrew.sh" ]] \
-        && bash "./terminal/homebrew.sh" "$@"
+    if [[ -f "./terminal/homebrew.sh" ]]; then
+        bash "./terminal/homebrew.sh" "$@"
+        eval "$(/opt/homebrew/bin/brew shellenv)"
+    fi
 
-    [[ -f "./terminal/omz.sh" ]] \
-        && bash "./terminal/omz.sh" "$@"
+    if [[ -f "./terminal/omz.sh" ]]; then
+        bash "./terminal/omz.sh" "$@"
+    fi
 
-    [[ -f "./brew_bundle/Brewfile" ]] \
-        && eval "$(/opt/homebrew/bin/brew shellenv)" \
-        && brew bundle --file="./brew_bundle/Brewfile"
+    if [[ -f "./app/Brewfile" ]]; then
+        brew bundle --file="./app/Brewfile"
+    fi
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
