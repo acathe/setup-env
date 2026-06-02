@@ -56,20 +56,23 @@ main() {
     fi
 
     if [[ -f "./dev/build.sh" ]]; then
-        bash "./dev/build.sh" --image-tag "$IMAGE_TAG" --user "$USER" "$@"
+        bash "./dev/build.sh" --image-tag "$IMAGE_TAG" "$@"
     fi
 
     if [[ -f "./tools/build.sh" ]]; then
-        bash "./tools/build.sh" --image-tag "$IMAGE_TAG" --user "$USER" "$@"
+        bash "./tools/build.sh" --image-tag "$IMAGE_TAG" "$@"
     fi
 
-    docker build . \
-        -t "dev-container/main:$IMAGE_TAG" \
-        --build-arg "from=dev-container/tools:$IMAGE_TAG"
+    bash ./finish/build.sh \
+        --from "dev-container/tools" \
+        --image "dev-container/main" \
+        --image-tag "$IMAGE_TAG" \
+        "$@"
 
     [[ ! -d "$HOME/Projects" ]] && mkdir -p "$HOME/Projects"
 
-    docker run -d \
+    docker run \
+        -d \
         --privileged \
         --init \
         --shm-size=2g \

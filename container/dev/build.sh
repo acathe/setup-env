@@ -55,52 +55,59 @@ main() {
 
     if $DEV_BASH && [[ -f "./bash/build.sh" ]]; then
         image="dev-container/dev/bash"
-        docker build ./bash \
+        docker build \
             -f ./bash/Dockerfile \
             -t "$image:$IMAGE_TAG" \
-            --build-arg "from=$from:$IMAGE_TAG"
+            --build-arg "from=$from:$IMAGE_TAG" \
+            ./bash
         from="$image"
     fi
 
     if false && $DEV_CPP && [[ -f "./cpp/build.sh" ]]; then
         image="dev-container/dev/cpp"
-        docker build ./cpp \
+        docker build \
             -f ./cpp/Dockerfile \
             -t "$image:$IMAGE_TAG" \
-            --build-arg "from=$from:$IMAGE_TAG"
+            --build-arg "from=$from:$IMAGE_TAG" \
+            ./cpp
         from="$image"
     fi
 
     if $DEV_GO && [[ -f "./go/build.sh" ]]; then
         image="dev-container/dev/go"
-        docker build ./go \
+        docker build \
             -f ./go/Dockerfile \
             -t "$image:$IMAGE_TAG" \
-            --build-arg "from=$from:$IMAGE_TAG"
+            --build-arg "from=$from:$IMAGE_TAG" \
+            ./go
         from="$image"
     fi
 
     if $DEV_PYTHON && [[ -f "./python/build.sh" ]]; then
         image="dev-container/dev/python"
-        docker build ./python \
+        docker build \
             -f ./python/Dockerfile \
             -t "$image:$IMAGE_TAG" \
-            --build-arg "from=$from:$IMAGE_TAG"
+            --build-arg "from=$from:$IMAGE_TAG" \
+            ./python
         from="$image"
     fi
 
     if $DEV_RUST && [[ -f "./rust/build.sh" ]]; then
         image="dev-container/dev/rust"
-        docker build ./rust \
+        docker build \
             -f ./rust/Dockerfile \
             -t "$image:$IMAGE_TAG" \
-            --build-arg "from=$from:$IMAGE_TAG"
+            --build-arg "from=$from:$IMAGE_TAG" \
+            ./rust
         from="$image"
     fi
 
-    docker build . \
-        -t "dev-container/dev:$IMAGE_TAG" \
-        --build-arg "from=$from:$IMAGE_TAG"
+    bash ../finish/build.sh \
+        --from "$from" \
+        --image "dev-container/dev" \
+        --image-tag "$IMAGE_TAG" \
+        "$@"
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then

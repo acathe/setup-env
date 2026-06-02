@@ -40,25 +40,29 @@ main() {
 
     if $TOOLS_PROTOBUF && [[ -f "./protobuf/build.sh" ]]; then
         image="dev-container/tools/protobuf"
-        docker build ./protobuf \
+        docker build \
             -f ./protobuf/Dockerfile \
             -t "$image:$IMAGE_TAG" \
-            --build-arg "from=$from:$IMAGE_TAG"
+            --build-arg "from=$from:$IMAGE_TAG" \
+            ./protobuf
         from="$image"
     fi
 
     if $TOOLS_THRIFT && [[ -f "./thrift/build.sh" ]]; then
         image="dev-container/tools/thrift"
-        docker build ./thrift \
+        docker build \
             -f ./thrift/Dockerfile \
             -t "$image:$IMAGE_TAG" \
-            --build-arg "from=$from:$IMAGE_TAG"
+            --build-arg "from=$from:$IMAGE_TAG" \
+            ./thrift
         from="$image"
     fi
 
-    docker build . \
-        -t "dev-container/tools:$IMAGE_TAG" \
-        --build-arg "from=$from:$IMAGE_TAG"
+    bash ../finish/build.sh \
+        --from "$from" \
+        --image "dev-container/tools" \
+        --image-tag "$IMAGE_TAG" \
+        "$@"
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
