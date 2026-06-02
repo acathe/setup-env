@@ -1,3 +1,3 @@
-ARG from=dev-container/terminal:latest
+ARG from=dev-container/dev:latest
 
 FROM ${from}

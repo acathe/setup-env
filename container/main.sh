@@ -56,19 +56,11 @@ main() {
     fi
 
     if [[ -f "./dev/build.sh" ]]; then
-        bash "./dev/build.sh" \
-            --from "dev-container/terminal" \
-            --image-tag "$IMAGE_TAG" \
-            --user "$USER" \
-            "$@"
+        bash "./dev/build.sh" --image-tag "$IMAGE_TAG" --user "$USER" "$@"
     fi
 
     if [[ -f "./tools/build.sh" ]]; then
-        bash "./tools/build.sh" \
-            --from "dev-container/dev" \
-            --image-tag "$IMAGE_TAG" \
-            --user "$USER" \
-            "$@"
+        bash "./tools/build.sh" --image-tag "$IMAGE_TAG" --user "$USER" "$@"
     fi
 
     docker build . \
