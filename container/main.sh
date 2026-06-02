@@ -51,6 +51,8 @@ main() {
     [[ ! -d "$HOME/Projects" ]] && mkdir -p "$HOME/Projects"
 
     docker run -d \
+        --privileged \
+        --init \
         --name dev-container \
         -v "$HOME/Projects:/home/$USER/Projects" \
         dev-container/main

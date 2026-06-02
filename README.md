@@ -13,8 +13,8 @@ bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master
 ## 2. Debian
 
 ```shell
-sudo apt update \
-&& sudo apt install -y curl \
+sudo apt-get update \
+&& sudo apt-get install -y curl \
 && bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master/main.sh")" -- --setup debian
 ```
 

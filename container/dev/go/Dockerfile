@@ -8,9 +8,8 @@ RUN go_version="$(curl -fsSL 'https://go.dev/dl/?mode=json' | grep -o 'go.*.linu
     && rm -f "/tmp/$go_version"
 
 RUN export PATH="/usr/local/go/bin:$PATH" \
-    && go env -w GOPATH="$HOME/Projects/golang" \
     && echo >> "$HOME/.zshrc" \
-    && echo '# Golang' >> "$HOME/.zshrc" \
+    && echo '# Go' >> "$HOME/.zshrc" \
     && echo 'export PATH="$PATH:/usr/local/go/bin"' >> "$HOME/.zshrc" \
-    && echo 'export PATH="$(go env GOPATH)/bin:$PATH"' >> "$HOME/.zshrc" \
+    && echo 'export PATH="$HOME/go/bin:$PATH"' >> "$HOME/.zshrc" \
     && sed -i '/^plugins=(/s/)/ golang)/' "$HOME/.zshrc"

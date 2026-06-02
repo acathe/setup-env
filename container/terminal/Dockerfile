@@ -5,7 +5,7 @@ ARG git_user_name
 ARG git_user_email
 
 RUN sudo apt-get update \
-    && sudo apt-get install -y zsh git curl \
+    && sudo apt-get install -y zsh git curl build-essential \
     && sudo rm -rf /var/lib/apt/lists/*
 
 RUN tmpfile="$(mktemp)" \

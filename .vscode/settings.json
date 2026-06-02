@@ -1,0 +1,126 @@
+{
+    "[dockercompose]": {
+        "editor.defaultFormatter": "redhat.vscode-yaml"
+    },
+    "[github-actions-workflow]": {
+        "editor.defaultFormatter": "redhat.vscode-yaml"
+    },
+    "[markdown]": {
+        "editor.defaultFormatter": "DavidAnson.vscode-markdownlint"
+    },
+    "[python]": {
+        "editor.codeActionsOnSave": {
+            "source.fixAll": "explicit",
+            "source.organizeImports": "explicit"
+        }
+    },
+    "[shellscript]": {
+        "editor.rulers": [
+            80
+        ]
+    },
+    "bashIde.enableSourceErrorDiagnostics": true,
+    "bashIde.shfmt.binaryNextLine": true,
+    "bashIde.shfmt.caseIndent": true,
+    "bashIde.shfmt.simplifyCode": true,
+    "bashIde.shfmt.spaceRedirects": true,
+    "cmake.pinnedCommands": [
+        "workbench.action.tasks.configureTaskRunner",
+        "workbench.action.tasks.runTask"
+    ],
+    "diffEditor.ignoreTrimWhitespace": false,
+    "docker.extension.enableComposeLanguageServer": true,
+    "editor.fontFamily": "Fira Code",
+    "editor.fontLigatures": true,
+    "editor.formatOnSave": true,
+    "editor.rulers": [
+        120
+    ],
+    "editor.semanticTokenColorCustomizations": {
+        "rules": {
+            "method:rust": {
+                "bold": true
+            },
+            "parameter:rust": {
+                "italic": true
+            }
+        }
+    },
+    "editor.unicodeHighlight.allowedLocales": {
+        "zh-hans": true
+    },
+    "errorLens.excludeBySource": [
+        "cSpell"
+    ],
+    "files.readonlyInclude": {
+        "**/.cargo/git/**": true,
+        "**/.cargo/registry/**": true,
+        "**/.rustup/**": true,
+        "**/go/pkg/mod/**": true,
+        "**/lib/python*/**": true,
+        "**/sdk/go*/src/**": true,
+        "**/typeshed-fallback/**": true,
+        "/usr/include/**": true,
+        "/usr/lib/gcc/**": true,
+        "/usr/lib64/gcc/**": true,
+        "/usr/local/go/src/**": true,
+        "/usr/local/include/**": true
+    },
+    "git.autofetch": true,
+    "git.confirmSync": false,
+    "git.enableSmartCommit": true,
+    "github.copilot.chat.localeOverride": "zh-CN",
+    "go.inlayHints.assignVariableTypes": true,
+    "go.inlayHints.compositeLiteralFields": true,
+    "go.inlayHints.compositeLiteralTypes": true,
+    "go.inlayHints.constantValues": true,
+    "go.inlayHints.functionTypeParameters": true,
+    "go.inlayHints.ignoredError": true,
+    "go.inlayHints.parameterNames": true,
+    "go.inlayHints.rangeVariableTypes": true,
+    "go.toolsManagement.autoUpdate": true,
+    "gopls": {
+        "ui.semanticTokens": true,
+        "ui.semanticTokenTypes": {
+            "number": false,
+            "string": false
+        }
+    },
+    "markdown-preview-enhanced.codeBlockTheme": "one-dark.css",
+    "markdown-preview-enhanced.previewTheme": "one-dark.css",
+    "markdown.extension.toc.levels": "2..6",
+    "oneDarkPro.bold": true,
+    "python.analysis.autoImportCompletions": true,
+    "python.analysis.completeFunctionParens": true,
+    "python.analysis.extraCommitChars": true,
+    "python.analysis.includeAliasesFromUserFiles": true,
+    "python.analysis.inlayHints.callArgumentNames": "partial",
+    "python.analysis.inlayHints.functionReturnTypes": true,
+    "python.analysis.inlayHints.pytestParameters": true,
+    "python.analysis.inlayHints.variableTypes": true,
+    "python.analysis.languageServerMode": "full",
+    "python.analysis.regenerateStdLibIndices": true,
+    "python.analysis.showOnlyDirectDependenciesInAutoImport": true,
+    "python.analysis.typeCheckingMode": "standard",
+    "python.analysis.typeEvaluation.deprecateTypingAliases": true,
+    "python.analysis.typeEvaluation.disableBytesTypePromotions": true,
+    "python.analysis.typeEvaluation.enableReachabilityAnalysis": true,
+    "python.analysis.typeEvaluation.strictDictionaryInference": true,
+    "python.analysis.typeEvaluation.strictListInference": true,
+    "python.analysis.typeEvaluation.strictSetInference": true,
+    "python.analysis.userFileIndexingLimit": -1,
+    "redhat.telemetry.enabled": false,
+    "remote.autoForwardPortsSource": "hybrid",
+    "ruff.configuration": "~/.config/Beslogic/ruff.toml",
+    "terminal.integrated.fontFamily": "MesloLGS NF",
+    "thriftFormatter.patchRequired": false,
+    "workbench.colorTheme": "One Dark Pro",
+    "workbench.iconTheme": "material-icon-theme",
+    "workbench.tree.indent": 22,
+    "yaml.schemas": {
+        "https://raw.githubusercontent.com/docker/vscode-extension/6a88caada42b57090df7ce91ec2a6561b422afe1/misc/empty.json": [
+            "compose*y*ml",
+            "docker-compose*y*ml"
+        ]
+    }
+}
