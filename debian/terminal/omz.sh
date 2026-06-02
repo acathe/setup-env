@@ -22,7 +22,7 @@ install_omz() {
         cat "$HOME/.zshrc" >> "$HOME/.zshrc.pre-oh-my-zsh"
         mv "$HOME/.zshrc.pre-oh-my-zsh" "$HOME/.zshrc"
     elif [[ -f "$HOME/.zshrc.pre-oh-my-zsh" ]]; then
-        rm "$HOME/.zshrc.pre-oh-my-zsh"
+        rm -f "$HOME/.zshrc.pre-oh-my-zsh"
     fi
 }
 
@@ -32,7 +32,7 @@ install_plugin() {
         return 1
     fi
 
-    sed -i 's/^plugins=(.*)/plugins=(z sudo vscode)/' "$HOME/.zshrc"
+    sed -i 's/^plugins=(.*)/plugins=(z sudo)/' "$HOME/.zshrc"
 
     # Ref. https://github.com/Pilaton/OhMyZsh-full-autoupdate?tab=readme-ov-file#installing
     git clone "https://github.com/Pilaton/OhMyZsh-full-autoupdate.git" "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/ohmyzsh-full-autoupdate"
@@ -56,13 +56,13 @@ remove_preshell() {
         return 0
     fi
 
-    rm "$HOME/.shell.pre-oh-my-zsh"
+    rm -f "$HOME/.shell.pre-oh-my-zsh"
 
     sed -i "/export PATH=\$HOME\/bin:\$HOME\/\.local\/bin:\/usr\/local\/bin:\$PATH/s/^# //" "$HOME/.zshrc"
 
-    [[ -f "$HOME/.profile" ]] && rm "$HOME/.profile"
-    [[ -f "$HOME/.bashrc" ]] && rm "$HOME/.bashrc"
-    [[ -f "$HOME/.bash_logout" ]] && rm "$HOME/.bash_logout"
+    [[ -f "$HOME/.profile" ]] && rm -f "$HOME/.profile"
+    [[ -f "$HOME/.bashrc" ]] && rm -f "$HOME/.bashrc"
+    [[ -f "$HOME/.bash_logout" ]] && rm -f "$HOME/.bash_logout"
 }
 
 main() {

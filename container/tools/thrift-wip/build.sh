@@ -2,7 +2,8 @@
 
 set -euo pipefail
 
-FROM="${FROM:-"dev-container/terminal:latest"}"
+FROM="${FROM:-"dev-container/terminal"}"
+IMAGE_TAG="${IMAGE_TAG:-"latest"}"
 THRIFT_VERSION="${THRIFT_VERSION:-"$(curl -s 'https://downloads.apache.org/thrift/' | grep -oP '(?<=href=")[0-9.]+(?=/")' | sort -V | tail -n1)"}"
 
 parse_args() {
@@ -15,6 +16,15 @@ parse_args() {
                     shift $#
                 else
                     FROM="$2"
+                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
+                fi
+                ;;
+            --image-tag)
+                numOfArgs=1 # number of switch arguments
+                if (($# < numOfArgs + 1)); then
+                    shift $#
+                else
+                    IMAGE_TAG="$2"
                     shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
                 fi
                 ;;
@@ -37,8 +47,8 @@ parse_args() {
 
 main() {
     docker build . \
-        -t dev-container/tools/thrift \
-        --build-arg "from=$FROM" \
+        -t "dev-container/tools/thrift:$IMAGE_TAG" \
+        --build-arg "from=$FROM:$IMAGE_TAG" \
         --build-arg "thrift_version=$THRIFT_VERSION"
 }
 

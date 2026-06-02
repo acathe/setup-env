@@ -1,11 +1,13 @@
-FROM dev-container/base:latest
+ARG from=dev-container/base:latest
+
+FROM ${from}
 
 ARG user
 ARG git_user_name
 ARG git_user_email
 
 RUN sudo apt-get update \
-    && sudo apt-get install -y zsh git curl \
+    && sudo apt-get install -y zsh git curl build-essential \
     && sudo rm -rf /var/lib/apt/lists/*
 
 RUN tmpfile="$(mktemp)" \
@@ -34,8 +36,8 @@ RUN sed -i "/export PATH=\$HOME\/bin:\$HOME\/\.local\/bin:\/usr\/local\/bin:\$PA
     && echo '# To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.' >> "$HOME/.zshrc" \
     && echo '[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh' >> "$HOME/.zshrc" \
     && sudo -n usermod -s "$(command -v zsh)" "$(whoami)" \
-    && rm "$HOME/.profile" \
-    && rm "$HOME/.bashrc" \
-    && rm "$HOME/.bash_logout"
+    && rm -f "$HOME/.profile" \
+    && rm -f "$HOME/.bashrc" \
+    && rm -f "$HOME/.bash_logout"
 
 SHELL ["/usr/bin/zsh", "-c"]
