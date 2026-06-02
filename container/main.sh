@@ -80,6 +80,7 @@ main() {
     docker run -d \
         --privileged \
         --init \
+        --shm-size=2g \
         --name "$CONTAINER" \
         -v "$HOME/Projects:/home/$USER/Projects" \
         "dev-container/main:$IMAGE_TAG"
