@@ -72,6 +72,7 @@ main() {
     bash "$tmpdir/$SETUP/main.sh" "$@"
 }
 
+# Entry point
 parse_args "$@"
 set -- "${POSITIONAL[@]+"${POSITIONAL[@]}"}" # restore positional params
 main "$@"
