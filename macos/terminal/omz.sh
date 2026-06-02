@@ -17,7 +17,7 @@ install_omz() {
         cat "$HOME/.zshrc" >> "$HOME/.zshrc.pre-oh-my-zsh"
         mv "$HOME/.zshrc.pre-oh-my-zsh" "$HOME/.zshrc"
     elif [[ -f "$HOME/.zshrc.pre-oh-my-zsh" ]]; then
-        rm "$HOME/.zshrc.pre-oh-my-zsh"
+        rm -f "$HOME/.zshrc.pre-oh-my-zsh"
     fi
 }
 
