@@ -8,8 +8,13 @@
 
 ```shell
 bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master/main.sh")" -- \
-    --setup macos
+    --setup macos \
+    [<app>...]
 ```
+
+| Apps         | Description                                                               |
+| ------------ | ------------------------------------------------------------------------- |
+| --app-vscode | Install Visual Studio Code with Fira Code font and the zsh vscode plugin. |
 
 ## 2. Debian
 
