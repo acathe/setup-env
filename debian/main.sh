@@ -2,13 +2,36 @@
 
 set -euo pipefail
 
+APP_DOCKER="${APP_DOCKER:-false}"
+
+parse_args() {
+    POSITIONAL=()
+    while (($# > 0)); do
+        case "$1" in
+            --app-docker)
+                APP_DOCKER=true
+                shift # shift once since flags have no values
+                ;;
+            *) # unknown flag/switch
+                POSITIONAL+=("$1")
+                shift
+                ;;
+        esac
+    done
+}
+
 main() {
     bash "./terminal/zsh.sh" "$@"
     bash "./terminal/omz.sh" "$@"
-    bash "./app/docker.sh" "$@"
+
+    if $APP_DOCKER; then
+        bash "./app/docker.sh" "$@"
+    fi
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
     cd "$(dirname "${BASH_SOURCE[0]}")"
+    parse_args "$@"
+    set -- "${POSITIONAL[@]}" # restore positional params
     main "$@"
 fi

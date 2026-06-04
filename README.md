@@ -22,8 +22,13 @@ bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master
 sudo apt-get update \
     && sudo apt-get install -y curl \
     && bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master/main.sh")" -- \
-        --setup debian
+        --setup debian \
+        [<app>...]
 ```
+
+| Apps         | Description                                                         |
+| ------------ | ------------------------------------------------------------------- |
+| --app-docker | Install Docker Engine and add the current user to the docker group. |
 
 ## 3. Container
 
