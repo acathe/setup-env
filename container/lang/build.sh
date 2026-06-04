@@ -56,10 +56,10 @@ main() {
     if $LANG_BASH; then
         image="dev-container/lang/bash"
         docker build \
-            -f ./bash/Dockerfile \
+            -f ./bash.dockerfile \
             -t "$image:$IMAGE_TAG" \
             --build-arg "from=$from:$IMAGE_TAG" \
-            ./bash
+            .
         from="$image"
     fi
 
@@ -76,30 +76,30 @@ main() {
     if $LANG_GO; then
         image="dev-container/lang/go"
         docker build \
-            -f ./go/Dockerfile \
+            -f ./go.dockerfile \
             -t "$image:$IMAGE_TAG" \
             --build-arg "from=$from:$IMAGE_TAG" \
-            ./go
+            .
         from="$image"
     fi
 
     if $LANG_PYTHON; then
         image="dev-container/lang/python"
         docker build \
-            -f ./python/Dockerfile \
+            -f ./python.dockerfile \
             -t "$image:$IMAGE_TAG" \
             --build-arg "from=$from:$IMAGE_TAG" \
-            ./python
+            .
         from="$image"
     fi
 
     if $LANG_RUST; then
         image="dev-container/lang/rust"
         docker build \
-            -f ./rust/Dockerfile \
+            -f ./rust.dockerfile \
             -t "$image:$IMAGE_TAG" \
             --build-arg "from=$from:$IMAGE_TAG" \
-            ./rust
+            .
         from="$image"
     fi
 

@@ -41,20 +41,20 @@ main() {
     if $TOOLS_PROTOBUF; then
         image="dev-container/tools/protobuf"
         docker build \
-            -f ./protobuf/Dockerfile \
+            -f ./protobuf.dockerfile \
             -t "$image:$IMAGE_TAG" \
             --build-arg "from=$from:$IMAGE_TAG" \
-            ./protobuf
+            .
         from="$image"
     fi
 
     if $TOOLS_THRIFT; then
         image="dev-container/tools/thrift"
         docker build \
-            -f ./thrift/Dockerfile \
+            -f ./thrift.dockerfile \
             -t "$image:$IMAGE_TAG" \
             --build-arg "from=$from:$IMAGE_TAG" \
-            ./thrift
+            .
         from="$image"
     fi
 
