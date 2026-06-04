@@ -49,7 +49,7 @@ parse_args() {
 main() {
     bash "./base/build.sh" --image-tag "$IMAGE_TAG" --user "$USER" "$@"
     bash "./terminal/build.sh" --image-tag "$IMAGE_TAG" --user "$USER" "$@"
-    bash "./dev/build.sh" --image-tag "$IMAGE_TAG" "$@"
+    bash "./lang/build.sh" --image-tag "$IMAGE_TAG" "$@"
     bash "./tools/build.sh" --image-tag "$IMAGE_TAG" "$@"
 
     bash ./finish/build.sh \

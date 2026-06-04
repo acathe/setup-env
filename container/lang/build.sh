@@ -3,11 +3,11 @@
 set -euo pipefail
 
 IMAGE_TAG="${IMAGE_TAG:-"latest"}"
-DEV_BASH="${DEV_BASH:-false}"
-DEV_CPP="${DEV_CPP:-false}"
-DEV_GO="${DEV_GO:-false}"
-DEV_PYTHON="${DEV_PYTHON:-false}"
-DEV_RUST="${DEV_RUST:-false}"
+LANG_BASH="${LANG_BASH:-0}"
+LANG_CPP="${LANG_CPP:-0}"
+LANG_GO="${LANG_GO:-0}"
+LANG_PYTHON="${LANG_PYTHON:-0}"
+LANG_RUST="${LANG_RUST:-0}"
 
 parse_args() {
     POSITIONAL=()
@@ -22,24 +22,24 @@ parse_args() {
                     shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
                 fi
                 ;;
-            --dev-bash)
-                DEV_BASH=true
+            --lang-bash)
+                LANG_BASH=1
                 shift # shift once since flags have no values
                 ;;
-            --dev-cpp)
-                DEV_CPP=true
+            --lang-cpp)
+                LANG_CPP=1
                 shift
                 ;;
-            --dev-go)
-                DEV_GO=true
+            --lang-go)
+                LANG_GO=1
                 shift
                 ;;
-            --dev-python)
-                DEV_PYTHON=true
+            --lang-python)
+                LANG_PYTHON=1
                 shift
                 ;;
-            --dev-rust)
-                DEV_RUST=true
+            --lang-rust)
+                LANG_RUST=1
                 shift
                 ;;
             *) # unknown flag/switch
@@ -53,18 +53,18 @@ parse_args() {
 main() {
     from="dev-container/terminal"
 
-    if $DEV_BASH; then
-        image="dev-container/dev/bash"
+    if [[ $LANG_BASH == "1" ]]; then
+        image="dev-container/lang/bash"
         docker build \
-            -f ./bash/Dockerfile \
+            -f ./bash.dockerfile \
             -t "$image:$IMAGE_TAG" \
             --build-arg "from=$from:$IMAGE_TAG" \
-            ./bash
+            .
         from="$image"
     fi
 
-    if false && $DEV_CPP; then
-        image="dev-container/dev/cpp"
+    if false && [[ $LANG_CPP == "1" ]]; then
+        image="dev-container/lang/cpp"
         docker build \
             -f ./cpp/Dockerfile \
             -t "$image:$IMAGE_TAG" \
@@ -73,39 +73,39 @@ main() {
         from="$image"
     fi
 
-    if $DEV_GO; then
-        image="dev-container/dev/go"
+    if [[ $LANG_GO == "1" ]]; then
+        image="dev-container/lang/go"
         docker build \
-            -f ./go/Dockerfile \
+            -f ./go.dockerfile \
             -t "$image:$IMAGE_TAG" \
             --build-arg "from=$from:$IMAGE_TAG" \
-            ./go
+            .
         from="$image"
     fi
 
-    if $DEV_PYTHON; then
-        image="dev-container/dev/python"
+    if [[ $LANG_PYTHON == "1" ]]; then
+        image="dev-container/lang/python"
         docker build \
-            -f ./python/Dockerfile \
+            -f ./python.dockerfile \
             -t "$image:$IMAGE_TAG" \
             --build-arg "from=$from:$IMAGE_TAG" \
-            ./python
+            .
         from="$image"
     fi
 
-    if $DEV_RUST; then
-        image="dev-container/dev/rust"
+    if [[ $LANG_RUST == "1" ]]; then
+        image="dev-container/lang/rust"
         docker build \
-            -f ./rust/Dockerfile \
+            -f ./rust.dockerfile \
             -t "$image:$IMAGE_TAG" \
             --build-arg "from=$from:$IMAGE_TAG" \
-            ./rust
+            .
         from="$image"
     fi
 
     bash ../finish/build.sh \
         --from "$from" \
-        --image "dev-container/dev" \
+        --image "dev-container/lang" \
         --image-tag "$IMAGE_TAG" \
         "$@"
 }
