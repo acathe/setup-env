@@ -3,6 +3,7 @@
 - [1. MacOS](#1-macos)
 - [2. Debian](#2-debian)
 - [3. Container](#3-container)
+- [4. VSCode](#4-vscode)
 
 ## 1. MacOS
 
@@ -47,3 +48,13 @@ bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master
 | --lang-rust      |
 | --tools-protobuf |
 | --tools-thrift   |
+
+## 4. VSCode
+
+Install all extensions listed in [`vscode/extensions.txt`](./vscode/extensions.txt).
+Requires the `code` CLI to be available in `PATH`.
+
+```shell
+bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master/main.sh")" -- \
+    --setup vscode
+```
