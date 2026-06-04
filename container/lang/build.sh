@@ -3,11 +3,11 @@
 set -euo pipefail
 
 IMAGE_TAG="${IMAGE_TAG:-"latest"}"
-LANG_BASH="${LANG_BASH:-false}"
-LANG_CPP="${LANG_CPP:-false}"
-LANG_GO="${LANG_GO:-false}"
-LANG_PYTHON="${LANG_PYTHON:-false}"
-LANG_RUST="${LANG_RUST:-false}"
+LANG_BASH="${LANG_BASH:-0}"
+LANG_CPP="${LANG_CPP:-0}"
+LANG_GO="${LANG_GO:-0}"
+LANG_PYTHON="${LANG_PYTHON:-0}"
+LANG_RUST="${LANG_RUST:-0}"
 
 parse_args() {
     POSITIONAL=()
@@ -23,23 +23,23 @@ parse_args() {
                 fi
                 ;;
             --lang-bash)
-                LANG_BASH=true
+                LANG_BASH=1
                 shift # shift once since flags have no values
                 ;;
             --lang-cpp)
-                LANG_CPP=true
+                LANG_CPP=1
                 shift
                 ;;
             --lang-go)
-                LANG_GO=true
+                LANG_GO=1
                 shift
                 ;;
             --lang-python)
-                LANG_PYTHON=true
+                LANG_PYTHON=1
                 shift
                 ;;
             --lang-rust)
-                LANG_RUST=true
+                LANG_RUST=1
                 shift
                 ;;
             *) # unknown flag/switch
@@ -53,7 +53,7 @@ parse_args() {
 main() {
     from="dev-container/terminal"
 
-    if $LANG_BASH; then
+    if [[ $LANG_BASH == "1" ]]; then
         image="dev-container/lang/bash"
         docker build \
             -f ./bash.dockerfile \
@@ -63,7 +63,7 @@ main() {
         from="$image"
     fi
 
-    if false && $LANG_CPP; then
+    if false && [[ $LANG_CPP == "1" ]]; then
         image="dev-container/lang/cpp"
         docker build \
             -f ./cpp/Dockerfile \
@@ -73,7 +73,7 @@ main() {
         from="$image"
     fi
 
-    if $LANG_GO; then
+    if [[ $LANG_GO == "1" ]]; then
         image="dev-container/lang/go"
         docker build \
             -f ./go.dockerfile \
@@ -83,7 +83,7 @@ main() {
         from="$image"
     fi
 
-    if $LANG_PYTHON; then
+    if [[ $LANG_PYTHON == "1" ]]; then
         image="dev-container/lang/python"
         docker build \
             -f ./python.dockerfile \
@@ -93,7 +93,7 @@ main() {
         from="$image"
     fi
 
-    if $LANG_RUST; then
+    if [[ $LANG_RUST == "1" ]]; then
         image="dev-container/lang/rust"
         docker build \
             -f ./rust.dockerfile \

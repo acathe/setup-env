@@ -2,14 +2,14 @@
 
 set -euo pipefail
 
-APP_DOCKER="${APP_DOCKER:-false}"
+APP_DOCKER="${APP_DOCKER:-0}"
 
 parse_args() {
     POSITIONAL=()
     while (($# > 0)); do
         case "$1" in
             --app-docker)
-                APP_DOCKER=true
+                APP_DOCKER=1
                 shift # shift once since flags have no values
                 ;;
             *) # unknown flag/switch
@@ -24,7 +24,7 @@ main() {
     bash "./terminal/zsh.sh" "$@"
     bash "./terminal/omz.sh" "$@"
 
-    if $APP_DOCKER; then
+    if [[ $APP_DOCKER == "1" ]]; then
         bash "./app/docker.sh" "$@"
     fi
 }

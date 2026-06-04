@@ -2,14 +2,14 @@
 
 set -euo pipefail
 
-APP_VSCODE="${APP_VSCODE:-false}"
+APP_VSCODE="${APP_VSCODE:-0}"
 
 parse_args() {
     POSITIONAL=()
     while (($# > 0)); do
         case "$1" in
             --app-vscode)
-                APP_VSCODE=true
+                APP_VSCODE=1
                 shift # shift once since flags have no values
                 ;;
             *) # unknown flag/switch
@@ -30,7 +30,7 @@ main() {
 
     bash "./terminal/omz/main.sh" "$@"
 
-    if $APP_VSCODE; then
+    if [[ $APP_VSCODE == "1" ]]; then
         bash "./app/vscode/main.sh" "$@"
     fi
 }

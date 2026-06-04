@@ -3,8 +3,8 @@
 set -euo pipefail
 
 IMAGE_TAG="${IMAGE_TAG:-"latest"}"
-TOOLS_PROTOBUF="${TOOLS_PROTOBUF:-false}"
-TOOLS_THRIFT="${TOOLS_THRIFT:-false}"
+TOOLS_PROTOBUF="${TOOLS_PROTOBUF:-0}"
+TOOLS_THRIFT="${TOOLS_THRIFT:-0}"
 
 parse_args() {
     POSITIONAL=()
@@ -20,11 +20,11 @@ parse_args() {
                 fi
                 ;;
             --tools-protobuf)
-                TOOLS_PROTOBUF=true
+                TOOLS_PROTOBUF=1
                 shift # shift once since flags have no values
                 ;;
             --tools-thrift)
-                TOOLS_THRIFT=true
+                TOOLS_THRIFT=1
                 shift # shift once since flags have no values
                 ;;
             *) # unknown flag/switch
@@ -38,7 +38,7 @@ parse_args() {
 main() {
     from="dev-container/lang"
 
-    if $TOOLS_PROTOBUF; then
+    if [[ $TOOLS_PROTOBUF == "1" ]]; then
         image="dev-container/tools/protobuf"
         docker build \
             -f ./protobuf.dockerfile \
@@ -48,7 +48,7 @@ main() {
         from="$image"
     fi
 
-    if $TOOLS_THRIFT; then
+    if [[ $TOOLS_THRIFT == "1" ]]; then
         image="dev-container/tools/thrift"
         docker build \
             -f ./thrift.dockerfile \
