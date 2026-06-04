@@ -7,27 +7,33 @@
 ## 1. MacOS
 
 ```shell
-bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master/main.sh")" -- --setup macos
+bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master/main.sh")" -- \
+    --setup macos
 ```
 
 ## 2. Debian
 
 ```shell
 sudo apt-get update \
-&& sudo apt-get install -y curl \
-&& bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master/main.sh")" -- --setup debian
+    && sudo apt-get install -y curl \
+    && bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master/main.sh")" -- \
+        --setup debian
 ```
 
 ## 3. Container
 
 ```shell
-bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master/main.sh")" -- --git-user-name $your_name --git-user-email $your_email --[tools]
+bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master/main.sh")" -- \
+    --git-user-name $your_name \
+    --git-user-email $your_email \
+    [<tool>...]
 ```
 
-| Tools          |
-| -------------- |
-| --dev-bash     |
-| --dev-go       |
-| --dev-python   |
-| --dev-rust     |
-| --dev-protobuf |
+| Tools            |
+| ---------------- |
+| --lang-bash      |
+| --lang-go        |
+| --lang-python    |
+| --lang-rust      |
+| --tools-protobuf |
+| --tools-thrift   |

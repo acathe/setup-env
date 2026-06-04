@@ -36,7 +36,7 @@ parse_args() {
 }
 
 main() {
-    from="dev-container/dev"
+    from="dev-container/lang"
 
     if $TOOLS_PROTOBUF; then
         image="dev-container/tools/protobuf"
