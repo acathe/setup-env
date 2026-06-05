@@ -71,7 +71,7 @@
     "git.confirmSync": false,
     "git.enableSmartCommit": true,
     "github.copilot.chat.localeOverride": "zh-CN",
-    "github.copilot.selectedCompletionModel": "claude-opus-4.7-xhigh",
+    "github.copilot.selectedCompletionModel": "claude-opus-4.8",
     "go.inlayHints.assignVariableTypes": true,
     "go.inlayHints.compositeLiteralFields": true,
     "go.inlayHints.compositeLiteralTypes": true,
