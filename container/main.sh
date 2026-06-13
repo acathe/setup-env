@@ -60,11 +60,21 @@ main() {
 
     [[ ! -d "$HOME/Projects" ]] && mkdir -p "$HOME/Projects"
 
+    if docker container inspect "$CONTAINER" > /dev/null 2>&1; then
+        echo "Container '$CONTAINER' already exists." >&2
+        echo "Remove it (docker rm -f $CONTAINER) or pass --container <name>." >&2
+        return 1
+    fi
+
     docker run \
         -d \
         --privileged \
         --init \
+        --restart unless-stopped \
         --shm-size=2g \
+        --ulimit nofile=1048576:1048576 \
+        --tmpfs /tmp:exec \
+        --hostname "$CONTAINER" \
         --name "$CONTAINER" \
         -v "$HOME/Projects:/home/$USER/Projects" \
         "dev-container/main:$IMAGE_TAG"
