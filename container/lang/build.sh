@@ -4,7 +4,6 @@ set -euo pipefail
 
 IMAGE_TAG="${IMAGE_TAG:-"latest"}"
 LANG_BASH="${LANG_BASH:-0}"
-LANG_CPP="${LANG_CPP:-0}"
 LANG_GO="${LANG_GO:-0}"
 LANG_PYTHON="${LANG_PYTHON:-0}"
 LANG_RUST="${LANG_RUST:-0}"
@@ -25,10 +24,6 @@ parse_args() {
             --lang-bash)
                 LANG_BASH=1
                 shift # shift once since flags have no values
-                ;;
-            --lang-cpp)
-                LANG_CPP=1
-                shift
                 ;;
             --lang-go)
                 LANG_GO=1
@@ -60,16 +55,6 @@ main() {
             -t "$image:$IMAGE_TAG" \
             --build-arg "from=$from:$IMAGE_TAG" \
             .
-        from="$image"
-    fi
-
-    if false && [[ $LANG_CPP == "1" ]]; then
-        image="dev-container/lang/cpp"
-        docker build \
-            -f ./cpp/Dockerfile \
-            -t "$image:$IMAGE_TAG" \
-            --build-arg "from=$from:$IMAGE_TAG" \
-            ./cpp
         from="$image"
     fi
 

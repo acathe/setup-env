@@ -24,6 +24,8 @@
     "bashIde.shfmt.caseIndent": true,
     "bashIde.shfmt.simplifyCode": true,
     "bashIde.shfmt.spaceRedirects": true,
+    "chat.editing.confirmEditRequestRemoval": false,
+    "chat.permissions.default": "autopilot",
     "cmake.pinnedCommands": [
         "workbench.action.tasks.configureTaskRunner",
         "workbench.action.tasks.runTask"

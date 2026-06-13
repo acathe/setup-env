@@ -2,8 +2,8 @@
 
 set -euo pipefail
 
-BRANCH="${BRANCH:-master}"
-SETUP="${SETUP:-container}"
+BRANCH="${BRANCH:-"master"}"
+SETUP="${SETUP:-"container"}"
 
 parse_args() {
     POSITIONAL=()

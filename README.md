@@ -124,7 +124,6 @@ context where `USER` is unset or points to the wrong account).
 | --lang-python    | Install Python 3, `uv`, `py-spy`, and a shared Ruff config.     |
 | --lang-rust      | Install the Rust toolchain via `rustup`.                        |
 | --tools-protobuf | Install `protoc` plus `clang-format`.                           |
-| --tools-thrift   | Install the Apache Thrift compiler (`thrift-compiler`).         |
 
 **What gets installed (always):**
 
@@ -177,8 +176,6 @@ the host is bind-mounted into the container.
 - `--tools-protobuf` — `clang-format` from APT and the latest
   [`protoc`](https://github.com/protocolbuffers/protobuf) release installed
   under `~/.local`.
-- `--tools-thrift` — [Apache Thrift](https://thrift.apache.org) compiler from
-  APT.
 
 ## 5. VSCode
 
@@ -197,7 +194,7 @@ bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master
   (Python/Pylance, Go, Rust Analyzer, clangd, Bash IDE, CMake Tools), linting
   and formatting (Ruff, markdownlint, code-spell-checker, ErrorLens), Git
   tooling (GitLens), remote development (Remote-SSH, Remote-Containers,
-  Docker), Protobuf/Thrift support, a Chinese language pack, and the
+  Docker), Protobuf support, a Chinese language pack, and the
   One Dark Pro theme with Material Icon Theme.
 - A recommended user settings file is provided at
   [`vscode/settings.json`](./vscode/settings.json) for reference (not applied
@@ -229,7 +226,6 @@ open-source projects. All credit for the actual tooling goes to:
 - [Rust](https://www.rust-lang.org) / [rustup](https://rustup.rs)
 - [shfmt](https://github.com/mvdan/sh) and [ShellCheck](https://www.shellcheck.net)
 - [Protocol Buffers](https://github.com/protocolbuffers/protobuf)
-- [Apache Thrift](https://thrift.apache.org)
 
 ### 6.3. Editor
 
