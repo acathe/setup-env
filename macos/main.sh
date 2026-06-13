@@ -3,6 +3,7 @@
 set -euo pipefail
 
 APP_VSCODE="${APP_VSCODE:-0}"
+APP_SSH="${APP_SSH:-0}"
 
 parse_args() {
     POSITIONAL=()
@@ -10,6 +11,10 @@ parse_args() {
         case "$1" in
             --app-vscode)
                 APP_VSCODE=1
+                shift # shift once since flags have no values
+                ;;
+            --app-ssh)
+                APP_SSH=1
                 shift # shift once since flags have no values
                 ;;
             *) # unknown flag/switch
@@ -32,6 +37,10 @@ main() {
 
     if [[ $APP_VSCODE == "1" ]]; then
         bash "./app/vscode/main.sh" "$@"
+    fi
+
+    if [[ $APP_SSH == "1" ]]; then
+        bash "./app/ssh.sh" "$@"
     fi
 }
 
