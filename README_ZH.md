@@ -119,7 +119,6 @@ bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master
 | --lang-python    | 安装 Python 3、`uv`、`py-spy` 以及共享的 Ruff 配置。 |
 | --lang-rust      | 通过 `rustup` 安装 Rust 工具链。                     |
 | --tools-protobuf | 安装 `protoc` 以及 `clang-format`。                  |
-| --tools-thrift   | 安装 Apache Thrift 编译器（`thrift-compiler`）。     |
 
 **默认始终安装的内容：**
 
@@ -168,8 +167,6 @@ bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master
   [`rust`](https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/rust) 插件。
 - `--tools-protobuf` —— 从 APT 安装 `clang-format`，并将最新版的
   [`protoc`](https://github.com/protocolbuffers/protobuf) 安装到 `~/.local`。
-- `--tools-thrift` —— 从 APT 安装 [Apache Thrift](https://thrift.apache.org)
-  编译器。
 
 ## 5. VSCode
 
@@ -187,7 +184,7 @@ bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master
   中的所有扩展。包括语言支持（Python/Pylance、Go、Rust Analyzer、clangd、
   Bash IDE、CMake Tools）、代码检查与格式化（Ruff、markdownlint、
   code-spell-checker、ErrorLens）、Git 工具（GitLens）、远程开发
-  （Remote-SSH、Remote-Containers、Docker）、Protobuf/Thrift 支持、中文语言
+  （Remote-SSH、Remote-Containers、Docker）、Protobuf 支持、中文语言
   包，以及 One Dark Pro 主题与 Material Icon Theme 图标主题。
 - 推荐的用户设置文件位于
   [`vscode/settings.json`](./vscode/settings.json)，仅供参考（不会自动应用
@@ -218,7 +215,6 @@ bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master
 - [Rust](https://www.rust-lang.org) / [rustup](https://rustup.rs)
 - [shfmt](https://github.com/mvdan/sh) 与 [ShellCheck](https://www.shellcheck.net)
 - [Protocol Buffers](https://github.com/protocolbuffers/protobuf)
-- [Apache Thrift](https://thrift.apache.org)
 
 ### 6.3. 编辑器
 

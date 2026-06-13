@@ -4,7 +4,6 @@ set -euo pipefail
 
 IMAGE_TAG="${IMAGE_TAG:-"latest"}"
 TOOLS_PROTOBUF="${TOOLS_PROTOBUF:-0}"
-TOOLS_THRIFT="${TOOLS_THRIFT:-0}"
 
 parse_args() {
     POSITIONAL=()
@@ -23,10 +22,6 @@ parse_args() {
                 TOOLS_PROTOBUF=1
                 shift # shift once since flags have no values
                 ;;
-            --tools-thrift)
-                TOOLS_THRIFT=1
-                shift # shift once since flags have no values
-                ;;
             *) # unknown flag/switch
                 POSITIONAL+=("${1}")
                 shift
@@ -42,16 +37,6 @@ main() {
         image="dev-container/tools/protobuf"
         docker build \
             -f ./protobuf.dockerfile \
-            -t "$image:$IMAGE_TAG" \
-            --build-arg "from=$from:$IMAGE_TAG" \
-            .
-        from="$image"
-    fi
-
-    if [[ $TOOLS_THRIFT == "1" ]]; then
-        image="dev-container/tools/thrift"
-        docker build \
-            -f ./thrift.dockerfile \
             -t "$image:$IMAGE_TAG" \
             --build-arg "from=$from:$IMAGE_TAG" \
             .
