@@ -8,16 +8,17 @@ install_zsh() {
 }
 
 sync_etc_profile() {
-    tmpfile="$(mktemp -u)"
+    local tmpfile
+    tmpfile="$(mktemp)"
 
-    tee "$tmpfile" > "/dev/null" << EOF
-# Sync /etc/profile.
-emulate sh -c "source /etc/profile"
+    {
+        echo "# Sync /etc/profile."
+        echo 'emulate sh -c "source /etc/profile"'
+        echo ""
+        cat "/etc/zsh/zprofile"
+    } > "$tmpfile"
 
-$(cat "/etc/zsh/zprofile")
-EOF
-
-    sudo mv "$tmpfile" "/etc/zsh/zprofile"
+    sudo cp "$tmpfile" "/etc/zsh/zprofile"
 }
 
 main() {

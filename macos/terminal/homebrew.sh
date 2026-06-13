@@ -27,10 +27,10 @@ set_env() {
         echo >> "$HOME/.zprofile"
     fi
 
-    tee -a "$HOME/.zprofile" > "/dev/null" << EOF
-# Homebrew
-eval "\$(/opt/homebrew/bin/brew shellenv)"
-EOF
+    {
+        echo "# Homebrew"
+        echo 'eval "$(/opt/homebrew/bin/brew shellenv)"'
+    } >> "$HOME/.zprofile"
 }
 
 main() {

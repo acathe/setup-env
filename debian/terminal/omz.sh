@@ -18,12 +18,18 @@ install_omz() {
     RUNZSH="no" sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 
     if [[ -s "$HOME/.zshrc.pre-oh-my-zsh" ]]; then
-        echo >> "$HOME/.zshrc.pre-oh-my-zsh"
-        cat "$HOME/.zshrc" >> "$HOME/.zshrc.pre-oh-my-zsh"
-        mv "$HOME/.zshrc.pre-oh-my-zsh" "$HOME/.zshrc"
-    elif [[ -f "$HOME/.zshrc.pre-oh-my-zsh" ]]; then
-        rm -f "$HOME/.zshrc.pre-oh-my-zsh"
+        local tmpfile
+        tmpfile="$(mktemp)"
+        cp "$HOME/.zshrc" "$tmpfile"
+
+        {
+            cat "$HOME/.zshrc.pre-oh-my-zsh"
+            echo ""
+            cat "$tmpfile"
+        } > "$HOME/.zshrc"
     fi
+
+    rm -f "$HOME/.zshrc.pre-oh-my-zsh"
 }
 
 install_plugin() {
