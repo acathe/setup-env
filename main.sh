@@ -72,6 +72,7 @@ main() {
             ;;
     esac
 
+    local tmpdir
     tmpdir="$(mktemp -du "/tmp/setup_env.XXXXXX")"
 
     git clone "https://github.com/acathe/setup-env.git" "$tmpdir" \
