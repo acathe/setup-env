@@ -3,7 +3,7 @@
 set -euo pipefail
 
 BRANCH="${BRANCH:-"master"}"
-SETUP="${SETUP:-"container"}"
+SETUP="${SETUP:-"macos"}"
 
 parse_args() {
     POSITIONAL=()
