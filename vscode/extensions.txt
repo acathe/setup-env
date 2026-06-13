@@ -1,4 +1,3 @@
-alingse.thirft-formatter
 charliermarsh.ruff
 cheshirekow.cmake-format
 christian-kohler.path-intellisense
@@ -11,7 +10,6 @@ golang.go
 kshetline.ligatures-limited
 llvm-vs-code-extensions.vscode-clangd
 mads-hartmann.bash-ide-vscode
-mrkou47.thrift-syntax-support
 ms-azuretools.vscode-containers
 ms-ceintl.vscode-language-pack-zh-hans
 ms-python.debugpy
