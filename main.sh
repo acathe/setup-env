@@ -48,13 +48,6 @@ debian() {
     fi
 }
 
-vscode() {
-    if [[ -z "$(command -v code)" ]]; then
-        echo "VS Code CLI 'code' not found in PATH." >&2
-        return 1
-    fi
-}
-
 main() {
     case "$SETUP" in
         macos)
@@ -62,9 +55,6 @@ main() {
             ;;
         debian | container)
             debian
-            ;;
-        vscode)
-            vscode
             ;;
         *)
             echo "Unsupported setup: $SETUP" >&2

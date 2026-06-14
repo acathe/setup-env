@@ -174,14 +174,15 @@ bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master
 需要 `code` 命令行工具在 `PATH` 中可用。
 
 ```shell
-bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master/main.sh")" -- \
-    --setup vscode
+curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master/vscode/extensions.txt" \
+  | xargs -L 1 code --force --install-extension
 ```
 
 **安装内容：**
 
-- 通过 `code --install-extension` 安装 [`vscode/extensions.txt`](./vscode/extensions.txt)
-  中的所有扩展。包括语言支持（Python/Pylance、Go、Rust Analyzer、clangd、
+- 通过 GitHub raw endpoint 下载 [`vscode/extensions.txt`](./vscode/extensions.txt)，
+  并使用 `code --force --install-extension` 安装其中的所有扩展。包括语言支持
+  （Python/Pylance、Go、Rust Analyzer、clangd、
   Bash IDE、CMake Tools）、代码检查与格式化（Ruff、markdownlint、
   code-spell-checker、ErrorLens）、Git 工具（GitLens）、远程开发
   （Remote-SSH、Remote-Containers、Docker）、Protobuf 支持、中文语言

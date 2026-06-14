@@ -183,14 +183,15 @@ Install all extensions listed in [`vscode/extensions.txt`](./vscode/extensions.t
 Requires the `code` CLI to be available in `PATH`.
 
 ```shell
-bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master/main.sh")" -- \
-    --setup vscode
+curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master/vscode/extensions.txt" \
+  | xargs -L 1 code --force --install-extension
 ```
 
 **What gets installed:**
 
 - All extensions from [`vscode/extensions.txt`](./vscode/extensions.txt),
-  installed via `code --install-extension`. This includes language support
+  downloaded from GitHub's raw endpoint and installed via
+  `code --force --install-extension`. This includes language support
   (Python/Pylance, Go, Rust Analyzer, clangd, Bash IDE, CMake Tools), linting
   and formatting (Ruff, markdownlint, code-spell-checker, ErrorLens), Git
   tooling (GitLens), remote development (Remote-SSH, Remote-Containers,
