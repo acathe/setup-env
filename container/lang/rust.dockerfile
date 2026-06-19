@@ -2,9 +2,8 @@ ARG from=dev-container/terminal:latest
 
 FROM ${from}
 
-RUN if [[ -s "$HOME/.zshenv" ]]; then echo >> "$HOME/.zshenv"; fi \
-    && echo "# Rust" >> "$HOME/.zshenv" \
-    && sed -i '/^plugins=(/s/)/ rust)/' "$HOME/.zshrc"
+COPY ./rust.sh /tmp/setup/rust.sh
 
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
-    && rm -f "$HOME/.profile"
+RUN bash /tmp/setup/rust.sh \
+    && rm -f "$HOME/.profile" \
+    && sudo find /tmp -mindepth 1 -delete
