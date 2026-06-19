@@ -3,12 +3,12 @@
 set -euo pipefail
 
 install_omz() {
-    if [[ -z "$(command -v git)" ]]; then
+    if ! command -v git > /dev/null 2>&1; then
         echo "git is not installed." >&2
         return 1
     fi
 
-    if [[ -z "$(command -v curl)" ]]; then
+    if ! command -v curl > /dev/null 2>&1; then
         echo "curl is not installed." >&2
         return 1
     fi
@@ -33,7 +33,7 @@ install_omz() {
 }
 
 install_plugin() {
-    if [[ -z "$(command -v git)" ]]; then
+    if ! command -v git > /dev/null 2>&1; then
         echo "git is not installed." >&2
         return 1
     fi

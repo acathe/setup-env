@@ -4,12 +4,16 @@ set -euo pipefail
 
 IMAGE_TAG="${IMAGE_TAG:-"latest"}"
 CONTAINER="${CONTAINER:-"dev-container"}"
+
 USER="${USER:-}"
-HOST_LANG="${LANG:-}"
-BUILD_LANG="${HOST_LANG%.*}"
-ENCODING="${HOST_LANG#*.}"
+
+LANG="${LANG:-}"
+LANG_CODE="${LANG%.*}"
+ENCODING="${LANG#*.}"
+
 LANGUAGE="${LANGUAGE:-}"
 TZ="${TZ:-"$(timedatectl show -p Timezone --value)"}"
+
 GIT_USER_NAME="${GIT_USER_NAME:-}"
 GIT_USER_EMAIL="${GIT_USER_EMAIL:-}"
 
@@ -35,7 +39,6 @@ parse_args() {
                     shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
                 fi
                 ;;
-
             --user)
                 numOfArgs=1 # number of switch arguments
                 if (($# < numOfArgs + 1)); then
@@ -45,12 +48,12 @@ parse_args() {
                     shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
                 fi
                 ;;
-            --lang)
+            --lang-code)
                 numOfArgs=1 # number of switch arguments
                 if (($# < numOfArgs + 1)); then
                     shift $#
                 else
-                    BUILD_LANG="$2"
+                    LANG_CODE="$2"
                     shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
                 fi
                 ;;
@@ -108,10 +111,15 @@ parse_args() {
 }
 
 main() {
+    if ! command -v docker > /dev/null 2>&1; then
+        echo "Docker is not installed. Please install Docker and try again." >&2
+        return 1
+    fi
+
     docker build \
         -t "dev-container:$IMAGE_TAG" \
         --build-arg "user=$USER" \
-        --build-arg "lang=$BUILD_LANG" \
+        --build-arg "lang_code=$LANG_CODE" \
         --build-arg "encoding=$ENCODING" \
         --build-arg "language=$LANGUAGE" \
         --build-arg "tz=$TZ" \

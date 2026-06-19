@@ -42,7 +42,7 @@ macos() {
 }
 
 debian() {
-    if [[ -z "$(command -v git)" ]]; then
+    if ! command -v git > /dev/null 2>&1; then
         sudo apt-get update
         sudo apt-get install -y git
     fi

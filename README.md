@@ -119,12 +119,14 @@ context where `USER` is unset or points to the wrong account).
 **What gets installed (always):**
 
 The build uses a single `container/Dockerfile` for the final image. Base setup
-code lives at `container/terminal/base.sh`, and the main Dockerfile calls it
-before switching to the container user. The user-scoped `git` and `curl`
-package install remains a direct Dockerfile `RUN`, and no intermediate
-`dev-container/base` image needs to be tagged.
+code lives at `container/terminal/root.sh`, and the main Dockerfile calls it
+before switching to the container user. Setup scripts are mounted with
+`RUN --mount`, copied into `/tmp/setup` within the same build step, and removed
+before the layer is committed. The user-scoped `git` and `curl` package install
+remains a direct Dockerfile `RUN`, and no intermediate `dev-container/base`
+image needs to be tagged.
 
-- **Base setup** (`debian:trixie`):
+- **Root setup** (`debian:trixie`):
   - `locales` package with the locale generated from `$LANG` on the host.
   - `sudo` and a passwordless sudo user (`$USER`).
   - `git` and `curl`.

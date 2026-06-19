@@ -3,7 +3,7 @@
 set -euo pipefail
 
 SETUP_USER="${SETUP_USER:-}"
-BUILD_LANG="${BUILD_LANG:-}"
+LANG_CODE="${LANG_CODE:-}"
 ENCODING="${ENCODING:-}"
 
 parse_args() {
@@ -19,12 +19,12 @@ parse_args() {
                     shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
                 fi
                 ;;
-            --lang)
+            --lang-code)
                 numOfArgs=1 # number of switch arguments
                 if (($# < numOfArgs + 1)); then
                     shift $#
                 else
-                    BUILD_LANG="$2"
+                    LANG_CODE="$2"
                     shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
                 fi
                 ;;
@@ -49,7 +49,7 @@ install_locale() {
     apt-get update
     apt-get install -y locales
     rm -rf /var/lib/apt/lists/*
-    localedef -i "${BUILD_LANG}" -c -f "${ENCODING}" -A /usr/share/locale/locale.alias "${BUILD_LANG}.${ENCODING}"
+    localedef -i "${LANG_CODE}" -c -f "${ENCODING}" -A /usr/share/locale/locale.alias "${LANG_CODE}.${ENCODING}"
 }
 
 create_user() {
