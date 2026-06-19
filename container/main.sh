@@ -5,6 +5,13 @@ set -euo pipefail
 IMAGE_TAG="${IMAGE_TAG:-"latest"}"
 CONTAINER="${CONTAINER:-"dev-container"}"
 USER="${USER:-}"
+HOST_LANG="${LANG:-}"
+BUILD_LANG="${HOST_LANG%.*}"
+ENCODING="${HOST_LANG#*.}"
+LANGUAGE="${LANGUAGE:-}"
+TZ="${TZ:-"$(timedatectl show -p Timezone --value)"}"
+GIT_USER_NAME="${GIT_USER_NAME:-}"
+GIT_USER_EMAIL="${GIT_USER_EMAIL:-}"
 
 parse_args() {
     POSITIONAL=()
@@ -38,6 +45,60 @@ parse_args() {
                     shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
                 fi
                 ;;
+            --lang)
+                numOfArgs=1 # number of switch arguments
+                if (($# < numOfArgs + 1)); then
+                    shift $#
+                else
+                    BUILD_LANG="$2"
+                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
+                fi
+                ;;
+            --encoding)
+                numOfArgs=1 # number of switch arguments
+                if (($# < numOfArgs + 1)); then
+                    shift $#
+                else
+                    ENCODING="$2"
+                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
+                fi
+                ;;
+            --language)
+                numOfArgs=1 # number of switch arguments
+                if (($# < numOfArgs + 1)); then
+                    shift $#
+                else
+                    LANGUAGE="$2"
+                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
+                fi
+                ;;
+            --tz)
+                numOfArgs=1 # number of switch arguments
+                if (($# < numOfArgs + 1)); then
+                    shift $#
+                else
+                    TZ="$2"
+                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
+                fi
+                ;;
+            --git-user-name)
+                numOfArgs=1 # number of switch arguments
+                if (($# < numOfArgs + 1)); then
+                    shift $#
+                else
+                    GIT_USER_NAME="$2"
+                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
+                fi
+                ;;
+            --git-user-email)
+                numOfArgs=1 # number of switch arguments
+                if (($# < numOfArgs + 1)); then
+                    shift $#
+                else
+                    GIT_USER_EMAIL="$2"
+                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
+                fi
+                ;;
             *) # unknown flag/switch
                 POSITIONAL+=("$1")
                 shift
@@ -47,17 +108,42 @@ parse_args() {
 }
 
 main() {
-    bash "./base/build.sh" --image-tag "$IMAGE_TAG" --user "$USER" "$@"
-    bash "./terminal/build.sh" --image-tag "$IMAGE_TAG" --user "$USER" "$@"
-    bash "./app/build.sh" --image-tag "$IMAGE_TAG" "$@"
-    bash "./lang/build.sh" --image-tag "$IMAGE_TAG" "$@"
-    bash "./tools/build.sh" --image-tag "$IMAGE_TAG" "$@"
+    docker build \
+        -t "dev-container/base:$IMAGE_TAG" \
+        --build-arg "user=$USER" \
+        --build-arg "lang=$BUILD_LANG" \
+        --build-arg "encoding=$ENCODING" \
+        --build-arg "language=$LANGUAGE" \
+        --build-arg "tz=$TZ" \
+        ./base
 
-    bash ./finish/build.sh \
-        --from "dev-container/tools" \
-        --image "dev-container/main" \
-        --image-tag "$IMAGE_TAG" \
-        "$@"
+    docker build \
+        -t "dev-container/terminal:$IMAGE_TAG" \
+        --build-arg "from=dev-container/base:$IMAGE_TAG" \
+        --build-arg "user=$USER" \
+        ./terminal
+
+    docker build \
+        -t "dev-container/app:$IMAGE_TAG" \
+        --build-arg "from=dev-container/terminal:$IMAGE_TAG" \
+        --build-arg "git_user_name=$GIT_USER_NAME" \
+        --build-arg "git_user_email=$GIT_USER_EMAIL" \
+        ./app
+
+    docker build \
+        -t "dev-container/lang:$IMAGE_TAG" \
+        --build-arg "from=dev-container/app:$IMAGE_TAG" \
+        ./lang
+
+    docker build \
+        -t "dev-container/tools:$IMAGE_TAG" \
+        --build-arg "from=dev-container/lang:$IMAGE_TAG" \
+        ./tools
+
+    docker build \
+        -t "dev-container/main:$IMAGE_TAG" \
+        --build-arg "from=dev-container/tools:$IMAGE_TAG" \
+        ./finish
 
     [[ ! -d "$HOME/Projects" ]] && mkdir -p "$HOME/Projects"
 
