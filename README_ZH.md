@@ -95,8 +95,8 @@ sudo apt-get update \
 
 ## 4. Container
 
-构建并运行一个分层的 Debian 开发容器镜像，内置开箱即用的 Zsh shell 以及
-下方列出的语言工具链和开发工具。
+构建并运行一个 Debian 开发容器镜像，内置开箱即用的 Zsh shell 以及下方列出的
+语言工具链和开发工具。
 
 ```shell
 bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master/main.sh")" -- \
@@ -113,15 +113,17 @@ bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master
 
 **默认始终安装的内容：**
 
-镜像按层组装 —— `base` → `terminal` → `app` → `lang` → `tools` → `finish`
-—— 每一层都构建在前一层之上。
+构建流程使用单个 `container/Dockerfile` 产出最终镜像。Base 配置代码放在
+`container/terminal/base.sh`，并由主 Dockerfile 在切换到容器用户前调用。用户态
+的 `git` 与 `curl` 包安装保留为 Dockerfile 中直接执行的一条 `RUN`，且不需要
+额外标记 `dev-container/base` 中间镜像。
 
-- **Base 层**（`debian:trixie`）：
+- **Base 配置**（`debian:trixie`）：
   - 安装 `locales` 包，并根据宿主机的 `$LANG` 生成对应 locale。
   - 安装 `sudo` 并创建一个免密 sudo 用户（`$USER`）。
   - 安装 `git` 与 `curl`。
   - 根据宿主机的 `timedatectl` 设置 `TZ`。
-- **Terminal 层**：
+- **Terminal 配置**：
   - `zsh`。
   - 修改 `/etc/zsh/zprofile` 以同时 source `/etc/profile`。
   - [Oh My Zsh](https://github.com/ohmyzsh/ohmyzsh)，使用与 macOS 和 Debian
@@ -133,18 +135,18 @@ bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master
     `~/.p10k.zsh`。
   - 将 Zsh 设为用户的默认 shell；并删除 `~/.profile`、`~/.bashrc` 与
     `~/.bash_logout`。
-- **App 层**：
+- **App 配置**：
   - 全局 `git config` 设置 `user.name`、`user.email` 以及
     `core.editor=code --wait`。
   - 启用 Oh My Zsh 的 `git` 与 `vscode` 插件。
-- **Finish 层**：设置 `CMD ["sleep", "infinity"]`，使容器可作为长期运行的开发
+- **最终镜像**：设置 `CMD ["sleep", "infinity"]`，使容器可作为长期运行的开发
   环境使用。
 
 镜像通过 `docker run -d --privileged --init --shm-size=2g` 启动，命名为
 `dev-container`（可通过 `--container` 覆盖），并将宿主机的 `~/Projects`
 目录绑定挂载到容器内。
 
-**语言与工具层：**
+**语言与工具：**
 
 - 从 APT 安装 [`shfmt`](https://github.com/mvdan/sh) 和
   [`shellcheck`](https://www.shellcheck.net)。

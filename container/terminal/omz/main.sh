@@ -18,7 +18,7 @@ install_plugin() {
 }
 
 install_p10k() {
-    cp ./.p10k.zsh "$HOME/.p10k.zsh"
+    cp ./p10k.zsh "$HOME/.p10k.zsh"
 }
 
 config_zshrc() {

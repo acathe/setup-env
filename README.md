@@ -99,9 +99,8 @@ sudo apt-get update \
 
 ## 4. Container
 
-Build and run a layered Debian-based dev container image that includes a
-ready-to-use Zsh shell plus the language toolchains and development tools
-listed below.
+Build and run a Debian-based dev container image that includes a ready-to-use
+Zsh shell plus the language toolchains and development tools listed below.
 
 ```shell
 bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master/main.sh")" -- \
@@ -119,15 +118,18 @@ context where `USER` is unset or points to the wrong account).
 
 **What gets installed (always):**
 
-The image is assembled in layers — `base` → `terminal` → `app` → `lang` →
-`tools` → `finish` — each stacked on the previous one.
+The build uses a single `container/Dockerfile` for the final image. Base setup
+code lives at `container/terminal/base.sh`, and the main Dockerfile calls it
+before switching to the container user. The user-scoped `git` and `curl`
+package install remains a direct Dockerfile `RUN`, and no intermediate
+`dev-container/base` image needs to be tagged.
 
-- **Base layer** (`debian:trixie`):
+- **Base setup** (`debian:trixie`):
   - `locales` package with the locale generated from `$LANG` on the host.
   - `sudo` and a passwordless sudo user (`$USER`).
   - `git` and `curl`.
   - `TZ` set from the host's `timedatectl` value.
-- **Terminal layer**:
+- **Terminal setup**:
   - `zsh`.
   - `/etc/zsh/zprofile` patched to also source `/etc/profile`.
   - [Oh My Zsh](https://github.com/ohmyzsh/ohmyzsh) with the same plugin set
@@ -139,18 +141,18 @@ The image is assembled in layers — `base` → `terminal` → `app` → `lang` 
     pre-baked `~/.p10k.zsh`.
   - Zsh set as the user's default shell; `~/.profile`, `~/.bashrc`, and
     `~/.bash_logout` are removed.
-- **App layer**:
+- **App setup**:
   - Global `git config` for `user.name`, `user.email`, and
     `core.editor=code --wait`.
   - Oh My Zsh `git` and `vscode` plugins enabled.
-- **Finish layer**: sets `CMD ["sleep", "infinity"]` so the container can be
+- **Final image**: sets `CMD ["sleep", "infinity"]` so the container can be
   used as a long-running dev environment.
 
 The image is started with `docker run -d --privileged --init --shm-size=2g`,
 named `dev-container` (overridable via `--container`), and `~/Projects` from
 the host is bind-mounted into the container.
 
-**Language and tool layers:**
+**Language and tools:**
 
 - [`shfmt`](https://github.com/mvdan/sh) and
   [`shellcheck`](https://www.shellcheck.net) from APT.

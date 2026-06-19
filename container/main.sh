@@ -109,43 +109,17 @@ parse_args() {
 
 main() {
     docker build \
-        -t "dev-container/base:$IMAGE_TAG" \
+        -t "dev-container:$IMAGE_TAG" \
         --build-arg "user=$USER" \
         --build-arg "lang=$BUILD_LANG" \
         --build-arg "encoding=$ENCODING" \
         --build-arg "language=$LANGUAGE" \
         --build-arg "tz=$TZ" \
-        ./base
-
-    docker build \
-        -t "dev-container/terminal:$IMAGE_TAG" \
-        --build-arg "from=dev-container/base:$IMAGE_TAG" \
-        --build-arg "user=$USER" \
-        ./terminal
-
-    docker build \
-        -t "dev-container/app:$IMAGE_TAG" \
-        --build-arg "from=dev-container/terminal:$IMAGE_TAG" \
         --build-arg "git_user_name=$GIT_USER_NAME" \
         --build-arg "git_user_email=$GIT_USER_EMAIL" \
-        ./app
+        .
 
-    docker build \
-        -t "dev-container/lang:$IMAGE_TAG" \
-        --build-arg "from=dev-container/app:$IMAGE_TAG" \
-        ./lang
-
-    docker build \
-        -t "dev-container/tools:$IMAGE_TAG" \
-        --build-arg "from=dev-container/lang:$IMAGE_TAG" \
-        ./tools
-
-    docker build \
-        -t "dev-container/main:$IMAGE_TAG" \
-        --build-arg "from=dev-container/tools:$IMAGE_TAG" \
-        ./finish
-
-    [[ ! -d "$HOME/Projects" ]] && mkdir -p "$HOME/Projects"
+    mkdir -p "$HOME/Projects"
 
     if docker container inspect "$CONTAINER" > /dev/null 2>&1; then
         echo "Container '$CONTAINER' already exists." >&2
@@ -164,7 +138,7 @@ main() {
         --hostname "$CONTAINER" \
         --name "$CONTAINER" \
         -v "$HOME/Projects:/home/$USER/Projects" \
-        "dev-container/main:$IMAGE_TAG"
+        "dev-container:$IMAGE_TAG"
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then

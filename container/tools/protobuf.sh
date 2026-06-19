@@ -15,6 +15,7 @@ main() {
 
     curl -fsSL "https://github.com/protocolbuffers/protobuf/releases/download/v${protoc_version}/protoc-${protoc_version}-linux-x86_64.zip" -o "/tmp/protoc-${protoc_version}-linux-x86_64.zip"
     unzip "/tmp/protoc-${protoc_version}-linux-x86_64.zip" -d "$HOME/.local"
+    rm -f "$HOME/.local/readme.txt"
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
