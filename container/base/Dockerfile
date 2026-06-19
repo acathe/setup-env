@@ -30,5 +30,5 @@ WORKDIR /home/${user}
 USER ${user}
 
 RUN sudo apt-get update \
-    && sudo apt-get install -y zsh git curl \
+    && sudo apt-get install -y git curl \
     && sudo rm -rf /var/lib/apt/lists/*
