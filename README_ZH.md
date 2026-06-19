@@ -95,30 +95,21 @@ sudo apt-get update \
 
 ## 4. Container
 
-构建并运行一个分层的 Debian 开发容器镜像，内置开箱即用的 Zsh shell 以及你
-选择的语言和工具。
+构建并运行一个分层的 Debian 开发容器镜像，内置开箱即用的 Zsh shell 以及
+下方列出的语言工具链和开发工具。
 
 ```shell
 bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master/main.sh")" -- \
     --setup container \
     [--user $your_user] \
     --git-user-name $your_name \
-    --git-user-email $your_email \
-    [<tool>...]
+    --git-user-email $your_email
 ```
 
 `--user` 是可选的。未指定时，脚本会回退到读取 `USER` 环境变量（在绝大多数
 交互式 shell 中默认就有），因此在常规交互场景下可以直接省略该参数。仅当需要
 覆盖该值时（例如在 `USER` 未设置或指向了错误账户的环境中运行）才需要显式
 传入 `--user`。
-
-| Tools            | 说明                                                 |
-| ---------------- | ---------------------------------------------------- |
-| --lang-bash      | 添加 `shfmt` 和 `shellcheck` 用于 shell 脚本开发。   |
-| --lang-go        | 从官方发布页安装最新的 Go 工具链。                   |
-| --lang-python    | 安装 Python 3、`uv`、`py-spy` 以及共享的 Ruff 配置。 |
-| --lang-rust      | 通过 `rustup` 安装 Rust 工具链。                     |
-| --tools-protobuf | 安装 `protoc` 以及 `clang-format`。                  |
 
 **默认始终安装的内容：**
 
@@ -150,22 +141,22 @@ bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master
 `dev-container`（可通过 `--container` 覆盖），并将宿主机的 `~/Projects`
 目录绑定挂载到容器内。
 
-**使用 `--lang-*` / `--tools-*` 参数时额外安装的内容：**
+**语言与工具层：**
 
-- `--lang-bash` —— 从 APT 安装 [`shfmt`](https://github.com/mvdan/sh) 和
+- 从 APT 安装 [`shfmt`](https://github.com/mvdan/sh) 和
   [`shellcheck`](https://www.shellcheck.net)。
-- `--lang-go` —— 从 `https://go.dev/dl/` 下载最新 [Go](https://go.dev) tarball
+- 从 `https://go.dev/dl/` 下载最新 [Go](https://go.dev) tarball
   并解压到 `/usr/local/go`；配置 `$PATH` 以及启用 Oh My Zsh 的
   [`golang`](https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/golang) 插件。
-- `--lang-python` —— 从 APT 安装 Python 3；通过官方安装器安装
+- 从 APT 安装 Python 3；通过官方安装器安装
   [`uv`](https://github.com/astral-sh/uv)；启用 Oh My Zsh 的
   [`python`](https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/python) 插件；
   将 [BesLogic 的 Ruff 配置](https://github.com/BesLogic/Beslogic-Ruff-Config)
   保存到 `~/.config/Beslogic/ruff.toml`；并通过 `uv` 工具安装
   [`py-spy`](https://github.com/benfred/py-spy)。
-- `--lang-rust` —— 引导 [`rustup`](https://rustup.rs)，并启用 Oh My Zsh 的
+- 引导 [`rustup`](https://rustup.rs)，并启用 Oh My Zsh 的
   [`rust`](https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/rust) 插件。
-- `--tools-protobuf` —— 从 APT 安装 `clang-format`，并将最新版的
+- 从 APT 安装 `clang-format`，并将最新版的
   [`protoc`](https://github.com/protocolbuffers/protobuf) 安装到 `~/.local`。
 
 ## 5. VSCode

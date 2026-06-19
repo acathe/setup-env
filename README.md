@@ -100,15 +100,15 @@ sudo apt-get update \
 ## 4. Container
 
 Build and run a layered Debian-based dev container image that includes a
-ready-to-use Zsh shell plus any languages and tools you select.
+ready-to-use Zsh shell plus the language toolchains and development tools
+listed below.
 
 ```shell
 bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master/main.sh")" -- \
     --setup container \
     [--user $your_user] \
     --git-user-name $your_name \
-    --git-user-email $your_email \
-    [<tool>...]
+    --git-user-email $your_email
 ```
 
 `--user` is optional. When omitted, the script falls back to the `USER`
@@ -116,14 +116,6 @@ environment variable (which is set by default on most shells), so on a typical
 interactive session you can simply leave the flag out. Pass `--user` explicitly
 only when you need to override that value (for example, when running from a
 context where `USER` is unset or points to the wrong account).
-
-| Tools            | Description                                                     |
-| ---------------- | --------------------------------------------------------------- |
-| --lang-bash      | Add `shfmt` and `shellcheck` for shell scripting.               |
-| --lang-go        | Install the latest Go toolchain from the official release page. |
-| --lang-python    | Install Python 3, `uv`, `py-spy`, and a shared Ruff config.     |
-| --lang-rust      | Install the Rust toolchain via `rustup`.                        |
-| --tools-protobuf | Install `protoc` plus `clang-format`.                           |
 
 **What gets installed (always):**
 
@@ -155,25 +147,25 @@ The image is started with `docker run -d --privileged --init --shm-size=2g`,
 named `dev-container` (overridable via `--container`), and `~/Projects` from
 the host is bind-mounted into the container.
 
-**What gets installed with `--lang-*` / `--tools-*` flags:**
+**Language and tool layers:**
 
-- `--lang-bash` — [`shfmt`](https://github.com/mvdan/sh) and
+- [`shfmt`](https://github.com/mvdan/sh) and
   [`shellcheck`](https://www.shellcheck.net) from APT.
-- `--lang-go` — the newest [Go](https://go.dev) tarball from
+- The newest [Go](https://go.dev) tarball from
   `https://go.dev/dl/`, unpacked to `/usr/local/go`; `$PATH` and the
   [`golang`](https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/golang)
   Oh My Zsh plugin are wired up.
-- `--lang-python` — Python 3 from APT, [`uv`](https://github.com/astral-sh/uv)
+- Python 3 from APT, [`uv`](https://github.com/astral-sh/uv)
   installed via the official installer, the
   [`python`](https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/python)
   Oh My Zsh plugin enabled,
   [BesLogic's Ruff config](https://github.com/BesLogic/Beslogic-Ruff-Config)
   saved to `~/.config/Beslogic/ruff.toml`, and
   [`py-spy`](https://github.com/benfred/py-spy) installed as a `uv` tool.
-- `--lang-rust` — [`rustup`](https://rustup.rs) bootstrap, plus the
+- [`rustup`](https://rustup.rs) bootstrap, plus the
   [`rust`](https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/rust) Oh My
   Zsh plugin.
-- `--tools-protobuf` — `clang-format` from APT and the latest
+- `clang-format` from APT and the latest
   [`protoc`](https://github.com/protocolbuffers/protobuf) release installed
   under `~/.local`.
 
