@@ -62,13 +62,12 @@ remove_preshell() {
         return 0
     fi
 
-    rm -f "$HOME/.shell.pre-oh-my-zsh"
-
     sed -i "/export PATH=\$HOME\/bin:\$HOME\/\.local\/bin:\/usr\/local\/bin:\$PATH/s/^# //" "$HOME/.zshrc"
 
-    [[ -f "$HOME/.profile" ]] && rm -f "$HOME/.profile"
-    [[ -f "$HOME/.bashrc" ]] && rm -f "$HOME/.bashrc"
-    [[ -f "$HOME/.bash_logout" ]] && rm -f "$HOME/.bash_logout"
+    rm -f "$HOME/.shell.pre-oh-my-zsh"
+    rm -f "$HOME/.profile"
+    rm -f "$HOME/.bashrc"
+    rm -f "$HOME/.bash_logout"
 }
 
 main() {
