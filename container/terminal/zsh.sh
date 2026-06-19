@@ -2,6 +2,11 @@
 
 set -euo pipefail
 
+install_zsh() {
+    sudo apt-get update
+    sudo apt-get install -y zsh
+}
+
 sync_etc_profile() {
     local tmpfile
     tmpfile="$(mktemp)"
@@ -9,21 +14,16 @@ sync_etc_profile() {
     {
         echo '# Sync /etc/profile'
         echo 'emulate sh -c "source /etc/profile"'
-        echo ""
+        echo
         cat "/etc/zsh/zprofile"
     } > "$tmpfile"
 
     sudo cp "$tmpfile" "/etc/zsh/zprofile"
 }
 
-install_build_essential() {
-    sudo apt-get update
-    sudo apt-get install -y zsh
-}
-
 main() {
+    install_zsh
     sync_etc_profile
-    install_build_essential
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then

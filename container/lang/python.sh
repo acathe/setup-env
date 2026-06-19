@@ -4,7 +4,9 @@ set -euo pipefail
 
 install_python() {
     sudo apt-get update
-    sudo apt-get install -y python3
+    sudo apt-get install -y build-essential python3
+
+    sed -i '/^plugins=(/s/)/ python)/' "$HOME/.zshrc"
 }
 
 install_uv() {
@@ -20,8 +22,6 @@ install_uv() {
         echo 'eval "$(uv generate-shell-completion zsh)"'
         echo 'eval "$(uvx --generate-shell-completion zsh)"'
     } >> "$HOME/.zshrc"
-
-    sed -i '/^plugins=(/s/)/ python)/' "$HOME/.zshrc"
 }
 
 install_tools() {

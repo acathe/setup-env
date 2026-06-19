@@ -8,12 +8,13 @@ get_protoc_version() {
 
 main() {
     sudo apt-get update
-    sudo apt-get install -y clang-format unzip
+    sudo apt-get install -y build-essential clang-format unzip
 
     local protoc_version
     protoc_version="$(get_protoc_version)"
 
-    curl -fsSL "https://github.com/protocolbuffers/protobuf/releases/download/v${protoc_version}/protoc-${protoc_version}-linux-x86_64.zip" -o "/tmp/protoc-${protoc_version}-linux-x86_64.zip"
+    curl -fsSL "https://github.com/protocolbuffers/protobuf/releases/download/v${protoc_version}/protoc-${protoc_version}-linux-x86_64.zip" \
+        -o "/tmp/protoc-${protoc_version}-linux-x86_64.zip"
     unzip "/tmp/protoc-${protoc_version}-linux-x86_64.zip" -d "$HOME/.local"
     rm -f "$HOME/.local/readme.txt"
 }

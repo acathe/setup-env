@@ -38,7 +38,6 @@ parse_args() {
 main() {
     git config --global user.name "$GIT_USER_NAME"
     git config --global user.email "$GIT_USER_EMAIL"
-    git config --global core.editor "code --wait"
 
     sed -i '/^plugins=(/s/)/ git)/' "$HOME/.zshrc"
 }

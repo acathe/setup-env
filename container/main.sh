@@ -116,7 +116,7 @@ main() {
         return 1
     fi
 
-    docker build \
+    DOCKER_BUILDKIT=1 docker build \
         -t "dev-container:$IMAGE_TAG" \
         --build-arg "user=$USER" \
         --build-arg "lang_code=$LANG_CODE" \

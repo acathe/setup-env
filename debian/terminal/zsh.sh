@@ -12,9 +12,9 @@ sync_etc_profile() {
     tmpfile="$(mktemp)"
 
     {
-        echo "# Sync /etc/profile."
+        echo '# Sync /etc/profile'
         echo 'emulate sh -c "source /etc/profile"'
-        echo ""
+        echo
         cat "/etc/zsh/zprofile"
     } > "$tmpfile"
 

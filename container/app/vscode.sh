@@ -3,6 +3,8 @@
 set -euo pipefail
 
 main() {
+    git config --global core.editor "code --wait"
+
     sed -i '/^plugins=(/s/)/ vscode)/' "$HOME/.zshrc"
 }
 
