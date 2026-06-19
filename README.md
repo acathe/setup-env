@@ -119,20 +119,19 @@ context where `USER` is unset or points to the wrong account).
 
 **What gets installed (always):**
 
-The image is assembled in layers — `base` → `terminal` → `lang` → `tools` →
-`finish` — each stacked on the previous one.
+The image is assembled in layers — `base` → `terminal` → `app` → `lang` →
+`tools` → `finish` — each stacked on the previous one.
 
 - **Base layer** (`debian:trixie`):
   - `locales` package with the locale generated from `$LANG` on the host.
   - `sudo` and a passwordless sudo user (`$USER`).
+  - `git` and `curl`.
   - `TZ` set from the host's `timedatectl` value.
 - **Terminal layer**:
-  - `zsh`, `git`, `curl`, `build-essential`.
+  - `zsh`.
   - `/etc/zsh/zprofile` patched to also source `/etc/profile`.
-  - Global `git config` for `user.name`, `user.email`, and
-    `core.editor=code --wait`.
   - [Oh My Zsh](https://github.com/ohmyzsh/ohmyzsh) with the same plugin set
-    used by the macOS and Debian setups (z, sudo, vscode,
+    used by the macOS and Debian setups (z, sudo,
     [ohmyzsh-full-autoupdate](https://github.com/Pilaton/OhMyZsh-full-autoupdate),
     [zsh-autosuggestions](https://github.com/zsh-users/zsh-autosuggestions),
     [zsh-syntax-highlighting](https://github.com/zsh-users/zsh-syntax-highlighting)).
@@ -140,6 +139,10 @@ The image is assembled in layers — `base` → `terminal` → `lang` → `tools
     pre-baked `~/.p10k.zsh`.
   - Zsh set as the user's default shell; `~/.profile`, `~/.bashrc`, and
     `~/.bash_logout` are removed.
+- **App layer**:
+  - Global `git config` for `user.name`, `user.email`, and
+    `core.editor=code --wait`.
+  - Oh My Zsh `git` and `vscode` plugins enabled.
 - **Finish layer**: sets `CMD ["sleep", "infinity"]` so the container can be
   used as a long-running dev environment.
 

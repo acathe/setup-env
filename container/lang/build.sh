@@ -29,7 +29,7 @@ main() {
     docker build \
         -f ./Dockerfile \
         -t "dev-container/lang:$IMAGE_TAG" \
-        --build-arg "from=dev-container/terminal:$IMAGE_TAG" \
+        --build-arg "from=dev-container/app:$IMAGE_TAG" \
         .
 }
 

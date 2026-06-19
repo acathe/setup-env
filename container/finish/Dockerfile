@@ -1,4 +1,4 @@
-ARG from=dev-container/terminal:latest
+ARG from=dev-container/app:latest
 
 FROM ${from}
 

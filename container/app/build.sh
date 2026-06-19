@@ -3,7 +3,8 @@
 set -euo pipefail
 
 IMAGE_TAG="${IMAGE_TAG:-"latest"}"
-USER="${USER:-}"
+GIT_USER_NAME="${GIT_USER_NAME:-}"
+GIT_USER_EMAIL="${GIT_USER_EMAIL:-}"
 
 parse_args() {
     POSITIONAL=()
@@ -18,12 +19,21 @@ parse_args() {
                     shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
                 fi
                 ;;
-            --user)
+            --git-user-name)
                 numOfArgs=1 # number of switch arguments
                 if (($# < numOfArgs + 1)); then
                     shift $#
                 else
-                    USER="$2"
+                    GIT_USER_NAME="$2"
+                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
+                fi
+                ;;
+            --git-user-email)
+                numOfArgs=1 # number of switch arguments
+                if (($# < numOfArgs + 1)); then
+                    shift $#
+                else
+                    GIT_USER_EMAIL="$2"
                     shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
                 fi
                 ;;
@@ -37,9 +47,10 @@ parse_args() {
 
 main() {
     docker build \
-        -t "dev-container/terminal:$IMAGE_TAG" \
-        --build-arg "from=dev-container/base:$IMAGE_TAG" \
-        --build-arg "user=$USER" \
+        -t "dev-container/app:$IMAGE_TAG" \
+        --build-arg "from=dev-container/terminal:$IMAGE_TAG" \
+        --build-arg "git_user_name=$GIT_USER_NAME" \
+        --build-arg "git_user_email=$GIT_USER_EMAIL" \
         .
 }
 

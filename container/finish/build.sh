@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-FROM="${FROM:-"dev-container/terminal"}"
+FROM="${FROM:-"dev-container/app"}"
 IMAGE="${IMAGE:-"dev-container/finish"}"
 IMAGE_TAG="${IMAGE_TAG:-"latest"}"
 

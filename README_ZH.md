@@ -113,20 +113,19 @@ bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master
 
 **默认始终安装的内容：**
 
-镜像按层组装 —— `base` → `terminal` → `lang` → `tools` → `finish` ——
-每一层都构建在前一层之上。
+镜像按层组装 —— `base` → `terminal` → `app` → `lang` → `tools` → `finish`
+—— 每一层都构建在前一层之上。
 
 - **Base 层**（`debian:trixie`）：
   - 安装 `locales` 包，并根据宿主机的 `$LANG` 生成对应 locale。
   - 安装 `sudo` 并创建一个免密 sudo 用户（`$USER`）。
+  - 安装 `git` 与 `curl`。
   - 根据宿主机的 `timedatectl` 设置 `TZ`。
 - **Terminal 层**：
-  - `zsh`、`git`、`curl`、`build-essential`。
+  - `zsh`。
   - 修改 `/etc/zsh/zprofile` 以同时 source `/etc/profile`。
-  - 全局 `git config` 设置 `user.name`、`user.email` 以及
-    `core.editor=code --wait`。
   - [Oh My Zsh](https://github.com/ohmyzsh/ohmyzsh)，使用与 macOS 和 Debian
-    安装相同的插件集（z、sudo、vscode、
+    安装相同的插件集（z、sudo、
     [ohmyzsh-full-autoupdate](https://github.com/Pilaton/OhMyZsh-full-autoupdate)、
     [zsh-autosuggestions](https://github.com/zsh-users/zsh-autosuggestions)、
     [zsh-syntax-highlighting](https://github.com/zsh-users/zsh-syntax-highlighting)）。
@@ -134,6 +133,10 @@ bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master
     `~/.p10k.zsh`。
   - 将 Zsh 设为用户的默认 shell；并删除 `~/.profile`、`~/.bashrc` 与
     `~/.bash_logout`。
+- **App 层**：
+  - 全局 `git config` 设置 `user.name`、`user.email` 以及
+    `core.editor=code --wait`。
+  - 启用 Oh My Zsh 的 `git` 与 `vscode` 插件。
 - **Finish 层**：设置 `CMD ["sleep", "infinity"]`，使容器可作为长期运行的开发
   环境使用。
 
