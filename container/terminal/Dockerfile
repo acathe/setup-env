@@ -2,13 +2,6 @@ ARG from=dev-container/base:latest
 
 FROM ${from}
 
-ARG user
-ARG git_user_name
-ARG git_user_email
-
-RUN sudo apt-get update \
-    && sudo apt-get install -y zsh git curl build-essential \
-    && sudo rm -rf /var/lib/apt/lists/*
 
 RUN tmpfile="$(mktemp)" \
     && echo '# Sync /etc/profile' >> "$tmpfile" \
@@ -17,6 +10,8 @@ RUN tmpfile="$(mktemp)" \
     && cat "/etc/zsh/zprofile" >> "$tmpfile" \
     && sudo mv "$tmpfile" "/etc/zsh/zprofile"
 
+ARG git_user_name
+ARG git_user_email
 RUN git config --global user.name "${git_user_name}" \
     && git config --global user.email "${git_user_email}" \
     && git config --global core.editor "code --wait"
@@ -27,6 +22,7 @@ RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master
     && git clone "https://github.com/zsh-users/zsh-syntax-highlighting.git" "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting" \
     && git clone --depth=1 "https://github.com/romkatv/powerlevel10k.git" "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k"
 
+ARG user
 COPY --chown=${user}:${user} ./.p10k.zsh ./.p10k.zsh
 
 RUN sed -i "/export PATH=\$HOME\/bin:\$HOME\/\.local\/bin:\/usr\/local\/bin:\$PATH/s/^# //" "$HOME/.zshrc" \
@@ -41,3 +37,7 @@ RUN sed -i "/export PATH=\$HOME\/bin:\$HOME\/\.local\/bin:\/usr\/local\/bin:\$PA
     && rm -f "$HOME/.bash_logout"
 
 SHELL ["/usr/bin/zsh", "-c"]
+
+RUN sudo apt-get update \
+    && sudo apt-get install -y build-essential \
+    && sudo rm -rf /var/lib/apt/lists/*
