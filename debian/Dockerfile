@@ -35,7 +35,7 @@ RUN --mount=type=bind,source=.,target=/mnt/setup,readonly \
     && sudo rm -rf /var/lib/apt/lists/* /tmp/*
 
 RUN --mount=type=bind,source=.,target=/mnt/setup,readonly \
-    bash /mnt/setup/terminal/omz/main.sh --container \
+    bash /mnt/setup/terminal/omz/main.sh --unattended \
     && sudo rm -rf /var/lib/apt/lists/* /tmp/*
 
 ARG app_git_user_name

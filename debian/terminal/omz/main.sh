@@ -2,15 +2,15 @@
 
 set -euo pipefail
 
-CONTAINER="${CONTAINER:-0}"
+UNATTENDED="${UNATTENDED:-0}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 parse_args() {
     POSITIONAL=()
     while (($# > 0)); do
         case "$1" in
-            --container)
-                CONTAINER=1
+            --unattended)
+                UNATTENDED=1
                 shift
                 ;;
             *) # unknown flag/switch
@@ -32,7 +32,7 @@ install_omz() {
         return 1
     fi
 
-    if [[ $CONTAINER == "1" ]]; then
+    if [[ $UNATTENDED == "1" ]]; then
         sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
         sudo -n usermod -s "$(command -v zsh)" "$(whoami)"
     else
@@ -91,7 +91,7 @@ remove_preshell() {
     rm -f "$HOME/.bashrc"
     rm -f "$HOME/.bash_logout"
 
-    if [[ $CONTAINER == "1" ]]; then
+    if [[ $UNATTENDED == "1" ]]; then
         cp "$SCRIPT_DIR/p10k.zsh" "$HOME/.p10k.zsh"
         {
             echo ""
