@@ -59,7 +59,7 @@ parse_args() {
 
 main() {
     bash "./terminal/zsh.sh" "$@"
-    bash "./terminal/omz/main.sh" "$@"
+    bash "./terminal/omz.sh" "$@"
 
     if [[ $APP_DOCKER == "1" ]]; then
         bash "./app/docker.sh" "$@"

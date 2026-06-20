@@ -82,15 +82,6 @@ install_plugin() {
     # Ref. https://github.com/romkatv/powerlevel10k?tab=readme-ov-file#oh-my-zsh
     git clone --depth=1 "https://github.com/romkatv/powerlevel10k.git" "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k"
     sed -i 's|^ZSH_THEME=".*"|ZSH_THEME="powerlevel10k/powerlevel10k"|' "$HOME/.zshrc"
-
-    if [[ $UNATTENDED == "1" ]]; then
-        cp "./p10k.zsh" "$HOME/.p10k.zsh"
-        {
-            echo ""
-            echo '# To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.'
-            echo '[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh'
-        } >> "$HOME/.zshrc"
-    fi
 }
 
 main() {
