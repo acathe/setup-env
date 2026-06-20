@@ -2,28 +2,28 @@
 
 set -euo pipefail
 
-GIT_USER_NAME="${GIT_USER_NAME:-}"
-GIT_USER_EMAIL="${GIT_USER_EMAIL:-}"
+APP_GIT_USER_NAME="${APP_GIT_USER_NAME:-}"
+APP_GIT_USER_EMAIL="${APP_GIT_USER_EMAIL:-}"
 
 parse_args() {
     POSITIONAL=()
     while (($# > 0)); do
         case "$1" in
-            --git-user-name)
+            --app-git-user-name)
                 numOfArgs=1 # number of switch arguments
                 if (($# < numOfArgs + 1)); then
                     shift $#
                 else
-                    GIT_USER_NAME="$2"
+                    APP_GIT_USER_NAME="$2"
                     shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
                 fi
                 ;;
-            --git-user-email)
+            --app-git-user-email)
                 numOfArgs=1 # number of switch arguments
                 if (($# < numOfArgs + 1)); then
                     shift $#
                 else
-                    GIT_USER_EMAIL="$2"
+                    APP_GIT_USER_EMAIL="$2"
                     shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
                 fi
                 ;;
@@ -36,8 +36,8 @@ parse_args() {
 }
 
 main() {
-    git config --global user.name "$GIT_USER_NAME"
-    git config --global user.email "$GIT_USER_EMAIL"
+    git config --global user.name "$APP_GIT_USER_NAME"
+    git config --global user.email "$APP_GIT_USER_EMAIL"
 
     sed -i '/^plugins=(/s/)/ git)/' "$HOME/.zshrc"
 }

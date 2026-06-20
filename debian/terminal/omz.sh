@@ -2,6 +2,24 @@
 
 set -euo pipefail
 
+UNATTENDED="${UNATTENDED:-0}"
+
+parse_args() {
+    POSITIONAL=()
+    while (($# > 0)); do
+        case "$1" in
+            --unattended)
+                UNATTENDED=1
+                shift
+                ;;
+            *) # unknown flag/switch
+                POSITIONAL+=("$1")
+                shift
+                ;;
+        esac
+    done
+}
+
 install_omz() {
     if ! command -v git > /dev/null 2>&1; then
         echo "git is not installed." >&2
@@ -13,9 +31,14 @@ install_omz() {
         return 1
     fi
 
-    # Use `RUNZSH="no"` to skip running Zsh and prevent interrupting the script.
-    # Ref. https://ohmyz.sh/#install
-    RUNZSH="no" sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+    if [[ $UNATTENDED == "1" ]]; then
+        sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+        sudo -n usermod -s "$(command -v zsh)" "$(whoami)"
+    else
+        RUNZSH="no" sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+    fi
+
+    sed -i "/export PATH=\$HOME\/bin:\$HOME\/\.local\/bin:\/usr\/local\/bin:\$PATH/s/^# //" "$HOME/.zshrc"
 
     if [[ -s "$HOME/.zshrc.pre-oh-my-zsh" ]]; then
         local tmpfile
@@ -30,6 +53,10 @@ install_omz() {
     fi
 
     rm -f "$HOME/.zshrc.pre-oh-my-zsh"
+    rm -f "$HOME/.shell.pre-oh-my-zsh"
+    rm -f "$HOME/.profile"
+    rm -f "$HOME/.bashrc"
+    rm -f "$HOME/.bash_logout"
 }
 
 install_plugin() {
@@ -57,26 +84,14 @@ install_plugin() {
     sed -i 's|^ZSH_THEME=".*"|ZSH_THEME="powerlevel10k/powerlevel10k"|' "$HOME/.zshrc"
 }
 
-remove_preshell() {
-    if [[ ! -f "$HOME/.shell.pre-oh-my-zsh" ]]; then
-        return 0
-    fi
-
-    sed -i "/export PATH=\$HOME\/bin:\$HOME\/\.local\/bin:\/usr\/local\/bin:\$PATH/s/^# //" "$HOME/.zshrc"
-
-    rm -f "$HOME/.shell.pre-oh-my-zsh"
-    rm -f "$HOME/.profile"
-    rm -f "$HOME/.bashrc"
-    rm -f "$HOME/.bash_logout"
-}
-
 main() {
     install_omz
     install_plugin
-    remove_preshell
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
     cd "$(dirname "${BASH_SOURCE[0]}")"
+    parse_args "$@"
+    set -- "${POSITIONAL[@]}" # restore positional params
     main "$@"
 fi

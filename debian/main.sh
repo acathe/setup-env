@@ -2,15 +2,30 @@
 
 set -euo pipefail
 
-APP_DOCKER="${APP_DOCKER:-0}"
+CONTAINER="${CONTAINER:-}"
+IMAGE_TAG="${IMAGE_TAG:-"latest"}"
 
 parse_args() {
     POSITIONAL=()
     while (($# > 0)); do
         case "$1" in
-            --app-docker)
-                APP_DOCKER=1
-                shift # shift once since flags have no values
+            --container)
+                numOfArgs=1 # number of switch arguments
+                if (($# < numOfArgs + 1)); then
+                    shift $#
+                else
+                    CONTAINER="$2"
+                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
+                fi
+                ;;
+            --image-tag)
+                numOfArgs=1 # number of switch arguments
+                if (($# < numOfArgs + 1)); then
+                    shift $#
+                else
+                    IMAGE_TAG="$2"
+                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
+                fi
                 ;;
             *) # unknown flag/switch
                 POSITIONAL+=("$1")
@@ -20,12 +35,57 @@ parse_args() {
     done
 }
 
-main() {
-    bash "./terminal/zsh.sh" "$@"
-    bash "./terminal/omz.sh" "$@"
+container() {
+    if ! command -v docker > /dev/null 2>&1; then
+        echo "Docker is not installed. Please install Docker and try again." >&2
+        return 1
+    fi
 
-    if [[ $APP_DOCKER == "1" ]]; then
-        bash "./app/docker.sh" "$@"
+    if [[ -z $USER || -z $LANG ]]; then
+        echo "USER or LANG is not set. Run from a normal login shell with USER and LANG exported." >&2
+        return 1
+    fi
+
+    local setup_args_b64
+    setup_args_b64="$(for arg; do printf '%s\0' "$arg"; done | base64 | tr -d '\n')"
+
+    docker build \
+        -t "dev-container:$IMAGE_TAG" \
+        --build-arg "user=$USER" \
+        --build-arg "lang=${LANG%.*}" \
+        --build-arg "encoding=${LANG#*.}" \
+        --build-arg "language=${LANGUAGE:-}" \
+        --build-arg "tz=$(timedatectl show -p Timezone --value)" \
+        --build-arg "setup_args_b64=$setup_args_b64" \
+        .
+
+    mkdir -p "$HOME/Projects"
+
+    if docker container inspect "$CONTAINER" > /dev/null 2>&1; then
+        echo "Container '$CONTAINER' already exists." >&2
+        echo "Remove it (docker rm -f $CONTAINER) or pass --container <name>." >&2
+        return 1
+    fi
+
+    docker run \
+        -d \
+        --privileged \
+        --init \
+        --restart unless-stopped \
+        --shm-size=2g \
+        --ulimit nofile=1048576:1048576 \
+        --tmpfs /tmp:exec \
+        --hostname "$CONTAINER" \
+        --name "$CONTAINER" \
+        -v "$HOME/Projects:/home/$USER/Projects" \
+        "dev-container:$IMAGE_TAG"
+}
+
+main() {
+    if [[ -n $CONTAINER ]]; then
+        container "$@"
+    else
+        bash "./setup.sh" "$@"
     fi
 }
 
