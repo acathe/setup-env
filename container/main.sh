@@ -4,7 +4,8 @@ set -euo pipefail
 
 IMAGE_TAG="${IMAGE_TAG:-"latest"}"
 CONTAINER="${CONTAINER:-"dev-container"}"
-USER="${USER:-}"
+GIT_USER_NAME="${GIT_USER_NAME:-}"
+GIT_USER_EMAIL="${GIT_USER_EMAIL:-}"
 
 parse_args() {
     POSITIONAL=()
@@ -28,13 +29,21 @@ parse_args() {
                     shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
                 fi
                 ;;
-
-            --user)
+            --git-user-name)
                 numOfArgs=1 # number of switch arguments
                 if (($# < numOfArgs + 1)); then
                     shift $#
                 else
-                    USER="$2"
+                    GIT_USER_NAME="$2"
+                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
+                fi
+                ;;
+            --git-user-email)
+                numOfArgs=1 # number of switch arguments
+                if (($# < numOfArgs + 1)); then
+                    shift $#
+                else
+                    GIT_USER_EMAIL="$2"
                     shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
                 fi
                 ;;
@@ -47,18 +56,28 @@ parse_args() {
 }
 
 main() {
-    bash "./base/build.sh" --image-tag "$IMAGE_TAG" --user "$USER" "$@"
-    bash "./terminal/build.sh" --image-tag "$IMAGE_TAG" --user "$USER" "$@"
-    bash "./lang/build.sh" --image-tag "$IMAGE_TAG" "$@"
-    bash "./tools/build.sh" --image-tag "$IMAGE_TAG" "$@"
+    if ! command -v docker > /dev/null 2>&1; then
+        echo "Docker is not installed. Please install Docker and try again." >&2
+        return 1
+    fi
 
-    bash ./finish/build.sh \
-        --from "dev-container/tools" \
-        --image "dev-container/main" \
-        --image-tag "$IMAGE_TAG" \
-        "$@"
+    if [[ -z $USER || -z $LANG ]]; then
+        echo "USER or LANG is not set. Run from a normal login shell with USER and LANG exported." >&2
+        return 1
+    fi
 
-    [[ ! -d "$HOME/Projects" ]] && mkdir -p "$HOME/Projects"
+    docker build \
+        -t "dev-container:$IMAGE_TAG" \
+        --build-arg "user=$USER" \
+        --build-arg "lang=${LANG%.*}" \
+        --build-arg "encoding=${LANG#*.}" \
+        --build-arg "language=$LANGUAGE" \
+        --build-arg "tz=$(timedatectl show -p Timezone --value)" \
+        --build-arg "git_user_name=$GIT_USER_NAME" \
+        --build-arg "git_user_email=$GIT_USER_EMAIL" \
+        .
+
+    mkdir -p "$HOME/Projects"
 
     if docker container inspect "$CONTAINER" > /dev/null 2>&1; then
         echo "Container '$CONTAINER' already exists." >&2
@@ -77,7 +96,7 @@ main() {
         --hostname "$CONTAINER" \
         --name "$CONTAINER" \
         -v "$HOME/Projects:/home/$USER/Projects" \
-        "dev-container/main:$IMAGE_TAG"
+        "dev-container:$IMAGE_TAG"
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then

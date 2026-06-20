@@ -3,12 +3,12 @@
 set -euo pipefail
 
 install_homebrew() {
-    if [[ -n "$(command -v brew)" ]]; then
+    if command -v brew > /dev/null 2>&1; then
         echo "Homebrew is already installed."
         return 0
     fi
 
-    if [[ -z "$(command -v curl)" ]]; then
+    if ! command -v curl > /dev/null 2>&1; then
         echo "curl is not installed." >&2
         return 1
     fi

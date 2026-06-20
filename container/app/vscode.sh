@@ -3,7 +3,9 @@
 set -euo pipefail
 
 main() {
-    xargs -L 1 code --force --install-extension < "./extensions.txt"
+    git config --global core.editor "code --wait"
+
+    sed -i '/^plugins=(/s/)/ vscode)/' "$HOME/.zshrc"
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then

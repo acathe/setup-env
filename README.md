@@ -99,48 +99,40 @@ sudo apt-get update \
 
 ## 4. Container
 
-Build and run a layered Debian-based dev container image that includes a
-ready-to-use Zsh shell plus any languages and tools you select.
+Build and run a Debian-based dev container image that includes a ready-to-use
+Zsh shell plus the language toolchains and development tools listed below.
 
 ```shell
 bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master/main.sh")" -- \
     --setup container \
-    [--user $your_user] \
     --git-user-name $your_name \
-    --git-user-email $your_email \
-    [<tool>...]
+    --git-user-email $your_email
 ```
 
-`--user` is optional. When omitted, the script falls back to the `USER`
-environment variable (which is set by default on most shells), so on a typical
-interactive session you can simply leave the flag out. Pass `--user` explicitly
-only when you need to override that value (for example, when running from a
-context where `USER` is unset or points to the wrong account).
-
-| Tools            | Description                                                     |
-| ---------------- | --------------------------------------------------------------- |
-| --lang-bash      | Add `shfmt` and `shellcheck` for shell scripting.               |
-| --lang-go        | Install the latest Go toolchain from the official release page. |
-| --lang-python    | Install Python 3, `uv`, `py-spy`, and a shared Ruff config.     |
-| --lang-rust      | Install the Rust toolchain via `rustup`.                        |
-| --tools-protobuf | Install `protoc` plus `clang-format`.                           |
+Container setup reuses the host `USER`, `LANG`, and optional `LANGUAGE`
+environment variables directly. Run it from a normal login shell where `USER`
+and `LANG` are exported.
 
 **What gets installed (always):**
 
-The image is assembled in layers — `base` → `terminal` → `lang` → `tools` →
-`finish` — each stacked on the previous one.
+The build uses a single `container/Dockerfile` for the final image. Base setup
+code lives at `container/terminal/root.sh`, and the main Dockerfile calls it
+before switching to the container user. Setup scripts are mounted with
+`RUN --mount`, copied into `/tmp/setup` within the same build step, and removed
+before the layer is committed. The user-scoped `git` and `curl` package install
+remains a direct Dockerfile `RUN`, and no intermediate `dev-container/base`
+image needs to be tagged.
 
-- **Base layer** (`debian:trixie`):
+- **Root setup** (`debian:trixie`):
   - `locales` package with the locale generated from `$LANG` on the host.
   - `sudo` and a passwordless sudo user (`$USER`).
+  - `git` and `curl`.
   - `TZ` set from the host's `timedatectl` value.
-- **Terminal layer**:
-  - `zsh`, `git`, `curl`, `build-essential`.
+- **Terminal setup**:
+  - `zsh`.
   - `/etc/zsh/zprofile` patched to also source `/etc/profile`.
-  - Global `git config` for `user.name`, `user.email`, and
-    `core.editor=code --wait`.
   - [Oh My Zsh](https://github.com/ohmyzsh/ohmyzsh) with the same plugin set
-    used by the macOS and Debian setups (z, sudo, vscode,
+    used by the macOS and Debian setups (z, sudo,
     [ohmyzsh-full-autoupdate](https://github.com/Pilaton/OhMyZsh-full-autoupdate),
     [zsh-autosuggestions](https://github.com/zsh-users/zsh-autosuggestions),
     [zsh-syntax-highlighting](https://github.com/zsh-users/zsh-syntax-highlighting)).
@@ -148,32 +140,36 @@ The image is assembled in layers — `base` → `terminal` → `lang` → `tools
     pre-baked `~/.p10k.zsh`.
   - Zsh set as the user's default shell; `~/.profile`, `~/.bashrc`, and
     `~/.bash_logout` are removed.
-- **Finish layer**: sets `CMD ["sleep", "infinity"]` so the container can be
+- **App setup**:
+  - Global `git config` for `user.name`, `user.email`, and
+    `core.editor=code --wait`.
+  - Oh My Zsh `git` and `vscode` plugins enabled.
+- **Final image**: sets `CMD ["sleep", "infinity"]` so the container can be
   used as a long-running dev environment.
 
 The image is started with `docker run -d --privileged --init --shm-size=2g`,
 named `dev-container` (overridable via `--container`), and `~/Projects` from
 the host is bind-mounted into the container.
 
-**What gets installed with `--lang-*` / `--tools-*` flags:**
+**Language and tools:**
 
-- `--lang-bash` — [`shfmt`](https://github.com/mvdan/sh) and
+- [`shfmt`](https://github.com/mvdan/sh) and
   [`shellcheck`](https://www.shellcheck.net) from APT.
-- `--lang-go` — the newest [Go](https://go.dev) tarball from
+- The newest [Go](https://go.dev) tarball from
   `https://go.dev/dl/`, unpacked to `/usr/local/go`; `$PATH` and the
   [`golang`](https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/golang)
   Oh My Zsh plugin are wired up.
-- `--lang-python` — Python 3 from APT, [`uv`](https://github.com/astral-sh/uv)
+- Python 3 from APT, [`uv`](https://github.com/astral-sh/uv)
   installed via the official installer, the
   [`python`](https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/python)
   Oh My Zsh plugin enabled,
   [BesLogic's Ruff config](https://github.com/BesLogic/Beslogic-Ruff-Config)
   saved to `~/.config/Beslogic/ruff.toml`, and
   [`py-spy`](https://github.com/benfred/py-spy) installed as a `uv` tool.
-- `--lang-rust` — [`rustup`](https://rustup.rs) bootstrap, plus the
+- [`rustup`](https://rustup.rs) bootstrap, plus the
   [`rust`](https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/rust) Oh My
   Zsh plugin.
-- `--tools-protobuf` — `clang-format` from APT and the latest
+- `clang-format` from APT and the latest
   [`protoc`](https://github.com/protocolbuffers/protobuf) release installed
   under `~/.local`.
 
@@ -183,14 +179,15 @@ Install all extensions listed in [`vscode/extensions.txt`](./vscode/extensions.t
 Requires the `code` CLI to be available in `PATH`.
 
 ```shell
-bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master/main.sh")" -- \
-    --setup vscode
+curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master/vscode/extensions.txt" \
+  | xargs -L 1 code --force --install-extension
 ```
 
 **What gets installed:**
 
 - All extensions from [`vscode/extensions.txt`](./vscode/extensions.txt),
-  installed via `code --install-extension`. This includes language support
+  downloaded from GitHub's raw endpoint and installed via
+  `code --force --install-extension`. This includes language support
   (Python/Pylance, Go, Rust Analyzer, clangd, Bash IDE, CMake Tools), linting
   and formatting (Ruff, markdownlint, code-spell-checker, ErrorLens), Git
   tooling (GitLens), remote development (Remote-SSH, Remote-Containers,

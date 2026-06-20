@@ -3,12 +3,12 @@
 set -euo pipefail
 
 install_omz() {
-    if [[ -z "$(command -v git)" ]]; then
+    if ! command -v git > /dev/null 2>&1; then
         echo "git is not installed." >&2
         return 1
     fi
 
-    if [[ -z "$(command -v curl)" ]]; then
+    if ! command -v curl > /dev/null 2>&1; then
         echo "curl is not installed." >&2
         return 1
     fi
@@ -33,7 +33,7 @@ install_omz() {
 }
 
 install_plugin() {
-    if [[ -z "$(command -v git)" ]]; then
+    if ! command -v git > /dev/null 2>&1; then
         echo "git is not installed." >&2
         return 1
     fi
@@ -62,13 +62,12 @@ remove_preshell() {
         return 0
     fi
 
-    rm -f "$HOME/.shell.pre-oh-my-zsh"
-
     sed -i "/export PATH=\$HOME\/bin:\$HOME\/\.local\/bin:\/usr\/local\/bin:\$PATH/s/^# //" "$HOME/.zshrc"
 
-    [[ -f "$HOME/.profile" ]] && rm -f "$HOME/.profile"
-    [[ -f "$HOME/.bashrc" ]] && rm -f "$HOME/.bashrc"
-    [[ -f "$HOME/.bash_logout" ]] && rm -f "$HOME/.bash_logout"
+    rm -f "$HOME/.shell.pre-oh-my-zsh"
+    rm -f "$HOME/.profile"
+    rm -f "$HOME/.bashrc"
+    rm -f "$HOME/.bash_logout"
 }
 
 main() {

@@ -42,16 +42,9 @@ macos() {
 }
 
 debian() {
-    if [[ -z "$(command -v git)" ]]; then
+    if ! command -v git > /dev/null 2>&1; then
         sudo apt-get update
         sudo apt-get install -y git
-    fi
-}
-
-vscode() {
-    if [[ -z "$(command -v code)" ]]; then
-        echo "VS Code CLI 'code' not found in PATH." >&2
-        return 1
     fi
 }
 
@@ -62,9 +55,6 @@ main() {
             ;;
         debian | container)
             debian
-            ;;
-        vscode)
-            vscode
             ;;
         *)
             echo "Unsupported setup: $SETUP" >&2
