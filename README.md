@@ -139,8 +139,8 @@ Zsh shell plus the language toolchains and development tools listed below.
 bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master/main.sh")" -- \
     --setup debian \
     --container dev-container \
-    --git-user-name $your_name \
-    --git-user-email $your_email
+    --app-git-user-name $your_name \
+    --app-git-user-email $your_email
 ```
 
 Container setup reuses the host `USER`, `LANG`, and optional `LANGUAGE`

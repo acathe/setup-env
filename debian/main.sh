@@ -7,6 +7,8 @@ IMAGE_TAG="${IMAGE_TAG:-"latest"}"
 
 APP_DOCKER="${APP_DOCKER:-0}"
 APP_GIT="${APP_GIT:-0}"
+APP_GIT_USER_NAME="${APP_GIT_USER_NAME:-}"
+APP_GIT_USER_EMAIL="${APP_GIT_USER_EMAIL:-}"
 APP_VSCODE="${APP_VSCODE:-0}"
 
 LANG_BASH="${LANG_BASH:-0}"
@@ -15,9 +17,6 @@ LANG_PYTHON="${LANG_PYTHON:-0}"
 LANG_RUST="${LANG_RUST:-0}"
 
 TOOL_PROTOBUF="${TOOL_PROTOBUF:-0}"
-
-GIT_USER_NAME="${GIT_USER_NAME:-}"
-GIT_USER_EMAIL="${GIT_USER_EMAIL:-}"
 
 parse_args() {
     POSITIONAL=()
@@ -49,6 +48,24 @@ parse_args() {
                 APP_GIT=1
                 shift
                 ;;
+            --app-git-user-name)
+                numOfArgs=1 # number of switch arguments
+                if (($# < numOfArgs + 1)); then
+                    shift $#
+                else
+                    APP_GIT_USER_NAME="$2"
+                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
+                fi
+                ;;
+            --app-git-user-email)
+                numOfArgs=1 # number of switch arguments
+                if (($# < numOfArgs + 1)); then
+                    shift $#
+                else
+                    APP_GIT_USER_EMAIL="$2"
+                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
+                fi
+                ;;
             --app-vscode)
                 APP_VSCODE=1
                 shift
@@ -73,24 +90,6 @@ parse_args() {
                 TOOL_PROTOBUF=1
                 shift
                 ;;
-            --git-user-name)
-                numOfArgs=1 # number of switch arguments
-                if (($# < numOfArgs + 1)); then
-                    shift $#
-                else
-                    GIT_USER_NAME="$2"
-                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
-                fi
-                ;;
-            --git-user-email)
-                numOfArgs=1 # number of switch arguments
-                if (($# < numOfArgs + 1)); then
-                    shift $#
-                else
-                    GIT_USER_EMAIL="$2"
-                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
-                fi
-                ;;
             *) # unknown flag/switch
                 POSITIONAL+=("$1")
                 shift
@@ -109,8 +108,8 @@ debian() {
 
     if [[ $APP_GIT == "1" ]]; then
         bash "./app/git.sh" \
-            --git-user-name "$GIT_USER_NAME" \
-            --git-user-email "$GIT_USER_EMAIL"
+            --app-git-user-name "$APP_GIT_USER_NAME" \
+            --app-git-user-email "$APP_GIT_USER_EMAIL"
     fi
 
     if [[ $APP_VSCODE == "1" ]]; then
@@ -144,7 +143,7 @@ container() {
         return 1
     fi
 
-    if [[ -z ${USER:-} || -z ${LANG:-} ]]; then
+    if [[ -z $USER || -z $LANG ]]; then
         echo "USER or LANG is not set. Run from a normal login shell with USER and LANG exported." >&2
         return 1
     fi
@@ -156,8 +155,8 @@ container() {
         --build-arg "encoding=${LANG#*.}" \
         --build-arg "language=${LANGUAGE:-}" \
         --build-arg "tz=$(timedatectl show -p Timezone --value)" \
-        --build-arg "git_user_name=$GIT_USER_NAME" \
-        --build-arg "git_user_email=$GIT_USER_EMAIL" \
+        --build-arg "app_git_user_name=$APP_GIT_USER_NAME" \
+        --build-arg "app_git_user_email=$APP_GIT_USER_EMAIL" \
         .
 
     mkdir -p "$HOME/Projects"

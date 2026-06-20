@@ -38,10 +38,10 @@ RUN --mount=type=bind,source=.,target=/mnt/setup,readonly \
     bash /mnt/setup/terminal/omz/main.sh --container \
     && sudo rm -rf /var/lib/apt/lists/* /tmp/*
 
-ARG git_user_name
-ARG git_user_email
+ARG app_git_user_name
+ARG app_git_user_email
 RUN --mount=type=bind,source=.,target=/mnt/setup,readonly \
-    bash /mnt/setup/app/git.sh --git-user-name "${git_user_name}" --git-user-email "${git_user_email}" \
+    bash /mnt/setup/app/git.sh --app-git-user-name "${app_git_user_name}" --app-git-user-email "${app_git_user_email}" \
     && sudo rm -rf /var/lib/apt/lists/* /tmp/*
 
 RUN --mount=type=bind,source=.,target=/mnt/setup,readonly \
