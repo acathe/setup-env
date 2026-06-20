@@ -1,284 +1,100 @@
 # Setup Env
 
-A collection of one-shot bash scripts that bootstrap my personal development
-environments — macOS workstations, Debian servers, ephemeral dev containers,
-and Visual Studio Code — from a single `curl | bash` command.
+个人开发环境的一组一次性 Bash 安装脚本。入口脚本会从 GitHub 拉取本仓库，然后按目标系统执行对应目录下的安装逻辑；VS Code 扩展列表可单独安装。
 
-This repository is opinionated: it installs **my** preferred shell, plugins,
-fonts, languages, and editor settings. It is published in the open so it can
-be reproduced on any new machine in minutes, and so that others can use it as
-a starting point.
+入口目标：
 
-**Forks are welcome.** Fork the repo, swap out the packages, plugins, or
-extensions that don't fit your workflow, and point the `curl` command at your
-own fork's `main.sh` (or use the `--branch` flag to target a custom branch).
-Each setup target (`macos`, `debian`, `vscode`) is a standalone directory.
-Container builds are a Debian mode exposed through `debian/main.sh --container <name>`.
+- `macos`: macOS 工作站
+- `debian`: Debian 主机，或通过 `--container` 构建 Debian 开发容器
 
-## 1. Table of Contents
-
-- [1. Table of Contents](#1-table-of-contents)
-- [2. MacOS](#2-macos)
-- [3. Debian](#3-debian)
-- [4. Container](#4-container)
-- [5. VSCode](#5-vscode)
-- [6. Acknowledgments](#6-acknowledgments)
-  - [6.1. Shell \& terminal](#61-shell--terminal)
-  - [6.2. Languages \& toolchains](#62-languages--toolchains)
-  - [6.3. Editor](#63-editor)
-  - [6.4. Fonts](#64-fonts)
-  - [6.5. Container \& OS](#65-container--os)
-- [7. License](#7-license)
-
-## 2. MacOS
+## macOS
 
 ```shell
 bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master/main.sh")" -- \
-    --setup macos \
-    [<app>...]
+  --setup macos \
+  [--app-vscode] \
+  [--app-ssh ...]
 ```
 
-| Apps         | Description                                                               |
-| ------------ | ------------------------------------------------------------------------- |
-| --app-vscode | Install Visual Studio Code with Fira Code font and the zsh vscode plugin. |
+默认安装/配置：
 
-**What gets installed (always):**
+- Xcode Command Line Tools
+- Homebrew
+- Oh My Zsh，启用 `z`、`sudo`、`brew`
+- Oh My Zsh 插件：`ohmyzsh-full-autoupdate`、`zsh-autosuggestions`、`zsh-syntax-highlighting`
+- Powerlevel10k 和 MesloLGS NF 字体
 
-- Xcode Command Line Tools (if missing).
-- [Homebrew](https://brew.sh) package manager.
-- [Zsh](https://www.zsh.org) (bundled with macOS) configured as the login shell.
-- [Oh My Zsh](https://github.com/ohmyzsh/ohmyzsh) framework with the `z`,
-  `sudo`, and `brew` plugins enabled.
-- Oh My Zsh community plugins:
-  [ohmyzsh-full-autoupdate](https://github.com/Pilaton/OhMyZsh-full-autoupdate),
-  [zsh-autosuggestions](https://github.com/zsh-users/zsh-autosuggestions),
-  [zsh-syntax-highlighting](https://github.com/zsh-users/zsh-syntax-highlighting).
-- [Powerlevel10k](https://github.com/romkatv/powerlevel10k) Zsh theme with the
-  patched MesloLGS NF font (`font-meslo-for-powerlevel10k`).
+可选参数：
 
-**What gets installed with `--app-vscode`:**
+| 参数 | 作用 |
+| --- | --- |
+| `--app-vscode` | 通过 Homebrew 安装 Visual Studio Code 和 Fira Code，并启用 Oh My Zsh `vscode` 插件。 |
+| `--app-ssh` | 写入 `~/.ssh/config`，可按需生成密钥并复制公钥到远端。 |
+| `--app-ssh-host <alias>` | SSH Host 别名。 |
+| `--app-ssh-hostname <host>` | SSH HostName。 |
+| `--app-ssh-user <user>` | SSH 用户，默认当前用户。 |
+| `--app-ssh-identity-file <name>` | 在 `~/.ssh/` 下生成/使用的密钥文件名。 |
+| `--app-ssh-comment <text>` | 生成密钥时写入的注释。 |
+| `--app-ssh-no-copy-key` | 不执行 `ssh-copy-id`。 |
 
-- [Visual Studio Code](https://code.visualstudio.com) (cask).
-- [Fira Code](https://github.com/tonsky/FiraCode) font (cask).
-- The Oh My Zsh [`vscode`](https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/vscode)
-  plugin is enabled in `~/.zshrc`.
+## Debian / Container
 
-## 3. Debian
+Debian 主机：
 
 ```shell
 sudo apt-get update \
-    && sudo apt-get install -y curl \
-    && bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master/main.sh")" -- \
-        --setup debian \
-        [<app>...] \
-        [<lang>...] \
-        [<tool>...]
+  && sudo apt-get install -y curl \
+  && bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master/main.sh")" -- \
+    --setup debian \
+    [flags...]
 ```
 
-| Apps         | Description                                                                   |
-| ------------ | ----------------------------------------------------------------------------- |
-| --app-docker | Install Docker Engine and add the current user to the docker group.           |
-| --app-git    | Configure global Git name/email and enable the Oh My Zsh `git` plugin.        |
-| --app-vscode | Configure `code --wait` as the Git editor and enable the `vscode` zsh plugin. |
-
-| Languages     | Description                                    |
-| ------------- | ---------------------------------------------- |
-| --lang-bash   | Install Bash development tools.                |
-| --lang-go     | Install the latest Go toolchain.               |
-| --lang-python | Install Python 3, uv, Ruff config, and py-spy. |
-| --lang-rust   | Install Rust through rustup.                   |
-
-| Tools           | Description                        |
-| --------------- | ---------------------------------- |
-| --tool-protobuf | Install clang-format and `protoc`. |
-
-**What gets installed (always):**
-
-- `git` (via `apt`) if missing.
-- `zsh` (via `apt`), with `/etc/zsh/zprofile` patched to source `/etc/profile`
-  so login-shell environment variables continue to apply.
-- [Oh My Zsh](https://github.com/ohmyzsh/ohmyzsh) with the `z` and `sudo`
-  plugins enabled.
-- Oh My Zsh community plugins:
-  [ohmyzsh-full-autoupdate](https://github.com/Pilaton/OhMyZsh-full-autoupdate),
-  [zsh-autosuggestions](https://github.com/zsh-users/zsh-autosuggestions),
-  [zsh-syntax-highlighting](https://github.com/zsh-users/zsh-syntax-highlighting).
-- [Powerlevel10k](https://github.com/romkatv/powerlevel10k) Zsh theme.
-
-**What gets installed with `--app-docker`:**
-
-- Docker's official APT repository and signing key.
-- [Docker Engine](https://www.docker.com) (`docker-ce`, `docker-ce-cli`,
-  `containerd.io`, `docker-buildx-plugin`, `docker-compose-plugin`).
-- The invoking user is added to the `docker` group.
-
-**What gets installed with optional language/tool flags:**
-
-- `--lang-bash`: [`shfmt`](https://github.com/mvdan/sh) and
-  [`shellcheck`](https://www.shellcheck.net) from APT.
-- `--lang-go`: the newest [Go](https://go.dev) tarball from
-  `https://go.dev/dl/`, unpacked to `/usr/local/go`; `$PATH` and the
-  [`golang`](https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/golang)
-  Oh My Zsh plugin are wired up.
-- `--lang-python`: Python 3 from APT, [`uv`](https://github.com/astral-sh/uv),
-  the [`python`](https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/python)
-  Oh My Zsh plugin, BesLogic's Ruff config, and [`py-spy`](https://github.com/benfred/py-spy).
-- `--lang-rust`: [`rustup`](https://rustup.rs) and the
-  [`rust`](https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/rust) Oh My
-  Zsh plugin.
-- `--tool-protobuf`: `clang-format` from APT and the latest
-  [`protoc`](https://github.com/protocolbuffers/protobuf) release under
-  `~/.local`.
-
-## 4. Container
-
-Build and run a Debian-based dev container image that includes a ready-to-use
-Zsh shell. Pass the same Debian app, language, and tool flags to include
-optional components in the image.
+Debian 开发容器：
 
 ```shell
 bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master/main.sh")" -- \
-    --setup debian \
-    --container dev-container \
-    --app-git \
-    --app-git-user-name $your_name \
-    --app-git-user-email $your_email
+  --setup debian \
+  --container dev-container \
+  [--image-tag latest] \
+  [flags...]
 ```
 
-Container setup reuses the host `USER`, `LANG`, and optional `LANGUAGE`
-environment variables directly. Run it from a normal login shell where `USER`
-and `LANG` are exported.
+默认安装/配置：
 
-**What gets installed (always):**
+- `zsh`
+- `/etc/zsh/zprofile` source `/etc/profile`
+- Oh My Zsh，启用 `z`、`sudo`
+- Oh My Zsh 插件：`ohmyzsh-full-autoupdate`、`zsh-autosuggestions`、`zsh-syntax-highlighting`
+- Powerlevel10k
 
-The build uses a single `debian/Dockerfile` for the final image. Setup scripts
-live under `debian/` and are mounted with `RUN --mount`; scripts that differ
-between interactive Debian setup and container setup receive `--unattended` so
-the Docker build remains non-interactive. The remaining setup arguments are
-forwarded through a build arg and decoded before calling `debian/setup.sh`. The
-user-scoped `git` and `curl` package install remains a direct Dockerfile `RUN`,
-and no intermediate `dev-container/base` image needs to be tagged.
+容器模式额外行为：基于 `debian:trixie` 构建 `dev-container:<tag>`，创建与宿主 `$USER` 同名的免密 sudo 用户，复用宿主 `LANG`/`LANGUAGE`/时区，安装 `git` 和 `curl`，启动长期运行容器，并把宿主 `~/Projects` 挂载到容器同路径下。
 
-- **Root setup** (`debian:trixie`):
-  - `locales` package with the locale generated from `$LANG` on the host.
-  - `sudo` and a passwordless sudo user (`$USER`).
-  - `git` and `curl`.
-  - `TZ` set from the host's `timedatectl` value.
-- **Terminal setup**:
-  - `zsh`.
-  - `/etc/zsh/zprofile` patched to also source `/etc/profile`.
-  - [Oh My Zsh](https://github.com/ohmyzsh/ohmyzsh) with the same plugin set
-    used by the macOS and Debian setups (z, sudo,
-    [ohmyzsh-full-autoupdate](https://github.com/Pilaton/OhMyZsh-full-autoupdate),
-    [zsh-autosuggestions](https://github.com/zsh-users/zsh-autosuggestions),
-    [zsh-syntax-highlighting](https://github.com/zsh-users/zsh-syntax-highlighting)).
-  - [Powerlevel10k](https://github.com/romkatv/powerlevel10k) theme with a
-    pre-baked `~/.p10k.zsh`.
-  - Zsh set as the user's default shell; `~/.profile`, `~/.bashrc`, and
-    `~/.bash_logout` are removed.
-- **Final image**: sets `CMD ["sleep", "infinity"]` so the container can be
-  used as a long-running dev environment.
+可选参数：
 
-The image is started with `docker run -d --privileged --init --shm-size=2g`,
-named by `--container <name>`, and `~/Projects` from the host is bind-mounted
-into the container.
+| 参数 | 作用 |
+| --- | --- |
+| `--app-docker` | 安装 Docker Engine、Buildx、Compose，并把当前用户加入 `docker` 组。 |
+| `--app-git` | 配置全局 Git 用户信息，并启用 Oh My Zsh `git` 插件。 |
+| `--app-git-user-name <name>` | `git config --global user.name`。 |
+| `--app-git-user-email <email>` | `git config --global user.email`。 |
+| `--app-vscode` | 配置 `code --wait` 为 Git 编辑器，并启用 Oh My Zsh `vscode` 插件。 |
+| `--lang-bash` | 安装 `build-essential`、`shfmt`、`shellcheck`。 |
+| `--lang-go` | 安装最新 Go linux-amd64 工具链，写入 Go PATH，并启用 Oh My Zsh `golang` 插件。 |
+| `--lang-python` | 安装 Python 3、uv、uv 补全、BesLogic Ruff 配置和 `py-spy`。 |
+| `--lang-rust` | 通过 rustup 安装 Rust，并启用 Oh My Zsh `rust` 插件。 |
+| `--tool-protobuf` | 安装 `clang-format` 和最新 `protoc` 到 `~/.local`。 |
 
-**What gets installed with optional app flags:**
+## VSCode
 
-- `--app-git`: Global `git config` for `user.name` and `user.email`, plus the
-  Oh My Zsh `git` plugin.
-- `--app-vscode`: `core.editor=code --wait`, plus the Oh My Zsh `vscode`
-  plugin.
-
-**What gets installed with optional language/tool flags:**
-
-- `--lang-bash`: [`shfmt`](https://github.com/mvdan/sh) and
-  [`shellcheck`](https://www.shellcheck.net) from APT.
-- `--lang-go`: The newest [Go](https://go.dev) tarball from
-  `https://go.dev/dl/`, unpacked to `/usr/local/go`; `$PATH` and the
-  [`golang`](https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/golang)
-  Oh My Zsh plugin are wired up.
-- `--lang-python`: Python 3 from APT, [`uv`](https://github.com/astral-sh/uv)
-  installed via the official installer, the
-  [`python`](https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/python)
-  Oh My Zsh plugin enabled,
-  [BesLogic's Ruff config](https://github.com/BesLogic/Beslogic-Ruff-Config)
-  saved to `~/.config/Beslogic/ruff.toml`, and
-  [`py-spy`](https://github.com/benfred/py-spy) installed as a `uv` tool.
-- `--lang-rust`: [`rustup`](https://rustup.rs) bootstrap, plus the
-  [`rust`](https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/rust) Oh My
-  Zsh plugin.
-- `--tool-protobuf`: `clang-format` from APT and the latest
-  [`protoc`](https://github.com/protocolbuffers/protobuf) release installed
-  under `~/.local`.
-
-## 5. VSCode
-
-Install all extensions listed in [`vscode/extensions.txt`](./vscode/extensions.txt).
-Requires the `code` CLI to be available in `PATH`.
+安装 [vscode/extensions.txt](vscode/extensions.txt) 中列出的扩展。需要 `code` 命令已在 `PATH` 中。
 
 ```shell
 curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master/vscode/extensions.txt" \
   | xargs -L 1 code --force --install-extension
 ```
 
-**What gets installed:**
+[vscode/settings.json](vscode/settings.json) 是参考配置，不会自动写入用户设置。
 
-- All extensions from [`vscode/extensions.txt`](./vscode/extensions.txt),
-  downloaded from GitHub's raw endpoint and installed via
-  `code --force --install-extension`. This includes language support
-  (Python/Pylance, Go, Rust Analyzer, clangd, Bash IDE, CMake Tools), linting
-  and formatting (Ruff, markdownlint, code-spell-checker, ErrorLens), Git
-  tooling (GitLens), remote development (Remote-SSH, Remote-Containers,
-  Docker), Protobuf support, a Chinese language pack, and the
-  One Dark Pro theme with Material Icon Theme.
-- A recommended user settings file is provided at
-  [`vscode/settings.json`](./vscode/settings.json) for reference (not applied
-  automatically — copy what you want into your own `settings.json`).
+## 其他
 
-## 6. Acknowledgments
-
-This project is a thin orchestration layer on top of many excellent
-open-source projects. All credit for the actual tooling goes to:
-
-### 6.1. Shell & terminal
-
-- [Homebrew](https://brew.sh)
-- [Zsh](https://www.zsh.org)
-- [Oh My Zsh](https://github.com/ohmyzsh/ohmyzsh)
-- [Powerlevel10k](https://github.com/romkatv/powerlevel10k)
-- [OhMyZsh-full-autoupdate](https://github.com/Pilaton/OhMyZsh-full-autoupdate)
-- [zsh-autosuggestions](https://github.com/zsh-users/zsh-autosuggestions)
-- [zsh-syntax-highlighting](https://github.com/zsh-users/zsh-syntax-highlighting)
-
-### 6.2. Languages & toolchains
-
-- [Go](https://go.dev)
-- [Python](https://www.python.org), with:
-  - [uv](https://github.com/astral-sh/uv)
-  - [py-spy](https://github.com/benfred/py-spy)
-  - [Ruff](https://github.com/astral-sh/ruff)
-    ([BesLogic config](https://github.com/BesLogic/Beslogic-Ruff-Config))
-- [Rust](https://www.rust-lang.org) / [rustup](https://rustup.rs)
-- [shfmt](https://github.com/mvdan/sh) and [ShellCheck](https://www.shellcheck.net)
-- [Protocol Buffers](https://github.com/protocolbuffers/protobuf)
-
-### 6.3. Editor
-
-- [Visual Studio Code](https://code.visualstudio.com)
-- All extension authors listed in [`vscode/extensions.txt`](./vscode/extensions.txt).
-
-### 6.4. Fonts
-
-- [Fira Code](https://github.com/tonsky/FiraCode)
-- [MesloLGS NF](https://github.com/romkatv/powerlevel10k#fonts) (patched by
-  the Powerlevel10k author).
-
-### 6.5. Container & OS
-
-- [Debian](https://www.debian.org)
-- [Docker](https://www.docker.com)
-
-## 7. License
-
-Released under the [MIT License](./LICENSE).
+可用 `--branch <branch>` 指定入口脚本拉取的分支；默认分支是 `master`。

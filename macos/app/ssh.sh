@@ -106,20 +106,18 @@ add_config() {
     touch "$config_file"
     chmod 600 "$config_file"
 
-    if ! grep -qxF "Host $APP_SSH_HOST" "$config_file"; then
-        if [[ -s $config_file ]]; then
-            echo >> "$config_file"
-        fi
-
-        {
-            echo "Host $APP_SSH_HOST"
-            echo "    HostName $APP_SSH_HOSTNAME"
-            echo "    User $APP_SSH_USER"
-            if [[ -n $APP_SSH_IDENTITY_FILE ]]; then
-                echo "    IdentityFile $HOME/.ssh/$APP_SSH_IDENTITY_FILE"
-            fi
-        } >> "$config_file"
+    if [[ -s $config_file ]]; then
+        echo >> "$config_file"
     fi
+
+    {
+        echo "Host $APP_SSH_HOST"
+        echo "    HostName $APP_SSH_HOSTNAME"
+        echo "    User $APP_SSH_USER"
+        if [[ -n $APP_SSH_IDENTITY_FILE ]]; then
+            echo "    IdentityFile $HOME/.ssh/$APP_SSH_IDENTITY_FILE"
+        fi
+    } >> "$config_file"
 }
 
 main() {
