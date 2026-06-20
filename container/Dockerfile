@@ -38,8 +38,6 @@ RUN --mount=type=bind,source=.,target=/mnt/setup,readonly \
     bash /mnt/setup/terminal/omz/main.sh \
     && sudo rm -rf /var/lib/apt/lists/* /tmp/*
 
-SHELL ["/usr/bin/zsh", "-c"]
-
 ARG git_user_name
 ARG git_user_email
 RUN --mount=type=bind,source=.,target=/mnt/setup,readonly \
