@@ -12,8 +12,8 @@ a starting point.
 **Forks are welcome.** Fork the repo, swap out the packages, plugins, or
 extensions that don't fit your workflow, and point the `curl` command at your
 own fork's `main.sh` (or use the `--branch` flag to target a custom branch).
-Each setup target (`macos`, `debian`, `container`, `vscode`) is a standalone
-directory, so cherry-picking the parts you want is straightforward.
+Each setup target (`macos`, `debian`, `vscode`) is a standalone directory.
+Container builds are a Debian mode exposed through `debian/main.sh --container <name>`.
 
 ## 1. Table of Contents
 
@@ -70,12 +70,27 @@ sudo apt-get update \
     && sudo apt-get install -y curl \
     && bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master/main.sh")" -- \
         --setup debian \
-        [<app>...]
+        [<app>...] \
+        [<lang>...] \
+        [<tool>...]
 ```
 
-| Apps         | Description                                                         |
-| ------------ | ------------------------------------------------------------------- |
-| --app-docker | Install Docker Engine and add the current user to the docker group. |
+| Apps         | Description                                                                   |
+| ------------ | ----------------------------------------------------------------------------- |
+| --app-docker | Install Docker Engine and add the current user to the docker group.           |
+| --app-git    | Configure global Git name/email and enable the Oh My Zsh `git` plugin.        |
+| --app-vscode | Configure `code --wait` as the Git editor and enable the `vscode` zsh plugin. |
+
+| Languages     | Description                                    |
+| ------------- | ---------------------------------------------- |
+| --lang-bash   | Install Bash development tools.                |
+| --lang-go     | Install the latest Go toolchain.               |
+| --lang-python | Install Python 3, uv, Ruff config, and py-spy. |
+| --lang-rust   | Install Rust through rustup.                   |
+
+| Tools           | Description                        |
+| --------------- | ---------------------------------- |
+| --tool-protobuf | Install clang-format and `protoc`. |
 
 **What gets installed (always):**
 
@@ -97,6 +112,24 @@ sudo apt-get update \
   `containerd.io`, `docker-buildx-plugin`, `docker-compose-plugin`).
 - The invoking user is added to the `docker` group.
 
+**What gets installed with optional language/tool flags:**
+
+- `--lang-bash`: [`shfmt`](https://github.com/mvdan/sh) and
+  [`shellcheck`](https://www.shellcheck.net) from APT.
+- `--lang-go`: the newest [Go](https://go.dev) tarball from
+  `https://go.dev/dl/`, unpacked to `/usr/local/go`; `$PATH` and the
+  [`golang`](https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/golang)
+  Oh My Zsh plugin are wired up.
+- `--lang-python`: Python 3 from APT, [`uv`](https://github.com/astral-sh/uv),
+  the [`python`](https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/python)
+  Oh My Zsh plugin, BesLogic's Ruff config, and [`py-spy`](https://github.com/benfred/py-spy).
+- `--lang-rust`: [`rustup`](https://rustup.rs) and the
+  [`rust`](https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/rust) Oh My
+  Zsh plugin.
+- `--tool-protobuf`: `clang-format` from APT and the latest
+  [`protoc`](https://github.com/protocolbuffers/protobuf) release under
+  `~/.local`.
+
 ## 4. Container
 
 Build and run a Debian-based dev container image that includes a ready-to-use
@@ -104,7 +137,8 @@ Zsh shell plus the language toolchains and development tools listed below.
 
 ```shell
 bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master/main.sh")" -- \
-    --setup container \
+    --setup debian \
+    --container dev-container \
     --git-user-name $your_name \
     --git-user-email $your_email
 ```
@@ -115,13 +149,12 @@ and `LANG` are exported.
 
 **What gets installed (always):**
 
-The build uses a single `container/Dockerfile` for the final image. Base setup
-code lives at `container/terminal/root.sh`, and the main Dockerfile calls it
-before switching to the container user. Setup scripts are mounted with
-`RUN --mount`, copied into `/tmp/setup` within the same build step, and removed
-before the layer is committed. The user-scoped `git` and `curl` package install
-remains a direct Dockerfile `RUN`, and no intermediate `dev-container/base`
-image needs to be tagged.
+The build uses a single `debian/Dockerfile` for the final image. Setup scripts
+live under `debian/` and are mounted with `RUN --mount`; scripts that differ
+between interactive Debian setup and container setup receive `--container` so
+the Docker build remains non-interactive. The user-scoped `git` and `curl`
+package install remains a direct Dockerfile `RUN`, and no intermediate
+`dev-container/base` image needs to be tagged.
 
 - **Root setup** (`debian:trixie`):
   - `locales` package with the locale generated from `$LANG` on the host.
@@ -148,8 +181,8 @@ image needs to be tagged.
   used as a long-running dev environment.
 
 The image is started with `docker run -d --privileged --init --shm-size=2g`,
-named `dev-container` (overridable via `--container`), and `~/Projects` from
-the host is bind-mounted into the container.
+named by `--container <name>`, and `~/Projects` from the host is bind-mounted
+into the container.
 
 **Language and tools:**
 

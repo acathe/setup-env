@@ -35,7 +35,7 @@ RUN --mount=type=bind,source=.,target=/mnt/setup,readonly \
     && sudo rm -rf /var/lib/apt/lists/* /tmp/*
 
 RUN --mount=type=bind,source=.,target=/mnt/setup,readonly \
-    bash /mnt/setup/terminal/omz/main.sh \
+    bash /mnt/setup/terminal/omz/main.sh --container \
     && sudo rm -rf /var/lib/apt/lists/* /tmp/*
 
 ARG git_user_name
@@ -65,7 +65,7 @@ RUN --mount=type=bind,source=.,target=/mnt/setup,readonly \
     && sudo rm -rf /var/lib/apt/lists/* /tmp/*
 
 RUN --mount=type=bind,source=.,target=/mnt/setup,readonly \
-    bash /mnt/setup/tools/protobuf.sh \
+    bash /mnt/setup/tool/protobuf.sh \
     && sudo rm -rf /var/lib/apt/lists/* /tmp/*
 
 CMD ["sleep", "infinity"]

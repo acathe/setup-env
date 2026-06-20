@@ -2,6 +2,25 @@
 
 set -euo pipefail
 
+CONTAINER="${CONTAINER:-0}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+parse_args() {
+    POSITIONAL=()
+    while (($# > 0)); do
+        case "$1" in
+            --container)
+                CONTAINER=1
+                shift
+                ;;
+            *) # unknown flag/switch
+                POSITIONAL+=("$1")
+                shift
+                ;;
+        esac
+    done
+}
+
 install_omz() {
     if ! command -v git > /dev/null 2>&1; then
         echo "git is not installed." >&2
@@ -13,9 +32,12 @@ install_omz() {
         return 1
     fi
 
-    # Use `RUNZSH="no"` to skip running Zsh and prevent interrupting the script.
-    # Ref. https://ohmyz.sh/#install
-    RUNZSH="no" sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+    if [[ $CONTAINER == "1" ]]; then
+        sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+        sudo -n usermod -s "$(command -v zsh)" "$(whoami)"
+    else
+        RUNZSH="no" sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+    fi
 
     if [[ -s "$HOME/.zshrc.pre-oh-my-zsh" ]]; then
         local tmpfile
@@ -68,6 +90,16 @@ remove_preshell() {
     rm -f "$HOME/.profile"
     rm -f "$HOME/.bashrc"
     rm -f "$HOME/.bash_logout"
+
+    if [[ $CONTAINER == "1" ]]; then
+        cp "$SCRIPT_DIR/p10k.zsh" "$HOME/.p10k.zsh"
+        {
+            echo ""
+            echo '# To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.'
+            echo '[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh'
+        } >> "$HOME/.zshrc"
+    fi
+
 }
 
 main() {
@@ -78,5 +110,7 @@ main() {
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
     cd "$(dirname "${BASH_SOURCE[0]}")"
+    parse_args "$@"
+    set -- "${POSITIONAL[@]}" # restore positional params
     main "$@"
 fi
