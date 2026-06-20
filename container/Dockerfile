@@ -1,27 +1,30 @@
 FROM debian:trixie
 
-ARG user
-ARG lang_code
+ARG lang
 ARG encoding
 ARG language
 ARG tz
 ARG term=xterm-256color
-ARG git_user_name
-ARG git_user_email
 
-ENV LANG=${lang_code}.${encoding}
+ENV LANG=${lang}.${encoding}
 ENV LANGUAGE=${language}
 ENV TZ=${tz}
 ENV TERM=${term}
 
 SHELL ["/usr/bin/bash", "-c"]
 
-RUN --mount=type=bind,source=.,target=/mnt/setup,readonly \
-    bash /mnt/setup/terminal/root.sh --user "${user}" --lang-code "${lang_code}" --encoding "${encoding}" \
-    && sudo rm -rf /var/lib/apt/lists/* /tmp/*
+ARG user
+RUN apt-get update \
+    && apt-get install -y locales sudo \
+    && localedef -i ${lang} -c -f ${encoding} -A /usr/share/locale/locale.alias ${lang}.${encoding} \
+    && useradd -m -s "$(command -v bash)" "${user}" \
+    && echo "${user} ALL=(ALL) NOPASSWD:ALL" > "/etc/sudoers.d/${user}" \
+    && chmod 0440 "/etc/sudoers.d/${user}" \
+    && rm -rf /var/lib/apt/lists/* /tmp/*
 
 WORKDIR /home/${user}
 USER ${user}
+ENV USER=${user}
 
 RUN sudo apt-get update \
     && sudo apt-get install -y git curl \
@@ -37,6 +40,8 @@ RUN --mount=type=bind,source=.,target=/mnt/setup,readonly \
 
 SHELL ["/usr/bin/zsh", "-c"]
 
+ARG git_user_name
+ARG git_user_email
 RUN --mount=type=bind,source=.,target=/mnt/setup,readonly \
     bash /mnt/setup/app/git.sh --git-user-name "${git_user_name}" --git-user-email "${git_user_email}" \
     && sudo rm -rf /var/lib/apt/lists/* /tmp/*

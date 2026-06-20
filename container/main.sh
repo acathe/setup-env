@@ -4,16 +4,6 @@ set -euo pipefail
 
 IMAGE_TAG="${IMAGE_TAG:-"latest"}"
 CONTAINER="${CONTAINER:-"dev-container"}"
-
-USER="${USER:-}"
-
-LANG="${LANG:-}"
-LANG_CODE="${LANG%.*}"
-ENCODING="${LANG#*.}"
-
-LANGUAGE="${LANGUAGE:-}"
-TZ="${TZ:-"$(timedatectl show -p Timezone --value)"}"
-
 GIT_USER_NAME="${GIT_USER_NAME:-}"
 GIT_USER_EMAIL="${GIT_USER_EMAIL:-}"
 
@@ -36,51 +26,6 @@ parse_args() {
                     shift $#
                 else
                     CONTAINER="$2"
-                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
-                fi
-                ;;
-            --user)
-                numOfArgs=1 # number of switch arguments
-                if (($# < numOfArgs + 1)); then
-                    shift $#
-                else
-                    USER="$2"
-                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
-                fi
-                ;;
-            --lang-code)
-                numOfArgs=1 # number of switch arguments
-                if (($# < numOfArgs + 1)); then
-                    shift $#
-                else
-                    LANG_CODE="$2"
-                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
-                fi
-                ;;
-            --encoding)
-                numOfArgs=1 # number of switch arguments
-                if (($# < numOfArgs + 1)); then
-                    shift $#
-                else
-                    ENCODING="$2"
-                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
-                fi
-                ;;
-            --language)
-                numOfArgs=1 # number of switch arguments
-                if (($# < numOfArgs + 1)); then
-                    shift $#
-                else
-                    LANGUAGE="$2"
-                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
-                fi
-                ;;
-            --tz)
-                numOfArgs=1 # number of switch arguments
-                if (($# < numOfArgs + 1)); then
-                    shift $#
-                else
-                    TZ="$2"
                     shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
                 fi
                 ;;
@@ -116,13 +61,18 @@ main() {
         return 1
     fi
 
-    DOCKER_BUILDKIT=1 docker build \
+    if [[ -z $USER || -z $LANG ]]; then
+        echo "USER or LANG is not set. Run from a normal login shell with USER and LANG exported." >&2
+        return 1
+    fi
+
+    docker build \
         -t "dev-container:$IMAGE_TAG" \
         --build-arg "user=$USER" \
-        --build-arg "lang_code=$LANG_CODE" \
-        --build-arg "encoding=$ENCODING" \
+        --build-arg "lang=${LANG%.*}" \
+        --build-arg "encoding=${LANG#*.}" \
         --build-arg "language=$LANGUAGE" \
-        --build-arg "tz=$TZ" \
+        --build-arg "tz=$(timedatectl show -p Timezone --value)" \
         --build-arg "git_user_name=$GIT_USER_NAME" \
         --build-arg "git_user_email=$GIT_USER_EMAIL" \
         .

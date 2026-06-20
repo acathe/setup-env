@@ -105,16 +105,13 @@ Zsh shell plus the language toolchains and development tools listed below.
 ```shell
 bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master/main.sh")" -- \
     --setup container \
-    [--user $your_user] \
     --git-user-name $your_name \
     --git-user-email $your_email
 ```
 
-`--user` is optional. When omitted, the script falls back to the `USER`
-environment variable (which is set by default on most shells), so on a typical
-interactive session you can simply leave the flag out. Pass `--user` explicitly
-only when you need to override that value (for example, when running from a
-context where `USER` is unset or points to the wrong account).
+Container setup reuses the host `USER`, `LANG`, and optional `LANGUAGE`
+environment variables directly. Run it from a normal login shell where `USER`
+and `LANG` are exported.
 
 **What gets installed (always):**
 
