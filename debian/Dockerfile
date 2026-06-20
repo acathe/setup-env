@@ -30,42 +30,10 @@ RUN sudo apt-get update \
     && sudo apt-get install -y git curl \
     && sudo rm -rf /var/lib/apt/lists/* /tmp/*
 
+ARG setup_args_b64=""
 RUN --mount=type=bind,source=.,target=/mnt/setup,readonly \
-    bash /mnt/setup/terminal/zsh.sh \
-    && sudo rm -rf /var/lib/apt/lists/* /tmp/*
-
-RUN --mount=type=bind,source=.,target=/mnt/setup,readonly \
-    bash /mnt/setup/terminal/omz/main.sh --unattended \
-    && sudo rm -rf /var/lib/apt/lists/* /tmp/*
-
-ARG app_git_user_name
-ARG app_git_user_email
-RUN --mount=type=bind,source=.,target=/mnt/setup,readonly \
-    bash /mnt/setup/app/git.sh --app-git-user-name "${app_git_user_name}" --app-git-user-email "${app_git_user_email}" \
-    && sudo rm -rf /var/lib/apt/lists/* /tmp/*
-
-RUN --mount=type=bind,source=.,target=/mnt/setup,readonly \
-    bash /mnt/setup/app/vscode.sh \
-    && sudo rm -rf /var/lib/apt/lists/* /tmp/*
-
-RUN --mount=type=bind,source=.,target=/mnt/setup,readonly \
-    bash /mnt/setup/lang/bash.sh \
-    && sudo rm -rf /var/lib/apt/lists/* /tmp/*
-
-RUN --mount=type=bind,source=.,target=/mnt/setup,readonly \
-    bash /mnt/setup/lang/go.sh \
-    && sudo rm -rf /var/lib/apt/lists/* /tmp/*
-
-RUN --mount=type=bind,source=.,target=/mnt/setup,readonly \
-    bash /mnt/setup/lang/python.sh \
-    && sudo rm -rf /var/lib/apt/lists/* /tmp/*
-
-RUN --mount=type=bind,source=.,target=/mnt/setup,readonly \
-    bash /mnt/setup/lang/rust.sh \
-    && sudo rm -rf /var/lib/apt/lists/* /tmp/*
-
-RUN --mount=type=bind,source=.,target=/mnt/setup,readonly \
-    bash /mnt/setup/tool/protobuf.sh \
+    mapfile -d '' -t setup_args < <(printf '%s' "$setup_args_b64" | base64 -d) \
+    && bash /mnt/setup/setup.sh --unattended "${setup_args[@]}" \
     && sudo rm -rf /var/lib/apt/lists/* /tmp/*
 
 CMD ["sleep", "infinity"]

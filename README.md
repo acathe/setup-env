@@ -133,12 +133,14 @@ sudo apt-get update \
 ## 4. Container
 
 Build and run a Debian-based dev container image that includes a ready-to-use
-Zsh shell plus the language toolchains and development tools listed below.
+Zsh shell. Pass the same Debian app, language, and tool flags to include
+optional components in the image.
 
 ```shell
 bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master/main.sh")" -- \
     --setup debian \
     --container dev-container \
+    --app-git \
     --app-git-user-name $your_name \
     --app-git-user-email $your_email
 ```
@@ -151,10 +153,11 @@ and `LANG` are exported.
 
 The build uses a single `debian/Dockerfile` for the final image. Setup scripts
 live under `debian/` and are mounted with `RUN --mount`; scripts that differ
-between interactive Debian setup and container setup receive `--container` so
-the Docker build remains non-interactive. The user-scoped `git` and `curl`
-package install remains a direct Dockerfile `RUN`, and no intermediate
-`dev-container/base` image needs to be tagged.
+between interactive Debian setup and container setup receive `--unattended` so
+the Docker build remains non-interactive. The remaining setup arguments are
+forwarded through a build arg and decoded before calling `debian/setup.sh`. The
+user-scoped `git` and `curl` package install remains a direct Dockerfile `RUN`,
+and no intermediate `dev-container/base` image needs to be tagged.
 
 - **Root setup** (`debian:trixie`):
   - `locales` package with the locale generated from `$LANG` on the host.
@@ -173,10 +176,6 @@ package install remains a direct Dockerfile `RUN`, and no intermediate
     pre-baked `~/.p10k.zsh`.
   - Zsh set as the user's default shell; `~/.profile`, `~/.bashrc`, and
     `~/.bash_logout` are removed.
-- **App setup**:
-  - Global `git config` for `user.name`, `user.email`, and
-    `core.editor=code --wait`.
-  - Oh My Zsh `git` and `vscode` plugins enabled.
 - **Final image**: sets `CMD ["sleep", "infinity"]` so the container can be
   used as a long-running dev environment.
 
@@ -184,25 +183,32 @@ The image is started with `docker run -d --privileged --init --shm-size=2g`,
 named by `--container <name>`, and `~/Projects` from the host is bind-mounted
 into the container.
 
-**Language and tools:**
+**What gets installed with optional app flags:**
 
-- [`shfmt`](https://github.com/mvdan/sh) and
+- `--app-git`: Global `git config` for `user.name` and `user.email`, plus the
+  Oh My Zsh `git` plugin.
+- `--app-vscode`: `core.editor=code --wait`, plus the Oh My Zsh `vscode`
+  plugin.
+
+**What gets installed with optional language/tool flags:**
+
+- `--lang-bash`: [`shfmt`](https://github.com/mvdan/sh) and
   [`shellcheck`](https://www.shellcheck.net) from APT.
-- The newest [Go](https://go.dev) tarball from
+- `--lang-go`: The newest [Go](https://go.dev) tarball from
   `https://go.dev/dl/`, unpacked to `/usr/local/go`; `$PATH` and the
   [`golang`](https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/golang)
   Oh My Zsh plugin are wired up.
-- Python 3 from APT, [`uv`](https://github.com/astral-sh/uv)
+- `--lang-python`: Python 3 from APT, [`uv`](https://github.com/astral-sh/uv)
   installed via the official installer, the
   [`python`](https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/python)
   Oh My Zsh plugin enabled,
   [BesLogic's Ruff config](https://github.com/BesLogic/Beslogic-Ruff-Config)
   saved to `~/.config/Beslogic/ruff.toml`, and
   [`py-spy`](https://github.com/benfred/py-spy) installed as a `uv` tool.
-- [`rustup`](https://rustup.rs) bootstrap, plus the
+- `--lang-rust`: [`rustup`](https://rustup.rs) bootstrap, plus the
   [`rust`](https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/rust) Oh My
   Zsh plugin.
-- `clang-format` from APT and the latest
+- `--tool-protobuf`: `clang-format` from APT and the latest
   [`protoc`](https://github.com/protocolbuffers/protobuf) release installed
   under `~/.local`.
 

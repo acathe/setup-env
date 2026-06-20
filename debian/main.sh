@@ -46,6 +46,9 @@ container() {
         return 1
     fi
 
+    local setup_args_b64
+    setup_args_b64="$(for arg; do printf '%s\0' "$arg"; done | base64 | tr -d '\n')"
+
     docker build \
         -t "dev-container:$IMAGE_TAG" \
         --build-arg "user=$USER" \
@@ -53,6 +56,7 @@ container() {
         --build-arg "encoding=${LANG#*.}" \
         --build-arg "language=${LANGUAGE:-}" \
         --build-arg "tz=$(timedatectl show -p Timezone --value)" \
+        --build-arg "setup_args_b64=$setup_args_b64" \
         .
 
     mkdir -p "$HOME/Projects"
