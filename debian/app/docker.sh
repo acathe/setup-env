@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-add_docker_repo() {
+add_repo() {
     sudo apt-get update
     sudo apt-get install -y ca-certificates curl
     sudo install -m 0755 -d /etc/apt/keyrings
@@ -25,7 +25,7 @@ install_docker() {
         docker-compose-plugin
 }
 
-add_docker_group() {
+add_group() {
     if ! getent group docker > /dev/null 2>&1; then
         echo "docker group does not exist." >&2
         return 1
@@ -35,9 +35,9 @@ add_docker_group() {
 }
 
 main() {
-    add_docker_repo
+    add_repo
     install_docker
-    add_docker_group
+    add_group
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
