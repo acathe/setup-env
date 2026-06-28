@@ -8,6 +8,7 @@ eamodio.gitlens
 fill-labs.dependi
 golang.go
 kshetline.ligatures-limited
+leosj29.bash-sh-runner
 llvm-vs-code-extensions.vscode-clangd
 mads-hartmann.bash-ide-vscode
 ms-azuretools.vscode-containers
