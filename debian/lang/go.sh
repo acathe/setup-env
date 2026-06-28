@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-get_go_version() {
+get_go_latest() {
     curl -fsSL 'https://go.dev/dl/?mode=json' | grep -o 'go.*.linux-amd64.tar.gz' | head -n 1 | tr -d '\r\n'
 }
 
@@ -10,11 +10,15 @@ main() {
     sudo apt-get update
     sudo apt-get install -y build-essential
 
-    local go_version
-    go_version="$(get_go_version)"
+    local version
+    version="$(get_go_latest)"
+    if [[ -z $version ]]; then
+        echo "Failed to determine the latest Go version." >&2
+        return 1
+    fi
 
-    curl -fsSL "https://go.dev/dl/$go_version" -o "/tmp/$go_version"
-    sudo tar -C "/usr/local" -xzf "/tmp/$go_version"
+    curl -fsSL "https://go.dev/dl/$version" -o "/tmp/$version"
+    sudo tar -C "/usr/local" -xzf "/tmp/$version"
 
     if [[ -s "$HOME/.zshrc" ]]; then
         echo >> "$HOME/.zshrc"

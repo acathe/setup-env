@@ -7,6 +7,7 @@ APP_GIT="${APP_GIT:-0}"
 APP_VSCODE="${APP_VSCODE:-0}"
 
 LANG_BASH="${LANG_BASH:-0}"
+LANG_CSHARP="${LANG_CSHARP:-0}"
 LANG_GO="${LANG_GO:-0}"
 LANG_PYTHON="${LANG_PYTHON:-0}"
 LANG_RUST="${LANG_RUST:-0}"
@@ -31,6 +32,10 @@ parse_args() {
                 ;;
             --lang-bash)
                 LANG_BASH=1
+                shift
+                ;;
+            --lang-csharp)
+                LANG_CSHARP=1
                 shift
                 ;;
             --lang-go)
@@ -75,6 +80,10 @@ main() {
 
     if [[ $LANG_BASH == "1" ]]; then
         bash "./lang/bash.sh" "$@"
+    fi
+
+    if [[ $LANG_CSHARP == "1" ]]; then
+        bash "./lang/csharp.sh" "$@"
     fi
 
     if [[ $LANG_GO == "1" ]]; then

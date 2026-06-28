@@ -1,5 +1,10 @@
 # Setup Env
 
+- [1. macOS](#1-macos)
+- [2. Debian / Container](#2-debian--container)
+- [3. VSCode](#3-vscode)
+- [4. 其他](#4-其他)
+
 个人开发环境的一组一次性 Bash 安装脚本。入口脚本会从 GitHub 拉取本仓库，然后按目标系统执行对应目录下的安装逻辑；VS Code 扩展列表可单独安装。
 
 入口目标：
@@ -7,7 +12,7 @@
 - `macos`: macOS 工作站
 - `debian`: Debian 主机，或通过 `--container` 构建 Debian 开发容器
 
-## macOS
+## 1. macOS
 
 ```shell
 bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master/main.sh")" -- \
@@ -37,7 +42,7 @@ bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master
 | `--app-ssh-comment <text>` | 生成密钥时写入的注释。 |
 | `--app-ssh-no-copy-key` | 不执行 `ssh-copy-id`。 |
 
-## Debian / Container
+## 2. Debian / Container
 
 Debian 主机：
 
@@ -79,12 +84,13 @@ bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master
 | `--app-git-user-email <email>` | `git config --global user.email`。 |
 | `--app-vscode` | 配置 `code --wait` 为 Git 编辑器，并启用 Oh My Zsh `vscode` 插件。 |
 | `--lang-bash` | 安装 `build-essential`、`shfmt`、`shellcheck`。 |
+| `--lang-csharp` | 通过微软 APT 源安装最新 .NET SDK，并更新 .NET workload。 |
 | `--lang-go` | 安装最新 Go linux-amd64 工具链，写入 Go PATH，并启用 Oh My Zsh `golang` 插件。 |
 | `--lang-python` | 安装 Python 3、uv、uv 补全、BesLogic Ruff 配置和 `py-spy`。 |
 | `--lang-rust` | 通过 rustup 安装 Rust，并启用 Oh My Zsh `rust` 插件。 |
 | `--tool-protobuf` | 安装 `clang-format` 和最新 `protoc` 到 `~/.local`。 |
 
-## VSCode
+## 3. VSCode
 
 安装 [vscode/extensions.txt](vscode/extensions.txt) 中列出的扩展。需要 `code` 命令已在 `PATH` 中。
 
@@ -95,6 +101,6 @@ curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master/vscode/ext
 
 [vscode/settings.json](vscode/settings.json) 是参考配置，不会自动写入用户设置。
 
-## 其他
+## 4. 其他
 
 可用 `--branch <branch>` 指定入口脚本拉取的分支；默认分支是 `master`。
