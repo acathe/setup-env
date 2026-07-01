@@ -21,7 +21,6 @@ add_repo() {
 
     curl -fsSL "https://packages.microsoft.com/config/debian/$version_id/packages-microsoft-prod.deb" -o /tmp/packages-microsoft-prod.deb
     sudo dpkg -i /tmp/packages-microsoft-prod.deb
-    rm -f /tmp/packages-microsoft-prod.deb
 }
 
 install_dotnet_sdk() {
@@ -37,14 +36,32 @@ install_dotnet_sdk() {
     sudo apt-get install -y "dotnet-sdk-$version"
 }
 
-update_workloads() {
+install_tools() {
     sudo dotnet workload update
+    dotnet tool install --global csharpier
+}
+
+setup_env() {
+    if [[ -s "$HOME/.zshrc" ]]; then
+        echo >> "$HOME/.zshrc"
+    fi
+
+    {
+        echo '# C#'
+        echo 'export PATH="$HOME/.dotnet/tools:$PATH"'
+    } >> "$HOME/.zshrc"
+
+    sed -i '/^plugins=(/s/)/ dotnet)/' "$HOME/.zshrc"
 }
 
 main() {
+    sudo apt-get update
+    sudo apt-get install -y build-essential
+
     add_repo
     install_dotnet_sdk
-    update_workloads
+    install_tools
+    setup_env
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then

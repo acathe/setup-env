@@ -9,6 +9,7 @@ APP_VSCODE="${APP_VSCODE:-0}"
 LANG_BASH="${LANG_BASH:-0}"
 LANG_CSHARP="${LANG_CSHARP:-0}"
 LANG_GO="${LANG_GO:-0}"
+LANG_POWERSHELL="${LANG_POWERSHELL:-0}"
 LANG_PYTHON="${LANG_PYTHON:-0}"
 LANG_RUST="${LANG_RUST:-0}"
 
@@ -40,6 +41,10 @@ parse_args() {
                 ;;
             --lang-go)
                 LANG_GO=1
+                shift
+                ;;
+            --lang-powershell)
+                LANG_POWERSHELL=1
                 shift
                 ;;
             --lang-python)
@@ -88,6 +93,10 @@ main() {
 
     if [[ $LANG_GO == "1" ]]; then
         bash "./lang/go.sh" "$@"
+    fi
+
+    if [[ $LANG_POWERSHELL == "1" ]]; then
+        bash "./lang/powershell.sh" "$@"
     fi
 
     if [[ $LANG_PYTHON == "1" ]]; then

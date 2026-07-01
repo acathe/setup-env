@@ -1,6 +1,7 @@
 charliermarsh.ruff
 cheshirekow.cmake-format
 christian-kohler.path-intellisense
+csharpier.csharpier-vscode
 davidanson.vscode-markdownlint
 docker.docker
 drblury.protobuf-vsc
@@ -13,6 +14,9 @@ llvm-vs-code-extensions.vscode-clangd
 mads-hartmann.bash-ide-vscode
 ms-azuretools.vscode-containers
 ms-ceintl.vscode-language-pack-zh-hans
+ms-dotnettools.csdevkit
+ms-dotnettools.csharp
+ms-dotnettools.vscode-dotnet-runtime
 ms-python.debugpy
 ms-python.python
 ms-python.vscode-pylance
@@ -21,8 +25,10 @@ ms-vscode-remote.remote-ssh
 ms-vscode-remote.remote-ssh-edit
 ms-vscode.cmake-tools
 ms-vscode.cpp-devtools
+ms-vscode.powershell
 ms-vscode.remote-explorer
 pkief.material-icon-theme
+redhat.vscode-xml
 redhat.vscode-yaml
 rust-lang.rust-analyzer
 shd101wyy.markdown-preview-enhanced
