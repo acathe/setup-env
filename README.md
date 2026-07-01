@@ -86,6 +86,7 @@ bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master
 | `--lang-bash` | 安装 `build-essential`、`shfmt`、`shellcheck`。 |
 | `--lang-csharp` | 通过微软 APT 源安装最新 .NET SDK，并更新 .NET workload。 |
 | `--lang-go` | 安装最新 Go linux-amd64 工具链，写入 Go PATH，并启用 Oh My Zsh `golang` 插件。 |
+| `--lang-powershell` | 通过微软 APT 源安装 PowerShell。 |
 | `--lang-python` | 安装 Python 3、uv、uv 补全、BesLogic Ruff 配置和 `py-spy`。 |
 | `--lang-rust` | 通过 rustup 安装 Rust，并启用 Oh My Zsh `rust` 插件。 |
 | `--tool-protobuf` | 安装 `clang-format` 和最新 `protoc` 到 `~/.local`。 |
