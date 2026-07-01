@@ -6,10 +6,7 @@ get_go_latest() {
     curl -fsSL 'https://go.dev/dl/?mode=json' | grep -o 'go.*.linux-amd64.tar.gz' | head -n 1 | tr -d '\r\n'
 }
 
-main() {
-    sudo apt-get update
-    sudo apt-get install -y build-essential
-
+install_go() {
     local version
     version="$(get_go_latest)"
     if [[ -z $version ]]; then
@@ -19,7 +16,9 @@ main() {
 
     curl -fsSL "https://go.dev/dl/$version" -o "/tmp/$version"
     sudo tar -C "/usr/local" -xzf "/tmp/$version"
+}
 
+setup_env() {
     if [[ -s "$HOME/.zshrc" ]]; then
         echo >> "$HOME/.zshrc"
     fi
@@ -31,6 +30,14 @@ main() {
     } >> "$HOME/.zshrc"
 
     sed -i '/^plugins=(/s/)/ golang)/' "$HOME/.zshrc"
+}
+
+main() {
+    sudo apt-get update
+    sudo apt-get install -y build-essential
+
+    install_go
+    setup_env
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then

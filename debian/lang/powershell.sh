@@ -13,7 +13,6 @@ add_repo() {
 
     curl -fsSL "https://packages.microsoft.com/config/debian/$version_id/packages-microsoft-prod.deb" -o /tmp/packages-microsoft-prod.deb
     sudo dpkg -i /tmp/packages-microsoft-prod.deb
-    rm -f /tmp/packages-microsoft-prod.deb
 }
 
 install_powershell() {
@@ -22,6 +21,9 @@ install_powershell() {
 }
 
 main() {
+    sudo apt-get update
+    sudo apt-get install -y build-essential
+
     add_repo
     install_powershell
 }
