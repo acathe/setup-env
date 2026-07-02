@@ -75,18 +75,21 @@
         "cSpell"
     ],
     "files.readonlyInclude": {
-        "**/.cargo/git/**": true,
-        "**/.cargo/registry/**": true,
-        "**/.rustup/**": true,
-        "**/go/pkg/mod/**": true,
-        "**/lib/python*/**": true,
-        "**/sdk/go*/src/**": true,
-        "**/typeshed-fallback/**": true,
-        "/usr/include/**": true,
-        "/usr/lib/gcc/**": true,
-        "/usr/lib64/gcc/**": true,
-        "/usr/local/go/src/**": true,
-        "/usr/local/include/**": true
+        "**/.cargo/git/**": true, // Rust
+        "**/.cargo/registry/**": true, // Rust
+        "**/.nuget/packages/**": true, // C#
+        "**/.rustup/**": true, // Rust
+        "**/go/pkg/mod/**": true, // Go
+        "**/lib/python*/**": true, // Python
+        "**/sdk/go*/src/**": true, // Go
+        "**/typeshed-fallback/**": true, // Python
+        "/usr/include/**": true, // C/C++
+        "/usr/lib/dotnet/**": true, // C#
+        "/usr/lib/gcc/**": true, // C/C++
+        "/usr/lib64/gcc/**": true, // C/C++
+        "/usr/local/go/src/**": true, // Go
+        "/usr/local/include/**": true, // C/C++
+        "/usr/share/dotnet/**": true // C#
     },
     "git.autofetch": true,
     "git.confirmSync": false,
