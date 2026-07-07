@@ -19,7 +19,7 @@ install_omz() {
 
         {
             cat "$HOME/.zshrc.pre-oh-my-zsh"
-            echo ""
+            echo
             cat "$tmpfile"
         } > "$HOME/.zshrc"
     fi
@@ -33,27 +33,27 @@ install_plugin() {
         return 1
     fi
 
-    sed -i "" "s/^plugins=(.*)/plugins=(z sudo brew)/" "$HOME/.zshrc"
+    sed -i '' 's/^plugins=(.*)/plugins=(z sudo brew)/' "$HOME/.zshrc"
 
     # Ref. https://github.com/Pilaton/OhMyZsh-full-autoupdate?tab=readme-ov-file#installing
     git clone "https://github.com/Pilaton/OhMyZsh-full-autoupdate.git" \
         "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/ohmyzsh-full-autoupdate"
-    sed -i "" '/^plugins=(/s/)/ ohmyzsh-full-autoupdate)/' "$HOME/.zshrc"
+    sed -i '' '/^plugins=(/s/)/ ohmyzsh-full-autoupdate)/' "$HOME/.zshrc"
 
     # Ref. https://github.com/zsh-users/zsh-autosuggestions/blob/master/INSTALL.md#oh-my-zsh
     git clone "https://github.com/zsh-users/zsh-autosuggestions" \
         "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-autosuggestions"
-    sed -i "" '/^plugins=(/s/)/ zsh-autosuggestions)/' "$HOME/.zshrc"
+    sed -i '' '/^plugins=(/s/)/ zsh-autosuggestions)/' "$HOME/.zshrc"
 
     # Ref. https://github.com/zsh-users/zsh-syntax-highlighting/blob/master/INSTALL.md/#Oh-my-zsh
     git clone "https://github.com/zsh-users/zsh-syntax-highlighting.git" \
         "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting"
-    sed -i "" '/^plugins=(/s/)/ zsh-syntax-highlighting)/' "$HOME/.zshrc"
+    sed -i '' '/^plugins=(/s/)/ zsh-syntax-highlighting)/' "$HOME/.zshrc"
 
     # Ref. https://github.com/romkatv/powerlevel10k?tab=readme-ov-file#oh-my-zsh
     git clone --depth=1 "https://github.com/romkatv/powerlevel10k.git" \
         "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k"
-    sed -i "" 's|^ZSH_THEME=".*"|ZSH_THEME="powerlevel10k/powerlevel10k"|' "$HOME/.zshrc"
+    sed -i '' 's|^ZSH_THEME=".*"|ZSH_THEME="powerlevel10k/powerlevel10k"|' "$HOME/.zshrc"
 }
 
 main() {

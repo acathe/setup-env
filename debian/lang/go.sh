@@ -18,7 +18,7 @@ install_go() {
     sudo tar -C "/usr/local" -xzf "/tmp/$version"
 }
 
-setup_env() {
+set_env() {
     if [[ -s "$HOME/.zshrc" ]]; then
         echo >> "$HOME/.zshrc"
     fi
@@ -37,7 +37,7 @@ main() {
     sudo apt-get install -y build-essential
 
     install_go
-    setup_env
+    set_env
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then

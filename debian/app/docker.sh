@@ -31,7 +31,7 @@ add_group() {
         return 1
     fi
 
-    sudo usermod -aG docker "$(whoami)"
+    sudo usermod -aG docker "$USER"
 }
 
 main() {
