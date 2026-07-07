@@ -6,7 +6,7 @@ main() {
     brew bundle --file="./Brewfile"
 
     # Ref. https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/vscode
-    sed -i "" '/^plugins=(/s/)/ vscode)/' "$HOME/.zshrc"
+    sed -i '' '/^plugins=(/s/)/ vscode)/' "$HOME/.zshrc"
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
