@@ -33,12 +33,12 @@ install_omz() {
 
     if [[ $UNATTENDED == "1" ]]; then
         sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
-        sudo -n usermod -s "$(command -v zsh)" "$(whoami)"
+        sudo -n usermod -s "$(command -v zsh)" "$USER"
     else
         RUNZSH="no" sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
     fi
 
-    sed -i "/export PATH=\$HOME\/bin:\$HOME\/\.local\/bin:\/usr\/local\/bin:\$PATH/s/^# //" "$HOME/.zshrc"
+    sed -i '\|^# export PATH=$HOME/bin|s/^# //' "$HOME/.zshrc"
 
     if [[ -s "$HOME/.zshrc.pre-oh-my-zsh" ]]; then
         local tmpfile
@@ -47,7 +47,7 @@ install_omz() {
 
         {
             cat "$HOME/.zshrc.pre-oh-my-zsh"
-            echo ""
+            echo
             cat "$tmpfile"
         } > "$HOME/.zshrc"
     fi

@@ -19,7 +19,7 @@ install_omz() {
 
         {
             cat "$HOME/.zshrc.pre-oh-my-zsh"
-            echo ""
+            echo
             cat "$tmpfile"
         } > "$HOME/.zshrc"
     fi
@@ -33,7 +33,7 @@ install_plugin() {
         return 1
     fi
 
-    sed -i "" "s/^plugins=(.*)/plugins=(z sudo brew)/" "$HOME/.zshrc"
+    sed -i "" 's/^plugins=(.*)/plugins=(z sudo brew)/' "$HOME/.zshrc"
 
     # Ref. https://github.com/Pilaton/OhMyZsh-full-autoupdate?tab=readme-ov-file#installing
     git clone "https://github.com/Pilaton/OhMyZsh-full-autoupdate.git" \

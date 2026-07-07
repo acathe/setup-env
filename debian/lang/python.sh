@@ -19,7 +19,7 @@ install_tools() {
         -o "$HOME/.config/Beslogic/ruff.toml"
 }
 
-setup_env() {
+set_env() {
     if [[ -s "$HOME/.zshrc" ]]; then
         echo >> "$HOME/.zshrc"
     fi
@@ -39,7 +39,7 @@ main() {
 
     install_python
     install_tools
-    setup_env
+    set_env
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then

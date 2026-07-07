@@ -72,14 +72,14 @@ parse_args() {
 
 gen_key() {
     if [[ -z $APP_SSH_IDENTITY_FILE ]]; then
-        echo "gen_key: APP_SSH_IDENTITY_FILE is required" >&2
+        echo "APP_SSH_IDENTITY_FILE is required." >&2
         return 1
     fi
 
     local identity_file="$HOME/.ssh/$APP_SSH_IDENTITY_FILE"
 
     if [[ -f $identity_file ]]; then
-        echo "gen_key: $identity_file already exists, skip generating." >&2
+        echo "$identity_file already exists, skip generating." >&2
         return 0
     fi
 
@@ -98,7 +98,7 @@ gen_key() {
 
 add_config() {
     if [[ -z $APP_SSH_HOST || -z $APP_SSH_HOSTNAME || -z $APP_SSH_USER ]]; then
-        echo "add_config: APP_SSH_HOST, APP_SSH_HOSTNAME and APP_SSH_USER are required" >&2
+        echo "APP_SSH_HOST, APP_SSH_HOSTNAME and APP_SSH_USER are required." >&2
         return 1
     fi
 

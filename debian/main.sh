@@ -37,7 +37,7 @@ parse_args() {
 
 container() {
     if ! command -v docker > /dev/null 2>&1; then
-        echo "Docker is not installed. Please install Docker and try again." >&2
+        echo "Docker is not installed." >&2
         return 1
     fi
 

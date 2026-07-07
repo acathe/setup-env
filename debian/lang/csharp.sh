@@ -40,7 +40,7 @@ install_tools() {
     sudo dotnet workload update
 }
 
-setup_env() {
+set_env() {
     if [[ -s "$HOME/.zshrc" ]]; then
         echo >> "$HOME/.zshrc"
     fi
@@ -60,7 +60,7 @@ main() {
     add_repo
     install_dotnet_sdk
     install_tools
-    setup_env
+    set_env
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
