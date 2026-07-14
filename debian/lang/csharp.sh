@@ -38,6 +38,7 @@ install_dotnet_sdk() {
 
 install_tools() {
     sudo dotnet workload update
+    dotnet tool install --global csharpier
 }
 
 set_env() {
