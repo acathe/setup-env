@@ -71,6 +71,7 @@ container() {
         -d \
         --privileged \
         --init \
+        --network host \
         --restart unless-stopped \
         --shm-size=2g \
         --ulimit nofile=1048576:1048576 \
