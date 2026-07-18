@@ -33,7 +33,8 @@
     "bashIde.shfmt.caseIndent": true,
     "bashIde.shfmt.simplifyCode": true,
     "bashIde.shfmt.spaceRedirects": true,
-    "claudeCode.useTerminal": true,
+    "claudeCode.disableLoginPrompt": true,
+    "claudeCode.preferredLocation": "sidebar",
     "cmake.pinnedCommands": [
         "workbench.action.tasks.configureTaskRunner",
         "workbench.action.tasks.runTask"
