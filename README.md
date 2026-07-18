@@ -2,8 +2,9 @@
 
 - [1. macOS](#1-macos)
 - [2. Debian / Container](#2-debian--container)
-- [3. VSCode](#3-vscode)
-- [4. 其他](#4-其他)
+- [3. Agent](#3-agent)
+- [4. VSCode](#4-vscode)
+- [5. 其他](#5-其他)
 
 个人开发环境的一组一次性 Bash 安装脚本。入口脚本会从 GitHub 拉取本仓库，然后按目标系统执行对应目录下的安装逻辑；VS Code 扩展列表可单独安装。
 
@@ -11,6 +12,7 @@
 
 - `macos`: macOS 工作站
 - `debian`: Debian 主机，或通过 `--container` 构建 Debian 开发容器
+- `agent`: AI gateway (copilot-api)
 
 ## 1. macOS
 
@@ -91,7 +93,24 @@ bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master
 | `--lang-rust` | 通过 rustup 安装 Rust，并启用 Oh My Zsh `rust` 插件。 |
 | `--tool-protobuf` | 安装 `clang-format` 和最新 `protoc` 到 `~/.local`。 |
 
-## 3. VSCode
+## 3. Agent
+
+```shell
+bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master/main.sh")" -- \
+  --setup agent \
+  [flags...]
+```
+
+可选参数：
+
+| 参数 | 作用 |
+| --- | --- |
+| `--gateway-copilot-api` | 构建最新版 copilot-api，并复用 `~/.copilot-api` 中的授权启动服务。 |
+| `--gateway-copilot-api-auth` | 删除原授权并重新授权，需搭配 `--gateway-copilot-api`。 |
+
+Gateway 监听 `http://localhost:4141`。
+
+## 4. VSCode
 
 安装 [vscode/extensions.txt](vscode/extensions.txt) 中列出的扩展。需要 `code` 命令已在 `PATH` 中。
 
@@ -102,6 +121,6 @@ curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master/vscode/ext
 
 [vscode/settings.json](vscode/settings.json) 是参考配置，不会自动写入用户设置。
 
-## 4. 其他
+## 5. 其他
 
 可用 `--branch <branch>` 指定入口脚本拉取的分支；默认分支是 `master`。
