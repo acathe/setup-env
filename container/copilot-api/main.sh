@@ -2,14 +2,14 @@
 
 set -euo pipefail
 
-GATEWAY_COPILOT_API_AUTH="${GATEWAY_COPILOT_API_AUTH:-0}"
+COPILOT_API_AUTH="${COPILOT_API_AUTH:-0}"
 
 parse_args() {
     POSITIONAL=()
     while (($# > 0)); do
         case "$1" in
-            --gateway-copilot-api-auth)
-                GATEWAY_COPILOT_API_AUTH=1
+            --copilot-api-auth)
+                COPILOT_API_AUTH=1
                 shift
                 ;;
             *) # unknown flag/switch
@@ -71,7 +71,7 @@ main() {
 
     local data_dir="$HOME/.copilot-api"
 
-    if [[ $GATEWAY_COPILOT_API_AUTH == "1" ]]; then
+    if [[ $COPILOT_API_AUTH == "1" ]]; then
         auth "$image" "$data_dir"
     fi
 
