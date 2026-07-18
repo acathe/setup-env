@@ -33,7 +33,7 @@
     "bashIde.shfmt.caseIndent": true,
     "bashIde.shfmt.simplifyCode": true,
     "bashIde.shfmt.spaceRedirects": true,
-    "chat.editing.confirmEditRequestRemoval": false,
+    "claudeCode.useTerminal": true,
     "cmake.pinnedCommands": [
         "workbench.action.tasks.configureTaskRunner",
         "workbench.action.tasks.runTask"
@@ -177,10 +177,14 @@
     "workbench.colorTheme": "One Dark Pro",
     "workbench.iconTheme": "material-icon-theme",
     "workbench.tree.indent": 22,
-    "yaml.schemas": {
-        "https://raw.githubusercontent.com/docker/vscode-extension/6a88caada42b57090df7ce91ec2a6561b422afe1/misc/empty.json": [
-            "compose*y*ml",
-            "docker-compose*y*ml"
-        ]
-    }
+    "yaml.disableSchemaDetection": [
+        "**/docker-compose.yml",
+        "**/docker-compose.yaml",
+        "**/docker-compose.*.yml",
+        "**/docker-compose.*.yaml",
+        "**/compose.yml",
+        "**/compose.yaml",
+        "**/compose.*.yml",
+        "**/compose.*.yaml"
+    ]
 }
