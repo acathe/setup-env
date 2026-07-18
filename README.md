@@ -12,7 +12,7 @@
 
 - `macos`: macOS 工作站
 - `debian`: Debian 主机，或通过 `--container` 构建 Debian 开发容器
-- `agent`: AI gateway (copilot-api)
+- `agent`: AI gateway (copilot-api) 与 Claude Code CLI
 
 ## 1. macOS
 
@@ -107,8 +107,10 @@ bash -c "$(curl -fsSL "https://raw.githubusercontent.com/acathe/setup-env/master
 | --- | --- |
 | `--gateway-copilot-api` | 构建最新版 copilot-api，并复用 `~/.copilot-api` 中的授权启动服务。 |
 | `--gateway-copilot-api-auth` | 删除原授权并重新授权，需搭配 `--gateway-copilot-api`。 |
-
-Gateway 监听 `http://localhost:4141`。
+| `--cli-claude` | 选择 Claude Code 作为 CLI 配置目标。 |
+| `--cli-claude-install` | 通过 Anthropic 官方原生安装器安装或更新 Claude Code，需搭配 `--cli-claude`。 |
+| `--cli-copilot-api` | 配置已选择的 Claude Code 使用 copilot-api。 |
+| `--cli-copilot-api-host <host>` | 设置 CLI 连接的 copilot-api host，默认 `localhost`。 |
 
 ## 4. VSCode
 
