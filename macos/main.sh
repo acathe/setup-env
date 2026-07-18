@@ -30,10 +30,10 @@ main() {
         xcode-select --install
     fi
 
-    bash "./terminal/homebrew.sh" "$@"
+    bash "./command/homebrew.sh" "$@"
     eval "$(/opt/homebrew/bin/brew shellenv)" # export brew PATH for child scripts
 
-    bash "./terminal/omz/main.sh" "$@"
+    bash "./command/omz/main.sh" "$@"
 
     if [[ $APP_VSCODE == "1" ]]; then
         bash "./app/vscode/main.sh" "$@"

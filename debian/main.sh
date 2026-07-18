@@ -9,15 +9,15 @@ APP_GIT="${APP_GIT:-0}"
 APP_TMUX="${APP_TMUX:-0}"
 APP_VSCODE="${APP_VSCODE:-0}"
 
-LANG_BASH="${LANG_BASH:-0}"
-LANG_CSHARP="${LANG_CSHARP:-0}"
-LANG_GO="${LANG_GO:-0}"
-LANG_POWERSHELL="${LANG_POWERSHELL:-0}"
-LANG_PYTHON="${LANG_PYTHON:-0}"
-LANG_RUST="${LANG_RUST:-0}"
+CODE_BASH="${CODE_BASH:-0}"
+CODE_CSHARP="${CODE_CSHARP:-0}"
+CODE_GO="${CODE_GO:-0}"
+CODE_POWERSHELL="${CODE_POWERSHELL:-0}"
+CODE_PYTHON="${CODE_PYTHON:-0}"
+CODE_RUST="${CODE_RUST:-0}"
 
-TOOL_NODE="${TOOL_NODE:-0}"
-TOOL_PROTOBUF="${TOOL_PROTOBUF:-0}"
+TOOLS_NODE="${TOOLS_NODE:-0}"
+TOOLS_PROTOBUF="${TOOLS_PROTOBUF:-0}"
 
 parse_args() {
     POSITIONAL=()
@@ -43,36 +43,36 @@ parse_args() {
                 APP_VSCODE=1
                 shift
                 ;;
-            --lang-bash)
-                LANG_BASH=1
+            --code-bash)
+                CODE_BASH=1
                 shift
                 ;;
-            --lang-csharp)
-                LANG_CSHARP=1
+            --code-csharp)
+                CODE_CSHARP=1
                 shift
                 ;;
-            --lang-go)
-                LANG_GO=1
+            --code-go)
+                CODE_GO=1
                 shift
                 ;;
-            --lang-powershell)
-                LANG_POWERSHELL=1
+            --code-powershell)
+                CODE_POWERSHELL=1
                 shift
                 ;;
-            --lang-python)
-                LANG_PYTHON=1
+            --code-python)
+                CODE_PYTHON=1
                 shift
                 ;;
-            --lang-rust)
-                LANG_RUST=1
+            --code-rust)
+                CODE_RUST=1
                 shift
                 ;;
-            --tool-node)
-                TOOL_NODE=1
+            --tools-node)
+                TOOLS_NODE=1
                 shift
                 ;;
-            --tool-protobuf)
-                TOOL_PROTOBUF=1
+            --tools-protobuf)
+                TOOLS_PROTOBUF=1
                 shift
                 ;;
             *) # unknown flag/switch
@@ -84,8 +84,8 @@ parse_args() {
 }
 
 main() {
-    bash "./terminal/zsh.sh" "$@"
-    bash "./terminal/omz.sh" "$@"
+    bash "./command/zsh.sh" "$@"
+    bash "./command/omz.sh" "$@"
 
     if [[ $AGENT_CLAUDE == "1" ]]; then
         bash "./agent/claude.sh" "$@"
@@ -107,36 +107,36 @@ main() {
         bash "./app/vscode.sh" "$@"
     fi
 
-    if [[ $LANG_BASH == "1" ]]; then
-        bash "./lang/bash.sh" "$@"
+    if [[ $CODE_BASH == "1" ]]; then
+        bash "./code/bash.sh" "$@"
     fi
 
-    if [[ $LANG_CSHARP == "1" ]]; then
-        bash "./lang/csharp.sh" "$@"
+    if [[ $CODE_CSHARP == "1" ]]; then
+        bash "./code/csharp.sh" "$@"
     fi
 
-    if [[ $LANG_GO == "1" ]]; then
-        bash "./lang/go.sh" "$@"
+    if [[ $CODE_GO == "1" ]]; then
+        bash "./code/go.sh" "$@"
     fi
 
-    if [[ $LANG_POWERSHELL == "1" ]]; then
-        bash "./lang/powershell.sh" "$@"
+    if [[ $CODE_POWERSHELL == "1" ]]; then
+        bash "./code/powershell.sh" "$@"
     fi
 
-    if [[ $LANG_PYTHON == "1" ]]; then
-        bash "./lang/python.sh" "$@"
+    if [[ $CODE_PYTHON == "1" ]]; then
+        bash "./code/python.sh" "$@"
     fi
 
-    if [[ $LANG_RUST == "1" ]]; then
-        bash "./lang/rust.sh" "$@"
+    if [[ $CODE_RUST == "1" ]]; then
+        bash "./code/rust.sh" "$@"
     fi
 
-    if [[ $TOOL_NODE == "1" ]]; then
-        bash "./tool/node.sh" "$@"
+    if [[ $TOOLS_NODE == "1" ]]; then
+        bash "./tools/node.sh" "$@"
     fi
 
-    if [[ $TOOL_PROTOBUF == "1" ]]; then
-        bash "./tool/protobuf.sh" "$@"
+    if [[ $TOOLS_PROTOBUF == "1" ]]; then
+        bash "./tools/protobuf.sh" "$@"
     fi
 }
 
