@@ -54,7 +54,7 @@ main() {
         macos)
             macos
             ;;
-        debian)
+        debian | container)
             debian
             ;;
         *)
