@@ -98,6 +98,7 @@
     "git.autofetch": true,
     "git.confirmSync": false,
     "git.enableSmartCommit": true,
+    "github.copilot.chat.claudeAgent.enabled": false,
     "github.copilot.chat.localeOverride": "zh-CN",
     "go.inlayHints.assignVariableTypes": true,
     "go.inlayHints.compositeLiteralFields": true,

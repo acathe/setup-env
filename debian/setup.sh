@@ -2,8 +2,11 @@
 
 set -euo pipefail
 
+AGENT_CLAUDE="${AGENT_CLAUDE:-0}"
+
 APP_DOCKER="${APP_DOCKER:-0}"
 APP_GIT="${APP_GIT:-0}"
+APP_TMUX="${APP_TMUX:-0}"
 APP_VSCODE="${APP_VSCODE:-0}"
 
 LANG_BASH="${LANG_BASH:-0}"
@@ -13,18 +16,27 @@ LANG_POWERSHELL="${LANG_POWERSHELL:-0}"
 LANG_PYTHON="${LANG_PYTHON:-0}"
 LANG_RUST="${LANG_RUST:-0}"
 
+TOOL_NODE="${TOOL_NODE:-0}"
 TOOL_PROTOBUF="${TOOL_PROTOBUF:-0}"
 
 parse_args() {
     POSITIONAL=()
     while (($# > 0)); do
         case "$1" in
+            --agent-claude)
+                AGENT_CLAUDE=1
+                shift
+                ;;
             --app-docker)
                 APP_DOCKER=1
                 shift # shift once since flags have no values
                 ;;
             --app-git)
                 APP_GIT=1
+                shift
+                ;;
+            --app-tmux)
+                APP_TMUX=1
                 shift
                 ;;
             --app-vscode)
@@ -55,6 +67,10 @@ parse_args() {
                 LANG_RUST=1
                 shift
                 ;;
+            --tool-node)
+                TOOL_NODE=1
+                shift
+                ;;
             --tool-protobuf)
                 TOOL_PROTOBUF=1
                 shift
@@ -71,12 +87,20 @@ main() {
     bash "./terminal/zsh.sh" "$@"
     bash "./terminal/omz.sh" "$@"
 
+    if [[ $AGENT_CLAUDE == "1" ]]; then
+        bash "./agent/claude.sh" "$@"
+    fi
+
     if [[ $APP_DOCKER == "1" ]]; then
         bash "./app/docker.sh" "$@"
     fi
 
     if [[ $APP_GIT == "1" ]]; then
         bash "./app/git.sh" "$@"
+    fi
+
+    if [[ $APP_TMUX == "1" ]]; then
+        bash "./app/tmux.sh" "$@"
     fi
 
     if [[ $APP_VSCODE == "1" ]]; then
@@ -105,6 +129,10 @@ main() {
 
     if [[ $LANG_RUST == "1" ]]; then
         bash "./lang/rust.sh" "$@"
+    fi
+
+    if [[ $TOOL_NODE == "1" ]]; then
+        bash "./tool/node.sh" "$@"
     fi
 
     if [[ $TOOL_PROTOBUF == "1" ]]; then
