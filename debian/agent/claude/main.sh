@@ -33,7 +33,7 @@ main() {
     install_claude_code
 
     if [[ $AGENT_CLAUDE_COPILOT_API == "1" ]]; then
-        bash ./copilot_api/main.sh
+        bash ./copilot_api/main.sh "$@"
     fi
 }
 
