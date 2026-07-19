@@ -2,22 +2,22 @@
 
 set -euo pipefail
 
-AGENT_CLAUDE="${AGENT_CLAUDE:-0}"
+export AGENT_CLAUDE="${AGENT_CLAUDE:-0}"
 
-APP_DOCKER="${APP_DOCKER:-0}"
-APP_GIT="${APP_GIT:-0}"
-APP_TMUX="${APP_TMUX:-0}"
-APP_VSCODE="${APP_VSCODE:-0}"
+export APP_DOCKER="${APP_DOCKER:-0}"
+export APP_GIT="${APP_GIT:-0}"
+export APP_TMUX="${APP_TMUX:-0}"
+export APP_VSCODE="${APP_VSCODE:-0}"
 
-CODE_BASH="${CODE_BASH:-0}"
-CODE_CSHARP="${CODE_CSHARP:-0}"
-CODE_GO="${CODE_GO:-0}"
-CODE_POWERSHELL="${CODE_POWERSHELL:-0}"
-CODE_PYTHON="${CODE_PYTHON:-0}"
-CODE_RUST="${CODE_RUST:-0}"
+export CODE_BASH="${CODE_BASH:-0}"
+export CODE_CSHARP="${CODE_CSHARP:-0}"
+export CODE_GO="${CODE_GO:-0}"
+export CODE_POWERSHELL="${CODE_POWERSHELL:-0}"
+export CODE_PYTHON="${CODE_PYTHON:-0}"
+export CODE_RUST="${CODE_RUST:-0}"
 
-TOOLS_NODE="${TOOLS_NODE:-0}"
-TOOLS_PROTOBUF="${TOOLS_PROTOBUF:-0}"
+export TOOLS_NODE="${TOOLS_NODE:-0}"
+export TOOLS_PROTOBUF="${TOOLS_PROTOBUF:-0}"
 
 parse_args() {
     POSITIONAL=()
@@ -88,7 +88,7 @@ main() {
     bash "./command/omz.sh" "$@"
 
     if [[ $AGENT_CLAUDE == "1" ]]; then
-        bash "./agent/claude.sh" "$@"
+        bash "./agent/claude/main.sh" "$@"
     fi
 
     if [[ $APP_DOCKER == "1" ]]; then

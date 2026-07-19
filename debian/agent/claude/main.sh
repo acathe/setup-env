@@ -70,11 +70,8 @@ fetch_models() {
         return 1
     fi
 
-    # Emit one model id per line (no jq dependency).
-    printf '%s\n' "$body" \
-        | grep -oE '"id"[[:space:]]*:[[:space:]]*"[^"]*"' \
-        | sed -E 's/.*"([^"]*)"$/\1/' \
-        || true
+    # Emit one model id per line.
+    jq -r '.data[]?.id // empty' <<< "$body" || true
 }
 
 resolve_model() {
@@ -112,14 +109,23 @@ backup() {
 render_config() {
     local base_url="$1" opus="$2" sonnet="$3" haiku="$4" config_file="$5" tmp
 
+    if ! command -v jq > /dev/null 2>&1; then
+        sudo apt-get update
+        sudo apt-get install -y jq
+    fi
+
     # Render to a writable temp file; the script dir may be a read-only bind
-    # mount during docker build. '#' delimiter keeps '/' and '[1m]' literal.
+    # mount during docker build. jq --arg escapes values safely.
     tmp="$(mktemp)"
-    sed -e "s#{{ANTHROPIC_BASE_URL}}#$base_url#g" \
-        -e "s#{{OPUS_MODEL}}#$opus#g" \
-        -e "s#{{SONNET_MODEL}}#$sonnet#g" \
-        -e "s#{{HAIKU_MODEL}}#$haiku#g" \
-        './copilot_api.tmpl.json' > "$tmp"
+    jq --arg base_url "$base_url" \
+       --arg opus "$opus" \
+       --arg sonnet "$sonnet" \
+       --arg haiku "$haiku" \
+       '.env.ANTHROPIC_BASE_URL = $base_url
+        | .env.ANTHROPIC_DEFAULT_OPUS_MODEL = $opus
+        | .env.ANTHROPIC_DEFAULT_SONNET_MODEL = $sonnet
+        | .env.ANTHROPIC_DEFAULT_HAIKU_MODEL = $haiku' \
+       './copilot_api.tmpl.json' > "$tmp"
 
     mv "$tmp" "$config_file"
 }
@@ -162,6 +168,11 @@ main() {
 
     host="${AGENT_CLAUDE_COPILOT_API_HOST:-$(detect_host)}"
     base_url="http://$host:4141"
+
+    if ! command -v jq > /dev/null 2>&1; then
+        sudo apt-get update
+        sudo apt-get install -y jq
+    fi
 
     ids="$(fetch_models "$host")"
     opus="$(resolve_model opus "$ids")"
