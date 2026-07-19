@@ -76,10 +76,7 @@ render_config() {
 }
 
 install_plugins() {
-    if ! command -v claude > /dev/null 2>&1; then
-        echo "claude not found; cannot install copilot-api plugins." >&2
-        return 1
-    fi
+    export PATH="$HOME/.local/bin:$PATH"
 
     claude plugin marketplace add "https://github.com/caozhiyuan/copilot-api.git"
     claude plugin install "agent-inject@copilot-api-marketplace"
