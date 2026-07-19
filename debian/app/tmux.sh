@@ -22,7 +22,7 @@ configure_tmux() {
     if [[ $AGENT_CLAUDE == "1" ]]; then
         {
             echo ''
-            echo '# Claude'
+            echo '# Claude Code'
             echo 'set -g allow-passthrough on'
             echo 'set -s extended-keys on'
             echo "set -as terminal-features 'xterm*:extkeys'"

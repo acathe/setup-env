@@ -14,7 +14,11 @@ install_nvm() {
         return 1
     fi
 
-    echo "# NVM" >> "$HOME/.zshrc"
+    if [[ -s "$HOME/.zshrc" ]]; then
+        echo >> "$HOME/.zshrc"
+    fi
+
+    echo -n "# NVM" >> "$HOME/.zshrc"
 
     # 下载并安装 nvm：
     curl -o- "https://raw.githubusercontent.com/nvm-sh/nvm/v$version/install.sh" | bash
