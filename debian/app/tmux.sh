@@ -2,6 +2,8 @@
 
 set -euo pipefail
 
+AGENT_CLAUDE="${AGENT_CLAUDE:-0}"
+
 install_oh_my_tmux() {
     mkdir -p "$HOME/.config"
 
@@ -11,14 +13,30 @@ install_oh_my_tmux() {
     bash "$install_sh" < /dev/null
 }
 
+configure_tmux() {
+    local conf="$HOME/.config/tmux/tmux.conf.local"
+
+    sed -i 's/^#set -g mouse on$/set -g mouse on/' "$conf"
+    sed -i 's/^#set -g history-limit .*/set -g history-limit 10000/' "$conf"
+
+    if [[ $AGENT_CLAUDE == "1" ]]; then
+        {
+            echo ''
+            echo '# Claude'
+            echo 'set -g allow-passthrough on'
+            echo 'set -s extended-keys on'
+            echo "set -as terminal-features 'xterm*:extkeys'"
+        } >> "$conf"
+    fi
+}
+
 main() {
     sudo apt update
     sudo apt install -y tmux
 
     install_oh_my_tmux
+    configure_tmux
 
-    sed -i 's/^#set -g mouse on$/set -g mouse on/' "$HOME/.config/tmux/tmux.conf.local"
-    sed -i 's/^#set -g history-limit .*/set -g history-limit 10000/' "$HOME/.config/tmux/tmux.conf.local"
     sed -i '/^plugins=(/s/)/ tmux)/' "$HOME/.zshrc"
 }
 
