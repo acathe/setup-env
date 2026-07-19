@@ -33,7 +33,7 @@ RUN sudo apt-get update \
 ARG setup_args_b64=""
 RUN --mount=type=bind,source=.,target=/mnt/setup,readonly \
     mapfile -d '' -t setup_args < <(printf '%s' "$setup_args_b64" | base64 -d) \
-    && bash /mnt/setup/setup.sh --unattended "${setup_args[@]}" \
+    && bash /mnt/setup/main.sh --unattended "${setup_args[@]}" \
     && sudo rm -rf /var/lib/apt/lists/* /tmp/*
 
 CMD ["sleep", "infinity"]

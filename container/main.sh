@@ -2,15 +2,20 @@
 
 set -euo pipefail
 
-GATEWAY_COPILOT_API="${GATEWAY_COPILOT_API:-0}"
+IMAGE="${IMAGE:-"dev-container"}"
 
 parse_args() {
     POSITIONAL=()
     while (($# > 0)); do
         case "$1" in
-            --gateway-copilot-api)
-                GATEWAY_COPILOT_API=1
-                shift
+            --image)
+                numOfArgs=1 # number of switch arguments
+                if (($# < numOfArgs + 1)); then
+                    shift $#
+                else
+                    IMAGE="$2"
+                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
+                fi
                 ;;
             *) # unknown flag/switch
                 POSITIONAL+=("$1")
@@ -21,9 +26,7 @@ parse_args() {
 }
 
 main() {
-    if [[ $GATEWAY_COPILOT_API == "1" ]]; then
-        bash "./gateway/copilot_api.sh" "$@"
-    fi
+    bash "./$IMAGE/main.sh" "$@"
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then

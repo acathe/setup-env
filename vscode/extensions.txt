@@ -1,3 +1,4 @@
+anthropic.claude-code
 charliermarsh.ruff
 cheshirekow.cmake-format
 christian-kohler.path-intellisense

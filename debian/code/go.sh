@@ -3,10 +3,19 @@
 set -euo pipefail
 
 get_go_latest() {
-    curl -fsSL 'https://go.dev/dl/?mode=json' | grep -o 'go.*.linux-amd64.tar.gz' | head -n 1 | tr -d '\r\n'
+    curl -fsSL 'https://go.dev/dl/?mode=json' \
+        | jq -r 'first(.[] | select(.stable)).files[]
+                 | select(.os == "linux" and .arch == "amd64" and .kind == "archive")
+                 | .filename' \
+        | head -n 1
 }
 
 install_go() {
+    if ! command -v jq > /dev/null 2>&1; then
+        sudo apt-get update
+        sudo apt-get install -y jq
+    fi
+
     local version
     version="$(get_go_latest)"
     if [[ -z $version ]]; then
