@@ -49,7 +49,6 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
 | `--code-rust`       |                                           |
 | `--tools-node`      |                                           |
 | `--tools-protobuf`  |                                           |
-| `--unattended`      |                                           |
 
 ## 3. Container
 
