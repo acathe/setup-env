@@ -50,7 +50,6 @@ debian() {
 
 main() {
     case "$SETUP" in
-        agent) ;;
         macos)
             macos
             ;;
