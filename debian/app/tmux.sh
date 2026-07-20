@@ -31,8 +31,8 @@ configure_tmux() {
 }
 
 main() {
-    sudo apt update
-    sudo apt install -y tmux
+    sudo apt-get update
+    sudo apt-get install -y tmux
 
     install_oh_my_tmux
     configure_tmux

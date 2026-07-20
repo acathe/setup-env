@@ -6,6 +6,7 @@ export AGENT_CLAUDE="${AGENT_CLAUDE:-0}"
 
 export APP_DOCKER="${APP_DOCKER:-0}"
 export APP_GIT="${APP_GIT:-0}"
+export APP_MICRO="${APP_MICRO:-0}"
 export APP_TMUX="${APP_TMUX:-0}"
 export APP_VSCODE="${APP_VSCODE:-0}"
 
@@ -33,6 +34,10 @@ parse_args() {
                 ;;
             --app-git)
                 APP_GIT=1
+                shift
+                ;;
+            --app-micro)
+                APP_MICRO=1
                 shift
                 ;;
             --app-tmux)
@@ -97,6 +102,10 @@ main() {
 
     if [[ $APP_GIT == "1" ]]; then
         bash "./app/git.sh" "$@"
+    fi
+
+    if [[ $APP_MICRO == "1" ]]; then
+        bash "./app/micro.sh" "$@"
     fi
 
     if [[ $APP_TMUX == "1" ]]; then
