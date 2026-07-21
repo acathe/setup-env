@@ -2,10 +2,11 @@
 
 set -euo pipefail
 
+export COMMAND_UTILS="${COMMAND_UTILS:-0}"
+
 export AGENT_CLAUDE="${AGENT_CLAUDE:-0}"
 
 export APP_DOCKER="${APP_DOCKER:-0}"
-export APP_GIT="${APP_GIT:-0}"
 export APP_GITHUB="${APP_GITHUB:-0}"
 export APP_MICRO="${APP_MICRO:-0}"
 export APP_TMUX="${APP_TMUX:-0}"
@@ -25,6 +26,10 @@ parse_args() {
     POSITIONAL=()
     while (($# > 0)); do
         case "$1" in
+            --command-utils)
+                COMMAND_UTILS=1
+                shift
+                ;;
             --agent-claude)
                 AGENT_CLAUDE=1
                 shift
@@ -32,10 +37,6 @@ parse_args() {
             --app-docker)
                 APP_DOCKER=1
                 shift # shift once since flags have no values
-                ;;
-            --app-git)
-                APP_GIT=1
-                shift
                 ;;
             --app-github)
                 APP_GITHUB=1
@@ -97,16 +98,16 @@ main() {
     bash "./command/zsh.sh" "$@"
     bash "./command/omz.sh" "$@"
 
+    if [[ $COMMAND_UTILS == "1" ]]; then
+        bash "./command/utils.sh" "$@"
+    fi
+
     if [[ $AGENT_CLAUDE == "1" ]]; then
         bash "./agent/claude/main.sh" "$@"
     fi
 
     if [[ $APP_DOCKER == "1" ]]; then
         bash "./app/docker.sh" "$@"
-    fi
-
-    if [[ $APP_GIT == "1" ]]; then
-        bash "./app/git.sh" "$@"
     fi
 
     if [[ $APP_GITHUB == "1" ]]; then

@@ -37,8 +37,6 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
 |                     | `--agent-claude-anthropic-base-url <v>`   |
 |                     | `--agent-claude-anthropic-auth-token <v>` |
 | `--app-docker`      |                                           |
-| `--app-git`         | `--app-git-user-name <v>`                 |
-|                     | `--app-git-user-email <v>`                |
 | `--app-github`      |                                           |
 | `--app-micro`       |                                           |
 | `--app-tmux`        |                                           |
@@ -49,6 +47,8 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
 | `--code-powershell` |                                           |
 | `--code-python`     |                                           |
 | `--code-rust`       |                                           |
+| `--command-utils`   | `--command-utils-git-user-name <v>`       |
+|                     | `--command-utils-git-user-email <v>`      |
 | `--tools-node`      |                                           |
 | `--tools-protobuf`  |                                           |
 
