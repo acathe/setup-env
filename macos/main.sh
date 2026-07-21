@@ -2,8 +2,8 @@
 
 set -euo pipefail
 
-APP_VSCODE="${APP_VSCODE:-0}"
-APP_SSH="${APP_SSH:-0}"
+export APP_VSCODE="${APP_VSCODE:-0}"
+export APP_SSH="${APP_SSH:-0}"
 
 parse_args() {
     POSITIONAL=()
