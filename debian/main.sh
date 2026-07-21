@@ -6,6 +6,7 @@ export AGENT_CLAUDE="${AGENT_CLAUDE:-0}"
 
 export APP_DOCKER="${APP_DOCKER:-0}"
 export APP_GIT="${APP_GIT:-0}"
+export APP_GITHUB="${APP_GITHUB:-0}"
 export APP_MICRO="${APP_MICRO:-0}"
 export APP_TMUX="${APP_TMUX:-0}"
 export APP_VSCODE="${APP_VSCODE:-0}"
@@ -34,6 +35,10 @@ parse_args() {
                 ;;
             --app-git)
                 APP_GIT=1
+                shift
+                ;;
+            --app-github)
+                APP_GITHUB=1
                 shift
                 ;;
             --app-micro)
@@ -102,6 +107,10 @@ main() {
 
     if [[ $APP_GIT == "1" ]]; then
         bash "./app/git.sh" "$@"
+    fi
+
+    if [[ $APP_GITHUB == "1" ]]; then
+        bash "./app/github.sh" "$@"
     fi
 
     if [[ $APP_MICRO == "1" ]]; then
