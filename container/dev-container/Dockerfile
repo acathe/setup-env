@@ -5,11 +5,13 @@ ARG encoding
 ARG language
 ARG tz
 ARG term=xterm-256color
+ARG colorterm=truecolor
 
 ENV LANG=${lang}.${encoding}
 ENV LANGUAGE=${language}
 ENV TZ=${tz}
 ENV TERM=${term}
+ENV COLORTERM=${colorterm}
 
 SHELL ["/usr/bin/bash", "-c"]
 
