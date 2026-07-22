@@ -45,7 +45,7 @@ Three independent setup trees, selected by `--setup`:
 4. `main()` runs each enabled component's leaf script, gated on `FOO == "1"`. Exporting is a
    deliberate cross-cutting mechanism: a leaf can read *another* component's flag to add
    integration config only when both are enabled — e.g. `tmux.sh` reads `AGENT_CLAUDE` (adds
-   Claude Code passthrough / extended-keys when `--app-tmux` + `--agent-claude`); `micro.sh`
+   Claude Code passthrough / extended-keys when `--app-tmux` + `--agent-claude`); `micro/main.sh`
    reads `APP_VSCODE`. Those env reads are intentional — not a missing `parse_args` to add.
 5. Standard footer guard so scripts are both runnable and sourceable:
    ```bash

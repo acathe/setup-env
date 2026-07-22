@@ -115,7 +115,7 @@ main() {
     fi
 
     if [[ $APP_MICRO == "1" ]]; then
-        bash "./app/micro.sh" "$@"
+        bash "./app/micro/main.sh" "$@"
     fi
 
     if [[ $APP_TMUX == "1" ]]; then

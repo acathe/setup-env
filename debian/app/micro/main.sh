@@ -9,6 +9,10 @@ main() {
     sudo apt-get install -y micro
 
     micro -plugin install detectindent
+    micro -plugin install filemanager
+
+    mkdir -p "$HOME/.config/micro"
+    cp ./settings.json "$HOME/.config/micro/settings.json"
 
     {
         echo ''
@@ -20,7 +24,9 @@ main() {
             echo 'fi'
         fi
         echo 'export VISUAL="$EDITOR"'
-
+        echo ''
+        echo '# Micro'
+        echo "alias micror='micro -readonly true'"
     } >> "$HOME/.zshrc"
 }
 

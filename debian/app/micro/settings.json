@@ -1,0 +1,15 @@
+{
+  "colorscheme": "one-dark",
+  "diffgutter": true,
+  "hlsearch": true,
+  "hltrailingws": true,
+  "matchbracestyle": "highlight",
+  "mkparents": true,
+  "parsecursor": true,
+  "rmtrailingws": true,
+  "savecursor": true,
+  "saveundo": true,
+  "scrollbar": true,
+  "showchars": "tab=»,itab=»",
+  "truecolor": true
+}
