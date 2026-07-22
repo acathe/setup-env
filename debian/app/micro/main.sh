@@ -24,9 +24,6 @@ main() {
             echo 'fi'
         fi
         echo 'export VISUAL="$EDITOR"'
-        echo ''
-        echo '# Micro'
-        echo "alias micror='micro -readonly true'"
     } >> "$HOME/.zshrc"
 }
 

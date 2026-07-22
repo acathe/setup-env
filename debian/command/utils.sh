@@ -5,6 +5,8 @@ set -euo pipefail
 COMMAND_UTILS_GIT_USER_NAME="${COMMAND_UTILS_GIT_USER_NAME:-}"
 COMMAND_UTILS_GIT_USER_EMAIL="${COMMAND_UTILS_GIT_USER_EMAIL:-}"
 
+APP_MICRO="${APP_MICRO:-0}"
+
 parse_args() {
     POSITIONAL=()
     while (($# > 0)); do
@@ -68,6 +70,10 @@ configure_zshrc() {
         # eza 取代 ls / tree（omz 的 ll/la/l 会经别名递归复用 ls）
         echo "alias ls='eza --group-directories-first'"
         echo "alias tree='eza --tree'"
+        # micro 只读别名（仅当同时启用 --app-micro）
+        if [[ $APP_MICRO == "1" ]]; then
+            echo "alias micror='micro -readonly true'"
+        fi
         # shell 集成
         echo 'eval "$(zoxide init zsh)"'
         echo 'eval "$(fzf --zsh)"'
