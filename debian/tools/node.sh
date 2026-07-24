@@ -2,39 +2,16 @@
 
 set -euo pipefail
 
-get_nvm_latest() {
-    curl -fsSIL -o /dev/null -w '%{url_effective}' 'https://github.com/nvm-sh/nvm/releases/latest' | sed -E 's#.*/tag/v?([^/]+)$#\1#'
-}
-
-install_nvm() {
-    local version
-    version="$(get_nvm_latest)"
-    if [[ -z $version ]]; then
-        echo "Failed to determine the latest nvm version." >&2
-        return 1
-    fi
-
-    if [[ -s "$HOME/.zshrc" ]]; then
-        echo >> "$HOME/.zshrc"
-    fi
-
-    echo -n "# NVM" >> "$HOME/.zshrc"
-
-    # 下载并安装 nvm：
-    curl -o- "https://raw.githubusercontent.com/nvm-sh/nvm/v$version/install.sh" | bash
-}
-
 main() {
     sudo apt-get update
     sudo apt-get install -y build-essential
 
-    install_nvm
-
-    # shellcheck source=/dev/null
-    source "$HOME/.nvm/nvm.sh"
-    nvm install node
-
-    # sed -i '/^plugins=(/s/)/ node npm nvm)/' "$HOME/.zshrc"
+    # NodeSource LTS 官方源（版本比 Debian 自带更新，nodejs 自带 npm）。
+    # 系统级安装：node 落到 /usr/bin、对任何进程可见——Claude Code 的 node
+    # plugin（如 copilot-api agent-inject 的 hooks）由非交互进程直接以裸
+    # `node` 拉起，必须在系统 PATH 里，故不用 nvm。
+    curl -fsSL "https://deb.nodesource.com/setup_lts.x" | sudo -E bash -
+    sudo apt-get install -y nodejs
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then

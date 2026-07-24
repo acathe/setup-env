@@ -65,7 +65,7 @@ install_plugin() {
         return 1
     fi
 
-    sed -i 's/^plugins=(.*)/plugins=(z sudo)/' "$HOME/.zshrc"
+    sed -i 's/^plugins=(.*)/plugins=(aliases dirhistory extract sudo z)/' "$HOME/.zshrc"
 
     # Ref. https://github.com/Pilaton/OhMyZsh-full-autoupdate?tab=readme-ov-file#installing
     git clone "https://github.com/Pilaton/OhMyZsh-full-autoupdate.git" "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/ohmyzsh-full-autoupdate"
