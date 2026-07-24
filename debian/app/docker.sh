@@ -34,10 +34,17 @@ add_group() {
     sudo usermod -aG docker "$USER"
 }
 
+install_lazydocker() {
+    # 官方安装脚本；默认装入 $HOME/.local/bin（已在 PATH）
+    curl -fsSL "https://raw.githubusercontent.com/jesseduffield/lazydocker/master/scripts/install_update_linux.sh" \
+        | bash
+}
+
 main() {
     add_repo
     install_docker
     add_group
+    install_lazydocker
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
