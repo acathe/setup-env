@@ -8,6 +8,9 @@
     "ANTHROPIC_DEFAULT_HAIKU_MODEL": "${ANTHROPIC_DEFAULT_HAIKU_MODEL}",
     "CLAUDE_CODE_ATTRIBUTION_HEADER": "0"
   },
+  "sandbox": {
+    "enabled": true
+  },
   "permissions": {
     "defaultMode": "auto",
     "allow": [
