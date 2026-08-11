@@ -36,7 +36,7 @@ main() {
     bash "./command/omz/main.sh" "$@"
 
     if [[ $APP_VSCODE == "1" ]]; then
-        bash "./app/vscode/main.sh" "$@"
+        bash "./app/vscode.sh" "$@"
     fi
 
     if [[ $APP_SSH == "1" ]]; then

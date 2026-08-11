@@ -2,6 +2,8 @@
 
 set -euo pipefail
 
+APP_VSCODE="${APP_VSCODE:-0}"
+
 install_omz() {
     if ! command -v curl > /dev/null 2>&1; then
         echo "curl is not installed." >&2
@@ -34,6 +36,10 @@ install_plugin() {
     fi
 
     sed -i '' 's/^plugins=(.*)/plugins=(z sudo brew)/' "$HOME/.zshrc"
+
+    if [[ $APP_VSCODE == "1" ]]; then
+        sed -i '' '/^plugins=(/s/)/ vscode)/' "$HOME/.zshrc"
+    fi
 
     # Ref. https://github.com/Pilaton/OhMyZsh-full-autoupdate?tab=readme-ov-file#installing
     git clone "https://github.com/Pilaton/OhMyZsh-full-autoupdate.git" \
