@@ -3,7 +3,7 @@
 set -euo pipefail
 
 get_version_id() (
-    source /etc/os-release
+    source '/etc/os-release'
     echo "$VERSION_ID"
 )
 
@@ -19,8 +19,8 @@ add_repo() {
     local version_id
     version_id="$(get_version_id)"
 
-    curl -fsSL "https://packages.microsoft.com/config/debian/$version_id/packages-microsoft-prod.deb" -o /tmp/packages-microsoft-prod.deb
-    sudo dpkg -i /tmp/packages-microsoft-prod.deb
+    curl -fsSL "https://packages.microsoft.com/config/debian/$version_id/packages-microsoft-prod.deb" -o '/tmp/packages-microsoft-prod.deb'
+    sudo dpkg -i '/tmp/packages-microsoft-prod.deb'
 }
 
 install_dotnet_sdk() {
@@ -29,7 +29,7 @@ install_dotnet_sdk() {
     local version
     version="$(get_dotnet_latest)"
     if [[ -z $version ]]; then
-        echo "Failed to determine the latest .NET SDK version." >&2
+        echo 'Failed to determine the latest .NET SDK version.' >&2
         return 1
     fi
 
@@ -51,7 +51,7 @@ set_env() {
         echo 'export PATH="$HOME/.dotnet/tools:$PATH"'
     } >> "$HOME/.zshrc"
 
-    sed -i '/^plugins=(/s/)/ dotnet)/' "$HOME/.zshrc"
+    sed -i '/^plugins=(/s/zsh-syntax-highlighting/dotnet &/' "$HOME/.zshrc"
 }
 
 main() {

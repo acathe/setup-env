@@ -13,9 +13,7 @@ export APP_TMUX="${APP_TMUX:-0}"
 export APP_VSCODE="${APP_VSCODE:-0}"
 
 export CODE_BASH="${CODE_BASH:-0}"
-export CODE_CSHARP="${CODE_CSHARP:-0}"
 export CODE_GO="${CODE_GO:-0}"
-export CODE_POWERSHELL="${CODE_POWERSHELL:-0}"
 export CODE_PYTHON="${CODE_PYTHON:-0}"
 export CODE_RUST="${CODE_RUST:-0}"
 
@@ -58,16 +56,8 @@ parse_args() {
                 CODE_BASH=1
                 shift
                 ;;
-            --code-csharp)
-                CODE_CSHARP=1
-                shift
-                ;;
             --code-go)
                 CODE_GO=1
-                shift
-                ;;
-            --code-powershell)
-                CODE_POWERSHELL=1
                 shift
                 ;;
             --code-python)
@@ -130,16 +120,8 @@ main() {
         bash "./code/bash.sh" "$@"
     fi
 
-    if [[ $CODE_CSHARP == "1" ]]; then
-        bash "./code/csharp.sh" "$@"
-    fi
-
     if [[ $CODE_GO == "1" ]]; then
         bash "./code/go.sh" "$@"
-    fi
-
-    if [[ $CODE_POWERSHELL == "1" ]]; then
-        bash "./code/powershell.sh" "$@"
     fi
 
     if [[ $CODE_PYTHON == "1" ]]; then

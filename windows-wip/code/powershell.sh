@@ -3,7 +3,7 @@
 set -euo pipefail
 
 get_version_id() (
-    source /etc/os-release
+    source '/etc/os-release'
     echo "$VERSION_ID"
 )
 
@@ -11,8 +11,8 @@ add_repo() {
     local version_id
     version_id="$(get_version_id)"
 
-    curl -fsSL "https://packages.microsoft.com/config/debian/$version_id/packages-microsoft-prod.deb" -o /tmp/packages-microsoft-prod.deb
-    sudo dpkg -i /tmp/packages-microsoft-prod.deb
+    curl -fsSL "https://packages.microsoft.com/config/debian/$version_id/packages-microsoft-prod.deb" -o '/tmp/packages-microsoft-prod.deb'
+    sudo dpkg -i '/tmp/packages-microsoft-prod.deb'
 }
 
 install_powershell() {

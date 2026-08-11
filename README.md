@@ -31,26 +31,24 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
         [--flag]
 ```
 
-| main args           | script args                               |
-| ------------------- | ----------------------------------------- |
-| `--agent-claude`    | `--agent-claude-copilot-api`              |
-|                     | `--agent-claude-anthropic-base-url <v>`   |
-|                     | `--agent-claude-anthropic-auth-token <v>` |
-| `--app-docker`      |                                           |
-| `--app-github`      |                                           |
-| `--app-micro`       |                                           |
-| `--app-tmux`        |                                           |
-| `--app-vscode`      |                                           |
-| `--code-bash`       |                                           |
-| `--code-csharp`     |                                           |
-| `--code-go`         |                                           |
-| `--code-powershell` |                                           |
-| `--code-python`     |                                           |
-| `--code-rust`       |                                           |
-| `--command-utils`   | `--command-utils-git-user-name <v>`       |
-|                     | `--command-utils-git-user-email <v>`      |
-| `--tools-node`      |                                           |
-| `--tools-protobuf`  |                                           |
+| main args          | script args                               |
+| ------------------ | ----------------------------------------- |
+| `--agent-claude`   | `--agent-claude-copilot-api`              |
+|                    | `--agent-claude-anthropic-base-url <v>`   |
+|                    | `--agent-claude-anthropic-auth-token <v>` |
+| `--app-docker`     |                                           |
+| `--app-github`     |                                           |
+| `--app-micro`      |                                           |
+| `--app-tmux`       |                                           |
+| `--app-vscode`     |                                           |
+| `--code-bash`      |                                           |
+| `--code-go`        |                                           |
+| `--code-python`    |                                           |
+| `--code-rust`      |                                           |
+| `--command-utils`  | `--command-utils-git-user-name <v>`       |
+|                    | `--command-utils-git-user-email <v>`      |
+| `--tools-node`     |                                           |
+| `--tools-protobuf` |                                           |
 
 ## 3. Container
 
