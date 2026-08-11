@@ -3,7 +3,6 @@
 - [1. MacOS](#1-macos)
 - [2. Debian](#2-debian)
 - [3. Container](#3-container)
-- [4. VSCode](#4-vscode)
 
 ## 1. MacOS
 
@@ -31,26 +30,28 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
         [--flag]
 ```
 
-| main args           | script args                               |
-| ------------------- | ----------------------------------------- |
-| `--agent-claude`    | `--agent-claude-copilot-api`              |
-|                     | `--agent-claude-anthropic-base-url <v>`   |
-|                     | `--agent-claude-anthropic-auth-token <v>` |
-| `--app-docker`      |                                           |
-| `--app-github`      |                                           |
-| `--app-micro`       |                                           |
-| `--app-tmux`        |                                           |
-| `--app-vscode`      |                                           |
-| `--code-bash`       |                                           |
-| `--code-csharp`     |                                           |
-| `--code-go`         |                                           |
-| `--code-powershell` |                                           |
-| `--code-python`     |                                           |
-| `--code-rust`       |                                           |
-| `--command-utils`   | `--command-utils-git-user-name <v>`       |
-|                     | `--command-utils-git-user-email <v>`      |
-| `--tools-node`      |                                           |
-| `--tools-protobuf`  |                                           |
+| main args          | script args                               |
+| ------------------ | ----------------------------------------- |
+| `--agent-claude`   | `--agent-claude-copilot-api`              |
+|                    | `--agent-claude-anthropic-base-url <v>`   |
+|                    | `--agent-claude-anthropic-auth-token <v>` |
+| `--app-docker`     |                                           |
+| `--app-github`     |                                           |
+| `--app-micro`      |                                           |
+| `--app-tmux`       |                                           |
+| `--app-vscode`     |                                           |
+| `--code-bash`      |                                           |
+| `--code-go`        |                                           |
+| `--code-python`    |                                           |
+| `--code-rust`      |                                           |
+| `--command-utils`  | `--command-utils-git-user-name <v>`       |
+|                    | `--command-utils-git-user-email <v>`      |
+| `--tools-node`     |                                           |
+| `--tools-protobuf` |                                           |
+
+```bash
+xargs -L1 code --install-extension < debian/vscode/extensions.txt
+```
 
 ## 3. Container
 
@@ -66,9 +67,3 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
 |                         | `--image-tag <v>`    |
 |                         | `(debian-flag)`      |
 | `--image copilot-api`   | `--copilot-api-auth` |
-
-## 4. VSCode
-
-```bash
-xargs -L1 code --install-extension < vscode/extensions.txt
-```
