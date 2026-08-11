@@ -30,24 +30,26 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
         [--flag]
 ```
 
-| main args          | script args                               |
-| ------------------ | ----------------------------------------- |
-| `--agent-claude`   | `--agent-claude-copilot-api`              |
-|                    | `--agent-claude-anthropic-base-url <v>`   |
-|                    | `--agent-claude-anthropic-auth-token <v>` |
-| `--app-docker`     |                                           |
-| `--app-github`     |                                           |
-| `--app-micro`      |                                           |
-| `--app-tmux`       |                                           |
-| `--app-vscode`     |                                           |
-| `--code-bash`      |                                           |
-| `--code-go`        |                                           |
-| `--code-python`    |                                           |
-| `--code-rust`      |                                           |
-| `--command-utils`  | `--command-utils-git-user-name <v>`       |
-|                    | `--command-utils-git-user-email <v>`      |
-| `--tools-node`     |                                           |
-| `--tools-protobuf` |                                           |
+| main args          | script args                             |
+| ------------------ | --------------------------------------- |
+| `--app-claude`     | `--app-claude-copilot-api`              |
+|                    | `--app-claude-base-url <v>`             |
+|                    | `--app-claude-auth-token <v>`           |
+|                    | `--app-claude-default-opus-model <v>`   |
+|                    | `--app-claude-default-sonnet-model <v>` |
+|                    | `--app-claude-default-haiku-model <v>`  |
+| `--app-docker`     |                                         |
+| `--app-github`     |                                         |
+| `--app-micro`      |                                         |
+| `--app-tmux`       |                                         |
+| `--app-vscode`     |                                         |
+| `--code-bash`      |                                         |
+| `--code-go`        |                                         |
+| `--code-python`    |                                         |
+| `--code-rust`      |                                         |
+| `--command-utils`  | `--command-utils-git-user-name <v>`     |
+|                    | `--command-utils-git-user-email <v>`    |
+| `--tools-protobuf` |                                         |
 
 ```bash
 xargs -L1 code --install-extension < debian/vscode/extensions.txt
