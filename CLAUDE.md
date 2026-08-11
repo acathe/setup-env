@@ -99,3 +99,7 @@ at `AGENT_CLAUDE_ANTHROPIC_BASE_URL` (default `http://localhost:4141`).
   `plugins=()` and `ZSH_THEME=`. It gates the optional `ssh` and `vscode` plugins from the
   component flags; `macos/command/ssh.sh` and `macos/app/vscode.sh` keep their non-zsh setup
   and do not edit `.zshrc`.
+- **macOS Homebrew PATH.** `macos/command/homebrew.sh` installs Homebrew but does not write
+  `.zprofile`. The `eval "$(/opt/homebrew/bin/brew shellenv)"` in `macos/main.sh` serves the
+  setup-time bash process; the omz `brew` plugin serves interactive zsh and must load before
+  `command-not-found`.
