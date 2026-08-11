@@ -3,7 +3,6 @@
 - [1. MacOS](#1-macos)
 - [2. Debian](#2-debian)
 - [3. Container](#3-container)
-- [4. VSCode](#4-vscode)
 
 ## 1. MacOS
 
@@ -50,6 +49,10 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
 | `--tools-node`     |                                           |
 | `--tools-protobuf` |                                           |
 
+```bash
+xargs -L1 code --install-extension < debian/vscode/extensions.txt
+```
+
 ## 3. Container
 
 ```bash
@@ -64,9 +67,3 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
 |                         | `--image-tag <v>`    |
 |                         | `(debian-flag)`      |
 | `--image copilot-api`   | `--copilot-api-auth` |
-
-## 4. VSCode
-
-```bash
-xargs -L1 code --install-extension < vscode/extensions.txt
-```
