@@ -27,22 +27,22 @@ parse_args() {
 }
 
 main() {
-    if [[ ! -d "/Library/Developer/CommandLineTools" ]]; then
+    if [[ ! -d '/Library/Developer/CommandLineTools' ]]; then
         xcode-select --install
     fi
 
-    bash "./command/homebrew.sh" "$@"
+    bash './command/homebrew.sh' "$@"
     eval "$(/opt/homebrew/bin/brew shellenv)" # export brew PATH for child scripts
 
-    bash "./command/omz.sh" "$@"
-    bash "./command/omz_custom/main.sh" "$@"
+    bash './command/omz.sh' "$@"
+    bash './command/omz_custom/main.sh' "$@"
 
-    if [[ $COMMAND_SSH == "1" ]]; then
-        bash "./command/ssh.sh" "$@"
+    if [[ $COMMAND_SSH == '1' ]]; then
+        bash './command/ssh.sh' "$@"
     fi
 
-    if [[ $APP_VSCODE == "1" ]]; then
-        bash "./app/vscode.sh" "$@"
+    if [[ $APP_VSCODE == '1' ]]; then
+        bash './app/vscode.sh' "$@"
     fi
 }
 
