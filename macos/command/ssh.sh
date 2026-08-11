@@ -2,64 +2,64 @@
 
 set -euo pipefail
 
-APP_SSH_HOST="${APP_SSH_HOST:-}"
-APP_SSH_HOSTNAME="${APP_SSH_HOSTNAME:-}"
-APP_SSH_USER="${APP_SSH_USER:-"$USER"}"
-APP_SSH_IDENTITY_FILE="${APP_SSH_IDENTITY_FILE:-}"
-APP_SSH_COMMENT="${APP_SSH_COMMENT:-}"
-APP_SSH_COPY_KEY="${APP_SSH_COPY_KEY:-1}"
+COMMAND_SSH_HOST="${COMMAND_SSH_HOST:-}"
+COMMAND_SSH_HOSTNAME="${COMMAND_SSH_HOSTNAME:-}"
+COMMAND_SSH_USER="${COMMAND_SSH_USER:-$USER}"
+COMMAND_SSH_IDENTITY_FILE="${COMMAND_SSH_IDENTITY_FILE:-}"
+COMMAND_SSH_COMMENT="${COMMAND_SSH_COMMENT:-}"
+COMMAND_SSH_COPY_KEY="${COMMAND_SSH_COPY_KEY:-1}"
 
 parse_args() {
     POSITIONAL=()
     while (($# > 0)); do
         case "$1" in
-            --app-ssh-host)
+            --command-ssh-host)
                 numOfArgs=1 # number of switch arguments
                 if (($# < numOfArgs + 1)); then
                     shift $#
                 else
-                    APP_SSH_HOST="$2"
+                    COMMAND_SSH_HOST="$2"
                     shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
                 fi
                 ;;
-            --app-ssh-hostname)
+            --command-ssh-hostname)
                 numOfArgs=1 # number of switch arguments
                 if (($# < numOfArgs + 1)); then
                     shift $#
                 else
-                    APP_SSH_HOSTNAME="$2"
+                    COMMAND_SSH_HOSTNAME="$2"
                     shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
                 fi
                 ;;
-            --app-ssh-user)
+            --command-ssh-user)
                 numOfArgs=1 # number of switch arguments
                 if (($# < numOfArgs + 1)); then
                     shift $#
                 else
-                    APP_SSH_USER="$2"
+                    COMMAND_SSH_USER="$2"
                     shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
                 fi
                 ;;
-            --app-ssh-identity-file)
+            --command-ssh-identity-file)
                 numOfArgs=1 # number of switch arguments
                 if (($# < numOfArgs + 1)); then
                     shift $#
                 else
-                    APP_SSH_IDENTITY_FILE="$2"
+                    COMMAND_SSH_IDENTITY_FILE="$2"
                     shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
                 fi
                 ;;
-            --app-ssh-comment)
+            --command-ssh-comment)
                 numOfArgs=1 # number of switch arguments
                 if (($# < numOfArgs + 1)); then
                     shift $#
                 else
-                    APP_SSH_COMMENT="$2"
+                    COMMAND_SSH_COMMENT="$2"
                     shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
                 fi
                 ;;
-            --app-ssh-no-copy-key)
-                APP_SSH_COPY_KEY=0
+            --command-ssh-no-copy-key)
+                COMMAND_SSH_COPY_KEY=0
                 shift # shift once since flags have no values
                 ;;
             *) # unknown flag/switch
@@ -71,12 +71,12 @@ parse_args() {
 }
 
 gen_key() {
-    if [[ -z $APP_SSH_IDENTITY_FILE ]]; then
-        echo "APP_SSH_IDENTITY_FILE is required." >&2
+    if [[ -z $COMMAND_SSH_IDENTITY_FILE ]]; then
+        echo 'COMMAND_SSH_IDENTITY_FILE is required.' >&2
         return 1
     fi
 
-    local identity_file="$HOME/.ssh/$APP_SSH_IDENTITY_FILE"
+    local identity_file="$HOME/.ssh/$COMMAND_SSH_IDENTITY_FILE"
 
     if [[ -f $identity_file ]]; then
         echo "$identity_file already exists, skip generating." >&2
@@ -89,16 +89,16 @@ gen_key() {
     )
 
     local args=(-f "$identity_file")
-    if [[ -n $APP_SSH_COMMENT ]]; then
-        args+=(-C "$APP_SSH_COMMENT")
+    if [[ -n $COMMAND_SSH_COMMENT ]]; then
+        args+=(-C "$COMMAND_SSH_COMMENT")
     fi
 
     ssh-keygen "${args[@]}"
 }
 
 add_config() {
-    if [[ -z $APP_SSH_HOST || -z $APP_SSH_HOSTNAME || -z $APP_SSH_USER ]]; then
-        echo "APP_SSH_HOST, APP_SSH_HOSTNAME and APP_SSH_USER are required." >&2
+    if [[ -z $COMMAND_SSH_HOST || -z $COMMAND_SSH_HOSTNAME || -z $COMMAND_SSH_USER ]]; then
+        echo 'COMMAND_SSH_HOST, COMMAND_SSH_HOSTNAME and COMMAND_SSH_USER are required.' >&2
         return 1
     fi
 
@@ -111,11 +111,11 @@ add_config() {
     fi
 
     {
-        echo "Host $APP_SSH_HOST"
-        echo "    HostName $APP_SSH_HOSTNAME"
-        echo "    User $APP_SSH_USER"
-        if [[ -n $APP_SSH_IDENTITY_FILE ]]; then
-            echo "    IdentityFile $HOME/.ssh/$APP_SSH_IDENTITY_FILE"
+        echo "Host $COMMAND_SSH_HOST"
+        echo "    HostName $COMMAND_SSH_HOSTNAME"
+        echo "    User $COMMAND_SSH_USER"
+        if [[ -n $COMMAND_SSH_IDENTITY_FILE ]]; then
+            echo "    IdentityFile $HOME/.ssh/$COMMAND_SSH_IDENTITY_FILE"
         fi
     } >> "$config_file"
 }
@@ -124,14 +124,14 @@ main() {
     mkdir -p "$HOME/.ssh"
     chmod 700 "$HOME/.ssh"
 
-    if [[ -n $APP_SSH_IDENTITY_FILE ]]; then
+    if [[ -n $COMMAND_SSH_IDENTITY_FILE ]]; then
         gen_key
     fi
 
     add_config
 
-    if [[ $APP_SSH_COPY_KEY == "1" && -n $APP_SSH_IDENTITY_FILE ]]; then
-        ssh-copy-id -i "$HOME/.ssh/$APP_SSH_IDENTITY_FILE.pub" "$APP_SSH_HOST"
+    if [[ $COMMAND_SSH_COPY_KEY == '1' && -n $COMMAND_SSH_IDENTITY_FILE ]]; then
+        ssh-copy-id -i "$HOME/.ssh/$COMMAND_SSH_IDENTITY_FILE.pub" "$COMMAND_SSH_HOST"
     fi
 }
 

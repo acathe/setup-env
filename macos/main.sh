@@ -2,19 +2,20 @@
 
 set -euo pipefail
 
+export COMMAND_SSH="${COMMAND_SSH:-0}"
+
 export APP_VSCODE="${APP_VSCODE:-0}"
-export APP_SSH="${APP_SSH:-0}"
 
 parse_args() {
     POSITIONAL=()
     while (($# > 0)); do
         case "$1" in
-            --app-vscode)
-                APP_VSCODE=1
+            --command-ssh)
+                COMMAND_SSH=1
                 shift # shift once since flags have no values
                 ;;
-            --app-ssh)
-                APP_SSH=1
+            --app-vscode)
+                APP_VSCODE=1
                 shift # shift once since flags have no values
                 ;;
             *) # unknown flag/switch
@@ -35,12 +36,12 @@ main() {
 
     bash "./command/omz/main.sh" "$@"
 
-    if [[ $APP_VSCODE == "1" ]]; then
-        bash "./app/vscode.sh" "$@"
+    if [[ $COMMAND_SSH == "1" ]]; then
+        bash "./command/ssh.sh" "$@"
     fi
 
-    if [[ $APP_SSH == "1" ]]; then
-        bash "./app/ssh.sh" "$@"
+    if [[ $APP_VSCODE == "1" ]]; then
+        bash "./app/vscode.sh" "$@"
     fi
 }
 

@@ -2,6 +2,8 @@
 
 set -euo pipefail
 
+COMMAND_SSH="${COMMAND_SSH:-0}"
+
 APP_VSCODE="${APP_VSCODE:-0}"
 
 install_omz() {
@@ -36,6 +38,10 @@ install_plugin() {
     fi
 
     sed -i '' 's/^plugins=(.*)/plugins=(z sudo brew)/' "$HOME/.zshrc"
+
+    if [[ $COMMAND_SSH == "1" ]]; then
+        sed -i '' '/^plugins=(/s/)/ ssh)/' "$HOME/.zshrc"
+    fi
 
     if [[ $APP_VSCODE == "1" ]]; then
         sed -i '' '/^plugins=(/s/)/ vscode)/' "$HOME/.zshrc"
