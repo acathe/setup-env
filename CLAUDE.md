@@ -28,7 +28,9 @@ flags — the top-level `main.sh` itself understands only `--branch` and `--setu
 
 Three independent setup trees, selected by `--setup`:
 
-- `macos/` — Xcode CLT check, Homebrew, oh-my-zsh, plus optional apps.
+- `macos/` — Xcode CLT check, Homebrew, oh-my-zsh, plus optional apps. Its
+  `command/omz.sh` installs oh-my-zsh, while `command/omz_custom/main.sh` owns plugins and the
+  theme.
 - `debian/` — the richest tree; installs zsh + oh-my-zsh unconditionally, then a
   matrix of optional components.
 - `container/` — builds and runs a Docker dev container (`dev-container`) or the
@@ -93,3 +95,7 @@ at `AGENT_CLAUDE_ANTHROPIC_BASE_URL` (default `http://localhost:4141`).
   toggling commented lines in `.zshrc` / `tmux.conf.local`, or appending to `plugins=(...)`).
   These depend on the exact upstream file format — verify the marker still exists upstream
   when a `sed` edit silently no-ops.
+- **macOS omz ownership.** `macos/command/omz_custom/main.sh` is the only writer of
+  `plugins=()` and `ZSH_THEME=`. It gates the optional `ssh` and `vscode` plugins from the
+  component flags; `macos/command/ssh.sh` and `macos/app/vscode.sh` keep their non-zsh setup
+  and do not edit `.zshrc`.
