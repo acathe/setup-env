@@ -36,7 +36,7 @@ parse_args() {
 }
 
 macos() {
-    if [[ ! -d "/Library/Developer/CommandLineTools" ]]; then
+    if [[ ! -d '/Library/Developer/CommandLineTools' ]]; then
         xcode-select --install
     fi
 }

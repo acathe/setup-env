@@ -13,15 +13,15 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
         [--flag]
 ```
 
-| main args      | script args                   |
-| -------------- | ----------------------------- |
-| `--app-vscode` |                               |
-| `--app-ssh`    | `--app-ssh-host <v>`          |
-|                | `--app-ssh-hostname <v>`      |
-|                | `--app-ssh-user <v>`          |
-|                | `--app-ssh-identity-file <v>` |
-|                | `--app-ssh-comment <v>`       |
-|                | `--app-ssh-no-copy-key`       |
+| main args       | script args                       |
+| --------------- | --------------------------------- |
+| `--command-ssh` | `--command-ssh-host <v>`          |
+|                 | `--command-ssh-hostname <v>`      |
+|                 | `--command-ssh-user <v>`          |
+|                 | `--command-ssh-identity-file <v>` |
+|                 | `--command-ssh-comment <v>`       |
+|                 | `--command-ssh-no-copy-key`       |
+| `--app-vscode`  |                                   |
 
 ## 2. Debian
 

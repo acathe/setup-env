@@ -2,19 +2,20 @@
 
 set -euo pipefail
 
+export COMMAND_SSH="${COMMAND_SSH:-0}"
+
 export APP_VSCODE="${APP_VSCODE:-0}"
-export APP_SSH="${APP_SSH:-0}"
 
 parse_args() {
     POSITIONAL=()
     while (($# > 0)); do
         case "$1" in
-            --app-vscode)
-                APP_VSCODE=1
+            --command-ssh)
+                COMMAND_SSH=1
                 shift # shift once since flags have no values
                 ;;
-            --app-ssh)
-                APP_SSH=1
+            --app-vscode)
+                APP_VSCODE=1
                 shift # shift once since flags have no values
                 ;;
             *) # unknown flag/switch
@@ -26,21 +27,22 @@ parse_args() {
 }
 
 main() {
-    if [[ ! -d "/Library/Developer/CommandLineTools" ]]; then
+    if [[ ! -d '/Library/Developer/CommandLineTools' ]]; then
         xcode-select --install
     fi
 
-    bash "./command/homebrew.sh" "$@"
+    bash './command/homebrew.sh' "$@"
     eval "$(/opt/homebrew/bin/brew shellenv)" # export brew PATH for child scripts
 
-    bash "./command/omz/main.sh" "$@"
+    bash './command/omz.sh' "$@"
+    bash './command/omz_custom/main.sh' "$@"
 
-    if [[ $APP_VSCODE == "1" ]]; then
-        bash "./app/vscode/main.sh" "$@"
+    if [[ $COMMAND_SSH == '1' ]]; then
+        bash './command/ssh.sh' "$@"
     fi
 
-    if [[ $APP_SSH == "1" ]]; then
-        bash "./app/ssh.sh" "$@"
+    if [[ $APP_VSCODE == '1' ]]; then
+        bash './app/vscode.sh' "$@"
     fi
 }
 

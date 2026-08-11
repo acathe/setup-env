@@ -23,12 +23,19 @@ flags — the top-level `main.sh` itself understands only `--branch` and `--setu
 - No test suite. To exercise a change without the full remote install, run a dispatcher
   directly, e.g. `bash debian/main.sh --app-tmux` — note it still does real `apt` installs
   and always runs `command/zsh.sh` + `command/omz.sh` first.
+- To check the macOS plugin array without installing anything, run
+  `macos/command/omz_custom/main.sh` against a throwaway `HOME` with stub `git` and `brew`
+  commands plus a shim mapping BSD `sed -i ''` to the host sed. Render
+  `00-setup_env.zsh` there and check it with `zsh -n`.
 
 ## Architecture
 
 Three independent setup trees, selected by `--setup`:
 
-- `macos/` — Xcode CLT check, Homebrew, oh-my-zsh, plus optional apps.
+- `macos/` — Xcode CLT check, Homebrew, oh-my-zsh, plus optional apps. Positioned as a
+  *terminal client / jump box*, not a dev machine: its plugin list is built around the
+  ssh-to-remote workflow and deliberately omits `git`. `command/omz.sh` installs oh-my-zsh,
+  while `command/omz_custom/main.sh` owns plugins and the theme.
 - `debian/` — the richest tree; installs zsh + oh-my-zsh unconditionally, then a
   matrix of optional components.
 - `container/` — builds and runs a Docker dev container (`dev-container`) or the
@@ -93,3 +100,30 @@ at `AGENT_CLAUDE_ANTHROPIC_BASE_URL` (default `http://localhost:4141`).
   toggling commented lines in `.zshrc` / `tmux.conf.local`, or appending to `plugins=(...)`).
   These depend on the exact upstream file format — verify the marker still exists upstream
   when a `sed` edit silently no-ops.
+- **macOS omz ownership.** `macos/command/omz_custom/main.sh` is the only writer of
+  `plugins=()` and `ZSH_THEME=`. It owns every third-party clone through `download_plugin()`,
+  rebuilds the array through `install_plugin()` / `append_plugin()`, and installs the theme
+  through `install_theme()`. The optional `ssh` and `vscode` plugins are gated there from the
+  exported component flags; `macos/command/ssh.sh` and `macos/app/vscode.sh` keep their non-zsh
+  setup and do not edit `.zshrc`. `custom_env.sh` is the only writer of
+  `$ZSH_CUSTOM/00-setup_env.zsh`; macOS needs neither `pre_plugin.sh` nor `first_run.sh`.
+- **macOS plugin ordering.** Array order is the `append_plugin()` call order:
+  `aliases`, `brew`, `colored-man-pages`, `command-not-found`, `copyfile`, `copypath`,
+  `dirhistory`, `extract`, `fancy-ctrl-z`, `macos`, `magic-enter`, `safe-paste`, `sudo`,
+  `universalarchive`, `z`, optional `ssh`, optional `vscode`, `ohmyzsh-full-autoupdate`,
+  `you-should-use`, `zsh-autosuggestions`, `zsh-syntax-highlighting`. Keep `brew` before
+  `command-not-found`, autoupdate before the other cloned plugins, and syntax highlighting last.
+- **macOS custom environment.** `custom_env.sh` rewrites `00-setup_env.zsh` on every run with
+  the autosuggestions, syntax-highlighting, you-should-use and zsh-z settings. Oh My Zsh loads
+  this file after plugins, which is required for the upstream
+  `ZSH_HIGHLIGHT_HIGHLIGHTERS+=(brackets)` form to preserve the default `main` highlighter.
+- **macOS Homebrew PATH.** `macos/command/homebrew.sh` installs Homebrew but does not write
+  `.zprofile`. The `eval "$(/opt/homebrew/bin/brew shellenv)"` in `macos/main.sh` serves the
+  setup-time bash process; the omz `brew` plugin serves interactive zsh.
+- **macOS plugin selection.** Do not add `ssh-agent`: it replaces the launchd-managed agent and
+  breaks Keychain integration. GNU-rsync aliases are unsafe with macOS openrsync; `git` is dead
+  weight on this terminal-client tree; `alias-finder` is superseded by `you-should-use`; and
+  `copybuffer` would take `^O` from zsh's native `accept-line-and-down-history`.
+- The rewritten macOS scripts use single quotes for literals and double quotes only where shell
+  expansion is required. Generated zsh lines remain single-quoted at setup time so values such
+  as `$ZSH_CUSTOM` are not expanded early.
