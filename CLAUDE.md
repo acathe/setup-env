@@ -59,8 +59,8 @@ script installs them (`--app-vscode` → `debian/app/vscode.sh` only inserts the
    `numOfArgs` idiom that guards against a missing trailing value before `shift`ing twice.
 4. `main()` runs each enabled component's leaf script, gated on `FOO == "1"`. Exporting is a
    deliberate cross-cutting mechanism: a leaf can read *another* component's flag to add
-   integration config only when both are enabled — e.g. `tmux.sh` reads `AGENT_CLAUDE` (adds
-   Claude Code passthrough / extended-keys when `--app-tmux` + `--agent-claude`); `micro/main.sh`
+   integration config only when both are enabled — e.g. `tmux.sh` reads `APP_CLAUDE` (adds
+   Claude Code passthrough / extended-keys when `--app-tmux` + `--app-claude`); `micro/main.sh`
    reads `APP_VSCODE`. Those env reads are intentional — not a missing `parse_args` to add.
 5. Standard footer guard so scripts are both runnable and sourceable:
    ```bash
@@ -78,10 +78,11 @@ write the leaf script with the same footer, and document the flag in `README.md`
 
 ### Nesting
 
-Flags cascade through nested dispatchers. `--agent-claude` (in `debian/main.sh`) invokes
-`debian/agent/claude/main.sh`, whose own `--agent-claude-copilot-api` then invokes
-`debian/agent/claude/copilot_api/main.sh`, which parses `--agent-claude-anthropic-*`.
-`README.md` groups flags as "main args" vs "script args" to reflect which dispatcher owns them.
+Flags cascade through nested dispatchers. `--app-claude` (in `debian/main.sh`) invokes
+`debian/app/claude/main.sh`, whose own `--app-claude-copilot-api` then invokes
+`debian/app/claude/copilot_api/main.sh`, which parses the base URL, auth token and three default
+model value flags. `README.md` groups flags as "main args" vs "script args" to reflect which
+dispatcher owns them.
 
 ### Container flow
 
@@ -93,11 +94,31 @@ install non-interactively and switches the login shell.
 
 ### copilot-api integration
 
-`copilot_api/main.sh` queries a running copilot-api server (`/v1/models`), picks the newest
-opus/sonnet/haiku model ids (preferring `[1m]` variants, newest picked by `sort -V`), and
-renders `~/.claude/settings.json` from the `settings.json` template using `jq`, then installs
-the Claude plugin marketplace/plugin. It expects the copilot-api server to already be reachable
-at `AGENT_CLAUDE_ANTHROPIC_BASE_URL` (default `http://localhost:4141`).
+`copilot_api/main.sh` validates the requested models, installs the completed `settings.json` as
+`~/.claude/settings.json`, then installs the copilot-api plugins. The caller must supply the Opus,
+Sonnet and Haiku default models through their value flags or corresponding
+`APP_CLAUDE_DEFAULT_*_MODEL` variables. `check_model()` requests
+`$APP_CLAUDE_BASE_URL/v1/models` for each model, uses `jq` only to extract the `claude_model_id`
+values, then checks for an exact line match. `main()` owns the empty/missing-model error; there is
+no generation, family or fallback selection.
+
+`install_settings()` passes those three models plus `APP_CLAUDE_BASE_URL` (default
+`http://localhost:4141`) and `APP_CLAUDE_AUTH_TOKEN` to `jq` under their final `ANTHROPIC_*` key
+names, merges `$ARGS.named` into the shipped template, writes it directly to the target, and sets
+the target directory and file to modes 700 and 600 respectively. A model's
+`[1m]` suffix already tells Claude Code to use its extended context window, so the template
+deliberately leaves `CLAUDE_CODE_AUTO_COMPACT_WINDOW` unset and lets Claude Code keep its own
+output and compaction reserves. It configures automatic teammate mode, the large workflow size
+guideline and fullscreen TUI. The server must already be reachable at `APP_CLAUDE_BASE_URL`.
+
+The installed marketplace supplies both `agent-inject` and `tool-search`. `tool-search` provides
+the GPT Responses deferred-tool MCP bridge; Claude Code's native `ENABLE_TOOL_SEARCH` must stay
+unset because it can withhold the full tool definitions the gateway needs. Both plugins use Node,
+npm and npx, but `install_plugins()` deliberately keeps the old lightweight bootstrap: it checks
+only whether `node` exists and installs NodeSource LTS when it does not, leaving plugin installation
+to report an incomplete or incompatible existing runtime. Node remains this integration's private
+dependency — there is no standalone `--tools-node` component or `debian/tools/node.sh` — and
+`build-essential` remains unnecessary for the prebuilt package and plugins.
 
 ## Conventions
 

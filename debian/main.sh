@@ -4,7 +4,7 @@ set -euo pipefail
 
 export COMMAND_UTILS="${COMMAND_UTILS:-0}"
 
-export AGENT_CLAUDE="${AGENT_CLAUDE:-0}"
+export APP_CLAUDE="${APP_CLAUDE:-0}"
 
 export APP_DOCKER="${APP_DOCKER:-0}"
 export APP_GITHUB="${APP_GITHUB:-0}"
@@ -17,7 +17,6 @@ export CODE_GO="${CODE_GO:-0}"
 export CODE_PYTHON="${CODE_PYTHON:-0}"
 export CODE_RUST="${CODE_RUST:-0}"
 
-export TOOLS_NODE="${TOOLS_NODE:-0}"
 export TOOLS_PROTOBUF="${TOOLS_PROTOBUF:-0}"
 
 parse_args() {
@@ -28,8 +27,8 @@ parse_args() {
                 COMMAND_UTILS=1
                 shift
                 ;;
-            --agent-claude)
-                AGENT_CLAUDE=1
+            --app-claude)
+                APP_CLAUDE=1
                 shift
                 ;;
             --app-docker)
@@ -68,10 +67,6 @@ parse_args() {
                 CODE_RUST=1
                 shift
                 ;;
-            --tools-node)
-                TOOLS_NODE=1
-                shift
-                ;;
             --tools-protobuf)
                 TOOLS_PROTOBUF=1
                 shift
@@ -92,8 +87,8 @@ main() {
         bash "./command/utils.sh" "$@"
     fi
 
-    if [[ $AGENT_CLAUDE == "1" ]]; then
-        bash "./agent/claude/main.sh" "$@"
+    if [[ $APP_CLAUDE == "1" ]]; then
+        bash "./app/claude/main.sh" "$@"
     fi
 
     if [[ $APP_DOCKER == "1" ]]; then
@@ -130,10 +125,6 @@ main() {
 
     if [[ $CODE_RUST == "1" ]]; then
         bash "./code/rust.sh" "$@"
-    fi
-
-    if [[ $TOOLS_NODE == "1" ]]; then
-        bash "./tools/node.sh" "$@"
     fi
 
     if [[ $TOOLS_PROTOBUF == "1" ]]; then

@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-AGENT_CLAUDE="${AGENT_CLAUDE:-0}"
+APP_CLAUDE="${APP_CLAUDE:-0}"
 COMMAND_UTILS="${COMMAND_UTILS:-0}"
 
 install_oh_my_tmux() {
@@ -33,7 +33,7 @@ configure_tmux() {
         } >> "$conf"
     fi
 
-    if [[ $AGENT_CLAUDE == "1" ]]; then
+    if [[ $APP_CLAUDE == "1" ]]; then
         {
             echo ''
             echo '# Claude Code'

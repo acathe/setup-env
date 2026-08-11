@@ -2,14 +2,14 @@
 
 set -euo pipefail
 
-AGENT_CLAUDE_COPILOT_API="${AGENT_CLAUDE_COPILOT_API:-0}"
+APP_CLAUDE_COPILOT_API="${APP_CLAUDE_COPILOT_API:-0}"
 
 parse_args() {
     POSITIONAL=()
     while (($# > 0)); do
         case "$1" in
-            --agent-claude-copilot-api)
-                AGENT_CLAUDE_COPILOT_API=1
+            --app-claude-copilot-api)
+                APP_CLAUDE_COPILOT_API=1
                 shift # shift once since flags have no values
                 ;;
             *) # unknown flag/switch
@@ -22,18 +22,18 @@ parse_args() {
 
 install_claude_code() {
     if ! command -v curl > /dev/null 2>&1; then
-        echo "curl is required to install Claude Code." >&2
+        echo 'curl is required to install Claude Code.' >&2
         return 1
     fi
 
-    curl -fsSL "https://claude.ai/install.sh" | bash
+    curl -fsSL 'https://claude.ai/install.sh' | bash
 }
 
 main() {
     install_claude_code
 
-    if [[ $AGENT_CLAUDE_COPILOT_API == "1" ]]; then
-        bash ./copilot_api/main.sh "$@"
+    if [[ $APP_CLAUDE_COPILOT_API == '1' ]]; then
+        bash './copilot_api/main.sh' "$@"
     fi
 }
 

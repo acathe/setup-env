@@ -2,8 +2,8 @@
 
 set -euo pipefail
 
-CONTAINER="${CONTAINER:-}"
-IMAGE_TAG="${IMAGE_TAG:-"latest"}"
+CONTAINER="${CONTAINER:-dev-container}"
+IMAGE_TAG="${IMAGE_TAG:-latest}"
 
 parse_args() {
     POSITIONAL=()
@@ -35,14 +35,20 @@ parse_args() {
     done
 }
 
-container() {
+main() {
     if ! command -v docker > /dev/null 2>&1; then
-        echo "Docker is not installed." >&2
+        echo 'Docker is not installed.' >&2
         return 1
     fi
 
     if [[ -z $USER || -z $LANG ]]; then
-        echo "USER or LANG is not set. Run from a normal login shell with USER and LANG exported." >&2
+        echo 'USER or LANG is not set. Run from a normal login shell with USER and LANG exported.' >&2
+        return 1
+    fi
+
+    if docker container inspect "$CONTAINER" > /dev/null 2>&1; then
+        echo "Container '$CONTAINER' already exists." >&2
+        echo "Remove it (docker rm -f $CONTAINER) or pass --container <name>." >&2
         return 1
     fi
 
@@ -51,22 +57,16 @@ container() {
 
     docker build \
         -t "dev-container:$IMAGE_TAG" \
-        -f "./Dockerfile" \
+        -f './Dockerfile' \
         --build-arg "user=$USER" \
         --build-arg "lang=${LANG%.*}" \
         --build-arg "encoding=${LANG#*.}" \
         --build-arg "language=${LANGUAGE:-}" \
         --build-arg "tz=$(timedatectl show -p Timezone --value)" \
         --build-arg "setup_args_b64=$setup_args_b64" \
-        "../../debian"
+        '../../debian'
 
     mkdir -p "$HOME/Projects"
-
-    if docker container inspect "$CONTAINER" > /dev/null 2>&1; then
-        echo "Container '$CONTAINER' already exists." >&2
-        echo "Remove it (docker rm -f $CONTAINER) or pass --container <name>." >&2
-        return 1
-    fi
 
     docker run \
         -d \
@@ -80,15 +80,6 @@ container() {
         --name "$CONTAINER" \
         -v "$HOME/Projects:/home/$USER/Projects" \
         "dev-container:$IMAGE_TAG"
-}
-
-main() {
-    if [[ -z $CONTAINER ]]; then
-        echo "Container name is required. Pass --container <name>." >&2
-        return 1
-    fi
-
-    container "$@"
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
