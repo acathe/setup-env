@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-COMMAND_UTILS="${COMMAND_UTILS:-0}"
+COMMAND_MODERN_CLI="${COMMAND_MODERN_CLI:-0}"
 
 APP_DOCKER="${APP_DOCKER:-0}"
 APP_GIT="${APP_GIT:-0}"
@@ -27,9 +27,10 @@ render_blocks() {
     echo 'ZSHZ_CASE=smart'
     echo 'ZSHZ_TILDE=1'
 
-    if [[ $COMMAND_UTILS == '1' ]]; then
+    if [[ $COMMAND_MODERN_CLI == '1' ]]; then
         echo
-        echo '# Command utilities'
+        echo '# Modern CLI tools'
+        # eza 插件不提供 tree 别名，手写补上（ls/ll/la 等由插件承担）
         echo 'alias tree="eza --tree"'
         echo
         echo '# bat'

@@ -2,6 +2,24 @@
 
 set -euo pipefail
 
+install_packages() {
+    sudo apt-get update
+    sudo apt-get install -y \
+        jq \
+        unzip \
+        glow \
+        eza \
+        ripgrep \
+        zoxide \
+        fzf \
+        hyperfine \
+        sd \
+        btop \
+        du-dust \
+        duf \
+        procs
+}
+
 install_binaries() {
     local tmp
     tmp="$(mktemp -d)"
@@ -18,22 +36,7 @@ install_binaries() {
 }
 
 main() {
-    sudo apt-get update
-    sudo apt-get install -y \
-        jq \
-        unzip \
-        glow \
-        eza \
-        ripgrep \
-        zoxide \
-        fzf \
-        hyperfine \
-        sd \
-        btop \
-        du-dust \
-        duf \
-        procs
-
+    install_packages
     install_binaries
 
     bash './bat/main.sh' "$@"

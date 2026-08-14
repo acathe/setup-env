@@ -30,25 +30,25 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
         [--flag]
 ```
 
-| main args          | script args                             |
-| ------------------ | --------------------------------------- |
-| `--command-utils`  |                                         |
-| `--code-bash`      |                                         |
-| `--code-go`        |                                         |
-| `--code-python`    |                                         |
-| `--code-rust`      |                                         |
-| `--tools-protobuf` |                                         |
-| `--app-claude`     | `--app-claude-copilot-api`              |
-|                    | `--app-claude-base-url <v>`             |
-|                    | `--app-claude-auth-token <v>`           |
-|                    | `--app-claude-default-opus-model <v>`   |
-|                    | `--app-claude-default-sonnet-model <v>` |
-|                    | `--app-claude-default-haiku-model <v>`  |
-| `--app-docker`     |                                         |
-| `--app-git`        | `--app-git-user-name <v>`               |
-|                    | `--app-git-user-email <v>`              |
-| `--app-tmux`       |                                         |
-| `--app-vscode`     |                                         |
+| main args              | script args                             |
+| ---------------------- | --------------------------------------- |
+| `--command-modern-cli` |                                         |
+| `--code-bash`          |                                         |
+| `--code-go`            |                                         |
+| `--code-python`        |                                         |
+| `--code-rust`          |                                         |
+| `--tools-protobuf`     |                                         |
+| `--app-claude`         | `--app-claude-copilot-api`              |
+|                        | `--app-claude-base-url <v>`             |
+|                        | `--app-claude-auth-token <v>`           |
+|                        | `--app-claude-default-opus-model <v>`   |
+|                        | `--app-claude-default-sonnet-model <v>` |
+|                        | `--app-claude-default-haiku-model <v>`  |
+| `--app-docker`         |                                         |
+| `--app-git`            | `--app-git-user-name <v>`               |
+|                        | `--app-git-user-email <v>`              |
+| `--app-tmux`           |                                         |
+| `--app-vscode`         |                                         |
 
 ```bash
 xargs -L1 code --install-extension < debian/vscode/extensions.txt

@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-COMMAND_UTILS="${COMMAND_UTILS:-0}"
+COMMAND_MODERN_CLI="${COMMAND_MODERN_CLI:-0}"
 
 APP_DOCKER="${APP_DOCKER:-0}"
 APP_GIT="${APP_GIT:-0}"
@@ -46,9 +46,9 @@ install_plugin() {
     append_plugin 'universalarchive'
     append_plugin 'z'
 
-    [[ $COMMAND_UTILS == '1' ]] && append_plugin 'eza'
-    [[ $COMMAND_UTILS == '1' ]] && append_plugin 'fzf'
-    [[ $COMMAND_UTILS == '1' ]] && append_plugin 'zoxide'
+    [[ $COMMAND_MODERN_CLI == '1' ]] && append_plugin 'eza'
+    [[ $COMMAND_MODERN_CLI == '1' ]] && append_plugin 'fzf'
+    [[ $COMMAND_MODERN_CLI == '1' ]] && append_plugin 'zoxide'
 
     [[ $APP_DOCKER == '1' ]] && append_plugin 'docker'
     [[ $APP_DOCKER == '1' ]] && append_plugin 'docker-compose'
@@ -66,7 +66,7 @@ install_plugin() {
     append_plugin 'zsh-autosuggestions'
     append_plugin 'zsh-syntax-highlighting'
 
-    [[ $COMMAND_UTILS == '1' ]] && append_plugin 'fzf-tab'
+    [[ $COMMAND_MODERN_CLI == '1' ]] && append_plugin 'fzf-tab'
 
     return 0
 }
