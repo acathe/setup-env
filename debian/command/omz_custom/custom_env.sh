@@ -30,7 +30,6 @@ render_blocks() {
     if [[ $COMMAND_UTILS == '1' ]]; then
         echo
         echo '# Command utilities'
-        echo 'alias fd="fdfind"'
         echo 'alias tree="eza --tree"'
         echo
         echo '# bat'

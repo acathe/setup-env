@@ -54,9 +54,9 @@ Three independent setup trees, selected by `--setup`:
 - `debian/` — the richest tree; installs zsh + oh-my-zsh unconditionally, then a
   matrix of optional components. `--command-utils` is now a nested dispatcher:
   `command/modern_cli/main.sh` still installs the bulk command-utility package set (including
-  fd-find and tealdeer), warms the `tldr` cache, and downloads yazi / `ya` and `choose` into
-  `/usr/local/bin`, then runs `modern_cli/bat/` and `modern_cli/micro/`; each child installs its own
-  package and config and carries no flag of its own. One component is shaped unusually: `--app-git` deliberately spans all three
+  tealdeer), warms the `tldr` cache, and downloads yazi / `ya` and `choose` into `/usr/local/bin`,
+  then runs `modern_cli/bat/`, `modern_cli/fdfind.sh` and `modern_cli/micro/`; each child installs
+  its own package and config and carries no flag of its own. One component is shaped unusually: `--app-git` deliberately spans all three
   layers of a single concern instead of being split by kind: it installs the tooling (`gh` from the
   official apt repo, `git-delta`, `lazygit`), writes the global git config, owns the `gh auth login`
   block in `01-first_run.zsh`, and owns `~/.config/lazygit/config.yml`. That is why `git-delta` /
@@ -141,6 +141,12 @@ Three independent setup trees, selected by `--setup`:
   (`00-setup_env.zsh`, `01-first_run.zsh`, `setup-env.plugin.zsh`) and the appends into files an
   upstream installer or the shell already made (`tmux.conf.local`, `.zshenv`, the ssh config) —
   plus the git config, which goes through `git config --global` and has no file to ship.
+
+  `modern_cli/fdfind.sh` is that same arrangement for `fd` minus the config file: it installs
+  `fd-find` and makes the `~/.local/bin/fd` symlink over Debian's `fdfind`, and extracting it is
+  what removed `link_binaries()` from `main.sh` — `fd` was its only entry. Unlike bat it needs no
+  `compdef` line, because Debian's `_fd` declares `#compdef fd` and the symlinked name is therefore
+  already registered.
 - `container/` — builds and runs a Docker dev container (`dev-container`) or the
   `copilot-api` image.
 
@@ -455,19 +461,25 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
   | `PATH` and anything a non-interactive shell needs | `.zshenv` (see `code/go.sh`, `code/rust.sh`) |
 
   The `COMMAND_UTILS` runtime integration belongs in row two: its gated omz plugins provide eza,
-  fzf and zoxide integration, while `custom_env.sh` writes the `fd` and `tree` aliases, registers
+  fzf and zoxide integration, while `custom_env.sh` writes the `tree` alias, registers
   `compdef bat=batcat`, configures Editor and Micro, and defines yazi's `y()` cwd-following wrapper.
-  `command/modern_cli/main.sh` owns the bulk packages and binaries and dispatches bat and Micro, but
-  never appends shell startup files itself. The real `~/.local/bin/bat` symlink is visible to child
-  processes; `compdef` maps that new command name to Debian's `_batcat` completion service. The fd
-  compatibility name remains a zsh alias for now.
+  `command/modern_cli/main.sh` owns the bulk packages and binaries and dispatches bat, fdfind and
+  Micro, but never appends shell startup files itself.
+
+  `compinit` registers a completion by the `#compdef` declaration inside its source file. Debian's
+  `_batcat` declares `#compdef batcat`, so the new `bat` symlink needs `compdef bat=batcat` after
+  `compinit`; Debian's `_fd` already declares `#compdef fd`, so the new `fd` symlink catches that
+  completion without another line. Real symlinks win over aliases because child processes and
+  plugin probes such as `(( $+commands[fd] ))` can see them.
 
   `~/.local/bin` is the one `PATH` entry the repo does *not* write itself: `command/omz.sh:44`
   uncomments omz's own template line (`export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH`,
   `.zshrc` l.2), and `omz.sh` runs first in the tree — so any later component can drop a binary
-  there and have it resolve. `modern_cli/bat/main.sh`'s `bat` symlink and
-  `tools/protobuf.sh`'s `protoc` both rely on that placement, and neither needs `sudo`. Being in
-  `.zshrc`, the entry is interactive-only; a non-interactive `zsh -c` will not see it.
+  there and have it resolve. `modern_cli/fdfind.sh`'s `fd` symlink,
+  `modern_cli/bat/main.sh`'s `bat` symlink and `tools/protobuf.sh`'s `protoc` all rely on that
+  placement, and none needs `sudo`. Being in `.zshrc`, the entry is interactive-only — enough for
+  the `(( $+commands[fd] ))` probes plugins do while `.zshrc` is still being sourced, but a
+  non-interactive `zsh -c` will not see it.
 
   Only `PYTHON_AUTO_VRUN` is in the first row today — `python.plugin.zsh:103` decides at load
   time whether to register the `chpwd` hook, and the plugin's own README says to set it "before
@@ -532,8 +544,8 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
   `main()` — the only write to that file anywhere in the tree, so a re-run rebuilds it instead of
   accumulating duplicate blocks, and no component can append behind its back. The unconditional
   section comes first, then one gated block per component, each headed by a `#` title, in the
-  order those components run in `debian/main.sh`: `COMMAND_UTILS` owns the `fd` and `tree` aliases,
-  bat's `compdef`, Editor selection and its `EDITOR="code --wait"` branch on `APP_VSCODE`, the Micro
+  order those components run in `debian/main.sh`: `COMMAND_UTILS` owns the `tree` alias, bat's
+  `compdef`, Editor selection and its `EDITOR="code --wait"` branch on `APP_VSCODE`, the Micro
   runtime settings, and yazi's `y()` cwd-following wrapper; `APP_DOCKER` owns the `lzd` alias;
   `APP_GIT` owns the `lg()` wrapper; and `APP_TMUX` owns mouse-friendly `LESS`. Block titles name the
   *component concern*, not necessarily the executable — `# Git` rather than `# lazygit`, and

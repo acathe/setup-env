@@ -24,7 +24,6 @@ main() {
         unzip \
         glow \
         eza \
-        fd-find \
         ripgrep \
         zoxide \
         fzf \
@@ -41,6 +40,7 @@ main() {
     install_binaries
 
     bash './bat/main.sh' "$@"
+    bash './fdfind.sh' "$@"
     bash './micro/main.sh' "$@"
 }
 
