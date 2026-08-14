@@ -19,26 +19,24 @@ install_go() {
     local version
     version="$(get_go_latest)"
     if [[ -z $version ]]; then
-        echo "Failed to determine the latest Go version." >&2
+        echo 'Failed to determine the latest Go version.' >&2
         return 1
     fi
 
     curl -fsSL "https://go.dev/dl/$version" -o "/tmp/$version"
-    sudo tar -C "/usr/local" -xzf "/tmp/$version"
+    sudo tar -C '/usr/local' -xzf "/tmp/$version"
 }
 
 set_env() {
-    if [[ -s "$HOME/.zshrc" ]]; then
-        echo >> "$HOME/.zshrc"
+    if [[ -s "$HOME/.zshenv" ]]; then
+        echo >> "$HOME/.zshenv"
     fi
 
     {
         echo '# Go'
         echo 'export PATH="$PATH:/usr/local/go/bin"'
         echo 'export PATH="$HOME/go/bin:$PATH"'
-    } >> "$HOME/.zshrc"
-
-    sed -i '/^plugins=(/s/)/ golang)/' "$HOME/.zshrc"
+    } >> "$HOME/.zshenv"
 }
 
 main() {

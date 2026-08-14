@@ -7,7 +7,7 @@ install_python() {
     sudo apt-get install -y python3
 
     export PATH="$HOME/.local/bin:$PATH"
-    curl -LsSf https://astral.sh/uv/install.sh | sh
+    curl -LsSf 'https://astral.sh/uv/install.sh' | sh
 }
 
 install_tools() {
@@ -15,22 +15,8 @@ install_tools() {
     uv tool install py-spy
 
     mkdir -p "$HOME/.config/Beslogic"
-    curl -fsSL "https://raw.githubusercontent.com/BesLogic/Beslogic-Ruff-Config/refs/heads/main/ruff.toml" \
+    curl -fsSL 'https://raw.githubusercontent.com/BesLogic/Beslogic-Ruff-Config/refs/heads/main/ruff.toml' \
         -o "$HOME/.config/Beslogic/ruff.toml"
-}
-
-set_env() {
-    if [[ -s "$HOME/.zshrc" ]]; then
-        echo >> "$HOME/.zshrc"
-    fi
-
-    {
-        echo '# uv shell completions'
-        echo 'eval "$(uv generate-shell-completion zsh)"'
-        echo 'eval "$(uvx --generate-shell-completion zsh)"'
-    } >> "$HOME/.zshrc"
-
-    sed -i '/^plugins=(/s/)/ python)/' "$HOME/.zshrc"
 }
 
 main() {
@@ -39,7 +25,6 @@ main() {
 
     install_python
     install_tools
-    set_env
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then

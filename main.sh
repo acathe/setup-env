@@ -2,8 +2,8 @@
 
 set -euo pipefail
 
-BRANCH="${BRANCH:-"master"}"
-SETUP="${SETUP:-"macos"}"
+BRANCH="${BRANCH:-master}"
+SETUP="${SETUP:-macos}"
 
 parse_args() {
     POSITIONAL=()
@@ -63,9 +63,9 @@ main() {
     esac
 
     local tmpdir
-    tmpdir="$(mktemp -du "/tmp/setup_env.XXXXXX")"
+    tmpdir="$(mktemp -du '/tmp/setup_env.XXXXXX')"
 
-    git clone "https://github.com/acathe/setup-env.git" "$tmpdir" \
+    git clone 'https://github.com/acathe/setup-env.git' "$tmpdir" \
         --depth 1 \
         --single-branch \
         --branch "$BRANCH"
