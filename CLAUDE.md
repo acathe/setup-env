@@ -52,25 +52,24 @@ Three independent setup trees, selected by `--setup`:
   *terminal client / jump box*, not a dev machine: its omz plugin list is picked around the
   ssh-to-remote workflow (connect, manage keys, move files) and deliberately omits `git`.
 - `debian/` — the richest tree; installs zsh + oh-my-zsh unconditionally, then a
-  matrix of optional components. `--command-utils` runs the flat `command/utils.sh`, which installs
-  the bulk command-utility package set (including bat, fd-find and tealdeer), warms the `tldr` cache,
-  and downloads yazi / `ya` and `choose` into `/usr/local/bin`. Micro remains an independent
-  component under
-  `debian/app/micro/`, gated by `APP_MICRO` / `--app-micro`. One component is shaped unusually:
-  `--app-git` deliberately spans all three layers of a single concern instead of being split by
-  kind: it installs the tooling (`gh` from the official apt repo, `git-delta`, `lazygit`), writes the
-  global git config, owns the `gh auth login` block in `01-first_run.zsh`, and owns
-  `~/.config/lazygit/config.yml`. That is why `git-delta` / `lazygit` are absent from
-  `command/utils.sh`'s package list, and why the delta pager config is unconditional — the script
-  that writes it is the one that installed delta, so no cross-flag read is needed.
-  That last drop point is why the component lives in `debian/app/git/` (`main.sh` + `config.yml`)
-  rather than as a flat `app/git.sh`: it follows the existing `debian/app/micro/` directory-component
-  shape, with a script beside a shipped config, and installs its template with
-  `install -Dm 644 './config.yml' "$HOME/.config/lazygit/config.yml"`. A shipped template rather than
-  an `echo` block because it is six lines of static YAML with no interpolation. It owns only the Nerd
-  Fonts version, side-panel width and delta pager; `nerdFontsVersion: "3"` must stay a string because
-  the unquoted integer fails the unmarshal. Five things about lazygit are worth knowing before
-  touching that file.
+  matrix of optional components. `--command-utils` is now a nested dispatcher:
+  `command/modern_cli/main.sh` still installs the bulk command-utility package set (including bat,
+  fd-find and tealdeer), warms the `tldr` cache, and downloads yazi / `ya` and `choose` into
+  `/usr/local/bin`, then runs `modern_cli/micro/` to install Micro and its config. The child carries
+  no flag of its own. One component is shaped unusually: `--app-git` deliberately spans all three
+  layers of a single concern instead of being split by kind: it installs the tooling (`gh` from the
+  official apt repo, `git-delta`, `lazygit`), writes the global git config, owns the `gh auth login`
+  block in `01-first_run.zsh`, and owns `~/.config/lazygit/config.yml`. That is why `git-delta` /
+  `lazygit` are absent from `command/modern_cli/main.sh`'s package list, and why the delta pager
+  config is unconditional — the script that writes it is the one that installed delta, so no
+  cross-flag read is needed. That last drop point is why the component lives in `debian/app/git/`
+  (`main.sh` + `config.yml`) rather than as a flat `app/git.sh`: it is the
+  `debian/command/modern_cli/micro/` shape, `install -Dm 644 './config.yml'
+  "$HOME/.config/lazygit/config.yml"` and all. A shipped template rather than an `echo` block because
+  it is six lines of static YAML with no interpolation. It owns only the Nerd Fonts version,
+  side-panel width and delta pager; `nerdFontsVersion: "3"` must stay a string because the unquoted
+  integer fails the unmarshal. Five things about lazygit are worth knowing before touching that
+  file.
 
   **lazygit has no plugin system.** The entire extension surface is that one config file:
   `customCommands`, the `git.paging` pager, the `os.*` command hooks, `services` for self-hosted
@@ -85,10 +84,10 @@ Three independent setup trees, selected by `--setup`:
   Copying master's `Custom_Pagers.md` produces config that does nothing here. Changing the install
   channel means rewriting that whole block.
 
-  **Unknown keys are silently ignored.** `app_config.go:202` is a bare
-  `yaml.Unmarshal(content, base)` with no `KnownFields(true)`, on master too. A key from a newer
-  version's docs neither errors nor gets stripped; it is invisible dead config that only a version
-  check finds — the YAML *syntax* check cannot see it either.
+  **Unknown keys are silently ignored — the same trap as micro's `truecolor`.**
+  `app_config.go:202` is a bare `yaml.Unmarshal(content, base)` with no `KnownFields(true)`, on
+  master too. A key from a newer version's docs neither errors nor gets stripped; it is invisible
+  dead config that only a version check finds — the YAML *syntax* check cannot see it either.
 
   **lazygit rewrites this file itself.** `app_config.go:221`'s `migrateUserConfig()` writes the
   file back when it finds a key it can migrate. None of 0.50.0's five migratable keys is one we
@@ -123,12 +122,12 @@ Three independent setup trees, selected by `--setup`:
     one installed.
 
   The same general config rule applies at this layer: **a tool's own config file is a shipped
-  artifact, never an `echo` block.** `app/micro/settings.json` is copied into place,
-  `app/git/config.yml` is installed with `install -Dm 644`, and `copilot_api/settings.json` is a
-  shipped template completed through `jq` interpolation. What is left to `echo` is only the files
-  this repo invented (`00-setup_env.zsh`, `01-first_run.zsh`, `setup-env.plugin.zsh`) and appends
-  into files an upstream installer or the shell already made (`tmux.conf.local`, `.zshenv`, the ssh
-  config) — plus the git config, which goes through `git config --global` and has no file to ship.
+  artifact, never an `echo` block.** `modern_cli/micro/settings.json` and `app/git/config.yml` land
+  through the same `install -Dm 644`, and `copilot_api/settings.json` is that plus `jq`
+  interpolation. What is left to `echo` is only the files this repo invented (`00-setup_env.zsh`,
+  `01-first_run.zsh`, `setup-env.plugin.zsh`) and appends into files an upstream installer or the
+  shell already made (`tmux.conf.local`, `.zshenv`, the ssh config) — plus the git config, which
+  goes through `git config --global` and has no file to ship.
 - `container/` — builds and runs a Docker dev container (`dev-container`) or the
   `copilot-api` image.
 
@@ -156,10 +155,9 @@ documents the manual `code --install-extension` step and the `files.readonlyIncl
    The grouping is dependency-shaped — a language toolchain (`--code-*`) can be a prerequisite for
    an app, never the reverse — and the `export` block and `parse_args()`'s cases repeat it, so the
    file reads top-to-bottom in the order it runs. Every gate runs exactly one script; a component
-   made of several scripts can nest them under its own directory and let its `main.sh` run them
-   (`--app-claude` does this, while `--command-utils` remains a flat script). Exporting is a
-   deliberate cross-cutting mechanism: a leaf can read *another* component's flag to add
-   integration config only when both are enabled —
+   made of several scripts nests them under its own directory and lets its `main.sh` run them
+   (`--command-utils`, `--app-claude`). Exporting is a deliberate cross-cutting mechanism: a leaf
+   can read *another* component's flag to add integration config only when both are enabled —
    e.g. `tmux.sh` reads `APP_CLAUDE` (Claude Code passthrough / extended-keys when `--app-tmux` +
    `--app-claude`). That env read is intentional, not a missing `parse_args`. The
    `command/omz_custom/` scripts read component flags for a different reason: they *own* drop
@@ -307,7 +305,7 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
 - **Every GitHub release download goes through `releases/latest/download/<asset>`.** A tag never
   appears in a URL. What decides whether any version resolution happens at all is the *asset
   filename*. `choose-x86_64-unknown-linux-gnu` and `yazi-x86_64-unknown-linux-gnu.zip` carry no
-  version, so `command/utils.sh` downloads both directly from pure literal URLs — single-quoted,
+  version, so `command/modern_cli/main.sh` downloads both directly from pure literal URLs — single-quoted,
   per the quoting rule — with no helper at all. `protoc-35.1-linux-x86_64.zip` embeds one, so
   `tools/protobuf.sh` still resolves it, but only to build the *filename*, never a
   `/releases/download/v<tag>/` path. `get_protoc_latest()` is that resolver:
@@ -316,7 +314,7 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
   followed at the call site by an `if [[ -z $version ]]` guard, since a network failure yields an
   empty string rather than a non-zero exit and `set -e` cannot catch it. **Resolving a version only
   to write it straight back into the URL path is the tell that the step is dead weight** — that was
-  the older yazi path in `command/utils.sh`, with the bare number never used for anything.
+  the older yazi path in `command/modern_cli/main.sh`, with the bare number never used for anything.
 
   Two things this does *not* buy. It does not pin a version — `latest` is `latest` either way, so a
   re-run picks up whatever shipped since. And `latest` plus an explicit version in the asset name
@@ -368,7 +366,7 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
   later by `command/ssh.sh`. Leaving an optional plugin ungated hides that dependency and leaves a
   silently no-op plugin behind whenever the component is off.
 
-  The installing component (`code/go.sh`, `app/docker.sh`, `command/utils.sh`, …) keeps its installs
+  The installing component (`code/go.sh`, `app/docker.sh`, `command/modern_cli/main.sh`, …) keeps its installs
   and its non-zsh config but must not touch `plugins=()` — nor `00-setup_env.zsh` or
   `01-first_run.zsh`, which follow the same rule for the same reason. `omz_custom` runs second in
   the tree, so a plugin name reaches `.zshrc` *before* its tool is installed — harmless, since
@@ -444,12 +442,12 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
   | `PATH` and anything a non-interactive shell needs | `.zshenv` (see `code/go.sh`, `code/rust.sh`) |
 
   The `COMMAND_UTILS` runtime integration belongs in row two: its gated omz plugins provide eza,
-  fzf and zoxide integration, while `custom_env.sh` writes the `bat`, `fd` and `tree` aliases, adds
-  `micror` only when `APP_MICRO` is also enabled, and defines yazi's `y()` cwd-following wrapper.
-  `command/utils.sh` owns the packages and binaries but never appends shell startup files itself.
-  This tree deliberately uses zsh aliases for Debian's `batcat` / `fdfind` names; changing those
-  compatibility names to real executables or adding completion artifacts is a separate component
-  change.
+  fzf and zoxide integration, while `custom_env.sh` writes the `bat`, `fd` and `tree` aliases,
+  configures Editor and Micro, and defines yazi's `y()` cwd-following wrapper.
+  `command/modern_cli/main.sh` owns the bulk packages and binaries and dispatches Micro, but never
+  appends shell startup files itself. This tree deliberately uses zsh aliases for Debian's `batcat`
+  / `fdfind` names; changing those compatibility names to real executables or adding completion
+  artifacts is a separate component change.
 
   `~/.local/bin` is the one `PATH` entry the repo does *not* write itself: `command/omz.sh:44`
   uncomments omz's own template line (`export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH`,
@@ -522,15 +520,15 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
   accumulating duplicate blocks, and no component can append behind its back. The unconditional
   section comes first, then one gated block per component, each headed by a `#` title, in the
   order those components run in `debian/main.sh`: `COMMAND_UTILS` owns the `bat`, `fd` and `tree`
-  aliases, the optional `micror` alias when `APP_MICRO` is also enabled, and yazi's `y()`
-  cwd-following wrapper; `APP_DOCKER` owns the `lzd` alias; `APP_GIT` owns the `lg()` wrapper;
-  `APP_MICRO` owns editor selection and the `EDITOR="code --wait"` branch nested one level deeper
-  on `APP_VSCODE`; and `APP_TMUX` owns mouse-friendly `LESS`. Block titles name the *component
-  concern*, not necessarily the executable — `# Git` rather than `# lazygit`, and `# Editor` for
-  the Micro editor block. Intra-file order is cosmetic — the whole file lands at l.209, after every
-  plugin, which is exactly what lets a value here override one a plugin set — but following the
-  dispatcher keeps it predictable. The `00-` prefix is load order, not decoration: omz sources
-  `$ZSH_CUSTOM/*.zsh` alphabetically, so a second file must pick its number the same way.
+  aliases, Editor selection and its `EDITOR="code --wait"` branch on `APP_VSCODE`, the Micro runtime
+  settings, and yazi's `y()` cwd-following wrapper; `APP_DOCKER` owns the `lzd` alias; `APP_GIT`
+  owns the `lg()` wrapper; and `APP_TMUX` owns mouse-friendly `LESS`. Block titles name the
+  *component concern*, not necessarily the executable — `# Git` rather than `# lazygit`, and
+  `# Editor` / `# Micro` within the command-utilities block. Intra-file order is cosmetic — the
+  whole file lands at l.209, after every plugin, which is exactly what lets a value here override
+  one a plugin set — but following the dispatcher keeps it predictable. The `00-` prefix is load
+  order, not decoration: omz sources `$ZSH_CUSTOM/*.zsh` alphabetically, so a second file must pick
+  its number the same way.
 
   `lg` and `lzd` are the short commands lazygit's and lazydocker's own READMEs suggest, and both
   names were checked clear before being taken — nothing this tree installs or enables defines
@@ -544,6 +542,17 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
   `gui.go:882` writes the file on *every* quit, `q` recording `os.Getwd()` and `shift+Q` recording
   `gui.InitialDir`, so running `lg` from a subdirectory and quitting with `q` lands the shell at
   the repo root — `shift+Q` is the way back. (Verified against 0.50.0 under a pty.)
+
+  The `# Micro` block's `MICRO_TRUECOLOR=1` is the only way to get true color out of micro on
+  Debian, and it belongs there rather than in `micro/settings.json`: trixie ships micro 2.0.14,
+  whose option list (`micro -options`, and the v2.0.14 tag's own `runtime/help/options.md`) has no
+  `truecolor` key at all — upstream added one later, and even there it is the enum
+  `"auto"`/`"on"`/`"off"`, not a boolean. **micro silently ignores unknown keys in `settings.json`**
+  — a bogus option neither errors nor gets stripped when micro rewrites the file — so a wrong key
+  there is invisible dead config, and only a version check finds it. It matters because `one-dark`
+  is a hex colorscheme like every non-`-tc` scheme micro ships: without the variable micro emits
+  zero 24-bit sequences even under `COLORTERM=truecolor`, degrading the whole palette to 256-color
+  approximations — exactly what stops it matching VS Code's `One Dark Pro`.
 
   Every variable in the unconditional section would in fact *work* from `setup-env` too — each is
   either guarded by `(( ! ${+VAR} ))` or read at runtime. It sits after the plugins because that is

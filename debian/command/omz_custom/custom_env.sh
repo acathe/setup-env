@@ -6,7 +6,6 @@ COMMAND_UTILS="${COMMAND_UTILS:-0}"
 
 APP_DOCKER="${APP_DOCKER:-0}"
 APP_GIT="${APP_GIT:-0}"
-APP_MICRO="${APP_MICRO:-0}"
 APP_TMUX="${APP_TMUX:-0}"
 APP_VSCODE="${APP_VSCODE:-0}"
 
@@ -34,11 +33,19 @@ render_blocks() {
         echo 'alias bat="batcat"'
         echo 'alias fd="fdfind"'
         echo 'alias tree="eza --tree"'
-        if [[ $APP_MICRO == '1' ]]; then
-            echo
-            echo '# Micro'
-            echo 'alias micror="micro -readonly true"'
+        echo
+        echo '# Editor'
+        echo 'export EDITOR=micro'
+        if [[ $APP_VSCODE == '1' ]]; then
+            echo 'if [[ "$TERM_PROGRAM" == "vscode" ]]; then'
+            echo '  export EDITOR="code --wait"'
+            echo 'fi'
         fi
+        echo 'export VISUAL="$EDITOR"'
+        echo
+        echo '# Micro'
+        echo 'export MICRO_TRUECOLOR=1'
+        echo 'alias micror="micro -readonly true"'
         echo
         echo '# yazi'
         echo 'function y() {'
@@ -67,18 +74,6 @@ render_blocks() {
         echo '        rm -f $LAZYGIT_NEW_DIR_FILE > /dev/null'
         echo '    fi'
         echo '}'
-    fi
-
-    if [[ $APP_MICRO == '1' ]]; then
-        echo
-        echo '# Editor'
-        echo 'export EDITOR=micro'
-        if [[ $APP_VSCODE == '1' ]]; then
-            echo 'if [[ "$TERM_PROGRAM" == "vscode" ]]; then'
-            echo '  export EDITOR="code --wait"'
-            echo 'fi'
-        fi
-        echo 'export VISUAL="$EDITOR"'
     fi
 
     if [[ $APP_TMUX == '1' ]]; then

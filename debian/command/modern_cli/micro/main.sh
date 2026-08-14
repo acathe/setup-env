@@ -9,8 +9,7 @@ main() {
     micro -plugin install detectindent
     micro -plugin install filemanager
 
-    mkdir -p "$HOME/.config/micro"
-    cp './settings.json' "$HOME/.config/micro/settings.json"
+    install -Dm 644 './settings.json' "$HOME/.config/micro/settings.json"
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then

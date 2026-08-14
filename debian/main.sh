@@ -14,7 +14,6 @@ export TOOLS_PROTOBUF="${TOOLS_PROTOBUF:-0}"
 export APP_CLAUDE="${APP_CLAUDE:-0}"
 export APP_DOCKER="${APP_DOCKER:-0}"
 export APP_GIT="${APP_GIT:-0}"
-export APP_MICRO="${APP_MICRO:-0}"
 export APP_TMUX="${APP_TMUX:-0}"
 export APP_VSCODE="${APP_VSCODE:-0}"
 
@@ -58,10 +57,6 @@ parse_args() {
                 APP_GIT=1
                 shift
                 ;;
-            --app-micro)
-                APP_MICRO=1
-                shift
-                ;;
             --app-tmux)
                 APP_TMUX=1
                 shift
@@ -83,7 +78,7 @@ main() {
     bash './command/omz_custom/main.sh' "$@"
 
     if [[ $COMMAND_UTILS == '1' ]]; then
-        bash './command/utils.sh' "$@"
+        bash './command/modern_cli/main.sh' "$@"
     fi
 
     if [[ $CODE_BASH == '1' ]]; then
@@ -116,10 +111,6 @@ main() {
 
     if [[ $APP_GIT == '1' ]]; then
         bash './app/git/main.sh' "$@"
-    fi
-
-    if [[ $APP_MICRO == '1' ]]; then
-        bash './app/micro/main.sh' "$@"
     fi
 
     if [[ $APP_TMUX == '1' ]]; then
