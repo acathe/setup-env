@@ -41,13 +41,8 @@ Three independent setup trees, selected by `--setup`:
 - `container/` — builds and runs a Docker dev container (`dev-container`) or the
   `copilot-api` image.
 
-`windows-wip/` is **not** a setup tree — it is a staging area for scripts awaiting Windows
-adaptation. No `--setup` value reaches it and nothing runs it; `windows-wip/code/{csharp,powershell}.sh`
-are still the Debian `apt` versions they were before being moved out of `debian/code/`.
-
-`debian/vscode/` and `windows-wip/vscode/` are reference data, not dispatcher components — no
-script installs them (`--app-vscode` → `debian/app/vscode.sh` only inserts the omz `vscode` plugin).
-`windows-wip/vscode/` holds only the C#/PowerShell delta on top of `debian/vscode/`.
+`debian/vscode/` is reference data, not a dispatcher component — no script installs it
+(`--app-vscode` → `debian/app/vscode.sh` only inserts the omz `vscode` plugin).
 
 ### The dispatcher pattern
 
