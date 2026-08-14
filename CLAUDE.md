@@ -53,11 +53,11 @@ Three independent setup trees, selected by `--setup`:
   ssh-to-remote workflow (connect, manage keys, move files) and deliberately omits `git`.
 - `debian/` — the richest tree; installs zsh + oh-my-zsh unconditionally, then a
   matrix of optional components. `--command-modern-cli` is a nested dispatcher, the same shape as
-  `--app-claude`: `command/modern_cli/main.sh` installs the bulk of the CLI tools itself, downloads
-  yazi / `ya` and `choose`, then runs four sub-scripts — `modern_cli/bat/`,
-  `modern_cli/fdfind.sh`, `modern_cli/micro/` and `modern_cli/tldr.sh` — each still installing its
-  own packages and owning whatever config that tool needs, none of them carrying a flag of its own.
-  One component is shaped unusually: `--app-git`
+  `--app-claude`: `command/modern_cli/main.sh` installs the bulk of the CLI tools itself, then runs
+  the five sub-scripts under it — `modern_cli/bat/`, `modern_cli/fdfind.sh`, `modern_cli/micro/`,
+  `modern_cli/tldr.sh` and `modern_cli/yazi.sh` — each still installing its own packages and owning
+  whatever config that tool needs, none of them carrying a flag of its own. One component is shaped
+  unusually: `--app-git`
   deliberately spans all three layers of a single concern instead of being split by kind: it
   installs the tooling (`gh` from the official apt repo, `git-delta`, `lazygit`), writes the global
   git config, owns the `gh auth login` block in `01-first_run.zsh`, and owns
@@ -167,12 +167,41 @@ Three independent setup trees, selected by `--setup`:
   no reason for a Glow alias, helper function, completion artifact or global `GLOW_*` /
   `GLAMOUR_*` setting; the later omz-plugin rejection remains the shell-side half of this choice.
 
+  The one planned integration is yazi's official `piper` recipe:
+  `CLICOLOR_FORCE=1 glow -w=$w -s=dark "$1"`. `dark` there is Glow's built-in style, not yazi's One
+  Dark flavor. Non-TTY output on Glow 2.x quantises the RGB colours used by parts of that style —
+  chiefly Chroma code highlighting — to ANSI/256 colours even with `CLICOLOR_FORCE=1`; layout,
+  emphasis and syntax categories are unchanged. Do not promise TrueColor parity until a released
+  Glow contains the still-open `--color=always` work, and do not fake a TTY or `TERM` meanwhile.
+
   Paging stays opt-in too. `glow -p` sends the rendered document to `$PAGER`, falling back to
   `less -r`; `PAGER='less -R' glow -p FILE.md` is the safer one-shot form because `-R` passes ANSI
   colour sequences without allowing every control character. Do not export `PAGER='less -R'`:
   pager options belong in `$LESS` (the `APP_TMUX` block already owns this tree's `LESS` value), and
   a global `$PAGER` changes unrelated programs. Glow parses Markdown, not roff or Git patches, so it
   is not a `MANPAGER`, Git pager or replacement for delta either.
+
+  `modern_cli/yazi.sh` fetches the latest release zip, installs the `yazi` / `ya` binaries into
+  `~/.local/bin`, installs the `_yazi` / `_ya` completions the zip already ships into
+  `$ZSH_CUSTOM/completions/`, brings its own `file` (yazi needs it for mime detection and the
+  Debian docker base image has none) and `unzip`, and owns the `y()` cwd-following wrapper in
+  `00-setup_env.zsh` — all of that in its own script rather than in the `modern_cli/main.sh` that
+  runs it, so that script's own `install_binaries()` covers only `choose`. Both drop points are
+  under `$HOME` and already on `PATH` / `fpath` (see the `~/.local/bin` note under Conventions and
+  `oh-my-zsh.sh:76`'s unconditional `fpath=(… $ZSH_CUSTOM/{functions,completions} …)`), so apart
+  from that one `apt-get` the component needs no `sudo`. Writing a per-component `_foo` there is
+  not the ownership violation that touching `00-setup_env.zsh` would be — no other component writes
+  that filename, so none of the duplicate-append hazards the `omz_custom` rule exists to prevent
+  apply. Its install channel is settled, the two obvious alternatives vetted and rejected.
+  **cargo** is out: yazi's MSRV is `1.95.0` against trixie's apt `cargo` 1.85.0 and backports'
+  1.94.1, so it would mean a ≥1.95 toolchain (117 MB) plus a 5–15 minute build to reproduce what
+  upstream CI already publishes — and `cargo install --force yazi-build`, the only command that
+  works, does its real work in a `build.rs` that `git clone`s and builds under `env::temp_dir()`
+  without ever cleaning up. The **official `.deb`** is out too: ffmpeg, imagemagick, poppler-utils,
+  7zip and `xsel|xclip|wl-clipboard` are hard `Depends:` — 200 new packages on a
+  `--no-install-recommends` dry run — and its assets carry only the bash completions. The zip is
+  the most complete artifact of the three: `scripts/build.sh` sets `YAZI_GEN_COMPLETIONS=1`, so its
+  `completions/` holds every shell, zsh included.
 
   `modern_cli/tldr.sh` is the smallest: it installs `tealdeer` (leaving
   `~/.config/tealdeer/config.toml` unseeded at its defaults), warms the offline page cache with
@@ -365,16 +394,16 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
 - **Every GitHub release download goes through `releases/latest/download/<asset>`.** A tag never
   appears in a URL. What decides whether any version resolution happens at all is the *asset
   filename*. `choose-x86_64-unknown-linux-gnu` and `yazi-x86_64-unknown-linux-gnu.zip` carry no
-  version, so `command/modern_cli/main.sh` downloads both directly from pure literal URLs —
-  single-quoted, per the quoting rule — with no helper at all. `protoc-35.1-linux-x86_64.zip`
-  embeds one, so `tools/protobuf.sh` still resolves it, but only to
+  version, so `command/modern_cli/main.sh` and `command/modern_cli/yazi.sh` download in one line
+  from a pure literal URL — single-quoted, per the quoting rule — with no helper at all.
+  `protoc-35.1-linux-x86_64.zip` embeds one, so `tools/protobuf.sh` still resolves it, but only to
   build the *filename*, never a `/releases/download/v<tag>/` path. `get_protoc_latest()` is that
   resolver: `curl -fsSIL -o /dev/null -w '%{url_effective}'` on `/releases/latest` piped through one
   `sed -E 's#.*/tag/v?([^/]+)$#\1#'` (the `v?` strips the tag prefix the asset name does not want),
   followed at the call site by an `if [[ -z $version ]]` guard, since a network failure yields an
   empty string rather than a non-zero exit and `set -e` cannot catch it. **Resolving a version only
   to write it straight back into the URL path is the tell that the step is dead weight** — that was
-  the older yazi path in `command/modern_cli/main.sh`, with the bare number never used for anything.
+  `command/modern_cli/yazi.sh` before, with the bare number never used for anything.
 
   Two things this does *not* buy. It does not pin a version — `latest` is `latest` either way, so a
   re-run picks up whatever shipped since. And `latest` plus an explicit version in the asset name
@@ -540,10 +569,11 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
   uncomments omz's own template line (`export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH`,
   `.zshrc` l.2), and `omz.sh` runs first in the tree — so any later component can drop a binary
   there and have it resolve. `modern_cli/fdfind.sh`'s `fd` symlink, `modern_cli/bat/main.sh`'s `bat`
-  symlink and `tools/protobuf.sh`'s `protoc` all rely on this, and it is why none of those placements
-  needs `sudo`. Being in `.zshrc` it is interactive-only — enough for the
-  `(( $+commands[fd] ))` probes plugins do while `.zshrc` is still being sourced (l.2 precedes the
-  `source $ZSH/oh-my-zsh.sh` at l.75), but a non-interactive `zsh -c` will not see it.
+  symlink, `modern_cli/yazi.sh`'s `yazi` / `ya` and `tools/protobuf.sh`'s `protoc` all rely on this,
+  and it is why none of those placements needs `sudo`. Being in `.zshrc` it is
+  interactive-only — enough for the `(( $+commands[fd] ))` probes plugins do while `.zshrc` is
+  still being sourced (l.2 precedes the `source $ZSH/oh-my-zsh.sh` at l.75), but a non-interactive
+  `zsh -c` will not see it.
 
   Only `PYTHON_AUTO_VRUN` is in the first row today — `python.plugin.zsh:103` decides at load
   time whether to register the `chpwd` hook, and the plugin's own README says to set it "before
@@ -609,12 +639,12 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
   `main()` — the only write to that file anywhere in the tree, so a re-run rebuilds it instead of
   accumulating duplicate blocks, and no component can append behind its back. The unconditional
   section comes first, then one gated block per component, each headed by a `#` title, in the
-  order those components run in `debian/main.sh`: `COMMAND_MODERN_CLI` — one gate holding the
-  dispatcher integrations in one place (`# Modern CLI tools`; `# bat`, only `compdef bat=batcat`
-  because everything else bat needs lives in `~/.config/bat/config`; `# Editor` then `# Micro`,
-  with the `EDITOR="code --wait"` branch nested one level deeper on `APP_VSCODE`; `# yazi`, the
-  existing `y()` wrapper for the binary installed inline by `modern_cli/main.sh` — `fdfind.sh` and
-  `tldr.sh` contribute nothing) — then `APP_DOCKER` (`# Docker`, the
+  order those components run in `debian/main.sh`: `COMMAND_MODERN_CLI` — one gate holding five
+  `#` sections, since everything the five `modern_cli/` sub-scripts need here lands in one place
+  (`# Modern CLI tools`; `# bat`, only `compdef bat=batcat` because everything else bat needs lives
+  in `~/.config/bat/config`; `# Editor` then `# Micro`, with the `EDITOR="code --wait"` branch
+  nested one level deeper on `APP_VSCODE`; `# yazi`, the `y()` wrapper that cd's to wherever yazi
+  was left — `fdfind.sh` and `tldr.sh` contribute nothing) — then `APP_DOCKER` (`# Docker`, the
   `lzd` alias), `APP_GIT` (`# Git`, the `lg()` wrapper) and `APP_TMUX` (`# tmux mouse scroll`).
   Block titles name the *component*, not the tool, wherever the two differ — `# Git` rather than
   `# lazygit` — matching `# Editor` / `# Micro` above them. Intra-file order is cosmetic — the
@@ -758,8 +788,10 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
     `open_command` (xdg-open). Unusable headless or over ssh.
   - `npm` — node is installed as a runtime only (the `agent-inject` plugin that
     `--app-claude-copilot-api` installs runs on node); npm is never driven by hand.
-  - `lazygit` `lazydocker` `btop` `duf`, and yazi — pure TUI or single-shot display; type the name
-    and press enter. An omz plugin would add no useful shell integration at this layer.
+  - `lazygit` `lazydocker` `btop` `duf`, and yazi's TUI half — pure TUI or single-shot display;
+    type the name, press enter. Completion buys nothing. (yazi's own `_yazi` / `_ya` are a separate
+    matter, covering the `ya` package manager and yazi's flags; `modern_cli/yazi.sh` installs them
+    from the release zip, so no plugin is needed there either.)
   - `jq` `sd` `hyperfine` `choose` `glow` — no omz plugin exists; `jsontools`' functionality is
     fully covered by jq. `choose` ships no completion upstream, and `glow` has one usage worth
     completing (`glow <file>`).
