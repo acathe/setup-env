@@ -27,7 +27,6 @@ main() {
         ripgrep \
         zoxide \
         fzf \
-        tealdeer \
         hyperfine \
         sd \
         btop \
@@ -35,13 +34,12 @@ main() {
         duf \
         procs
 
-    tldr --update || true
-
     install_binaries
 
     bash './bat/main.sh' "$@"
     bash './fdfind.sh' "$@"
     bash './micro/main.sh' "$@"
+    bash './tldr.sh' "$@"
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then

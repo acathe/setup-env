@@ -53,10 +53,10 @@ Three independent setup trees, selected by `--setup`:
   ssh-to-remote workflow (connect, manage keys, move files) and deliberately omits `git`.
 - `debian/` — the richest tree; installs zsh + oh-my-zsh unconditionally, then a
   matrix of optional components. `--command-utils` is now a nested dispatcher:
-  `command/modern_cli/main.sh` still installs the bulk command-utility package set (including
-  tealdeer), warms the `tldr` cache, and downloads yazi / `ya` and `choose` into `/usr/local/bin`,
-  then runs `modern_cli/bat/`, `modern_cli/fdfind.sh` and `modern_cli/micro/`; each child installs
-  its own package and config and carries no flag of its own. One component is shaped unusually: `--app-git` deliberately spans all three
+  `command/modern_cli/main.sh` still installs the bulk command-utility package set and downloads
+  yazi / `ya` and `choose` into `/usr/local/bin`, then runs `modern_cli/bat/`,
+  `modern_cli/fdfind.sh`, `modern_cli/micro/` and `modern_cli/tldr.sh`; each child installs its own
+  package and config and carries no flag of its own. One component is shaped unusually: `--app-git` deliberately spans all three
   layers of a single concern instead of being split by kind: it installs the tooling (`gh` from the
   official apt repo, `git-delta`, `lazygit`), writes the global git config, owns the `gh auth login`
   block in `01-first_run.zsh`, and owns `~/.config/lazygit/config.yml`. That is why `git-delta` /
@@ -147,6 +147,16 @@ Three independent setup trees, selected by `--setup`:
   what removed `link_binaries()` from `main.sh` — `fd` was its only entry. Unlike bat it needs no
   `compdef` line, because Debian's `_fd` declares `#compdef fd` and the symlinked name is therefore
   already registered.
+
+  `modern_cli/tldr.sh` is the smallest: it installs `tealdeer` (leaving
+  `~/.config/tealdeer/config.toml` unseeded at its defaults), warms the offline page cache with
+  `tldr --update || true` (a network failure is not fatal — the cache fills on first use), and
+  symlinks Debian's `/usr/share/zsh/vendor-completions/tldr.zsh` into `$ZSH_CUSTOM/completions/`
+  under the name `_tldr` — the only reason that completion ever loads, for which see the `compinit`
+  discussion under Conventions. A symlink rather than `install -Dm 644` because the source is a
+  packaged file that apt will upgrade in place; the `[[ -f $completion ]]` guard ahead of it is
+  there because `ln -sf` against a missing source does not fail, it leaves a dangling link — the
+  exact silent-no-op failure mode the symlink exists to undo.
 - `container/` — builds and runs a Docker dev container (`dev-container`) or the
   `copilot-api` image.
 
@@ -460,17 +470,39 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
   | `plugins=()`, `ZSH_THEME=`, anything `compinit` or `lib/*.zsh` reads | `.zshrc` |
   | `PATH` and anything a non-interactive shell needs | `.zshenv` (see `code/go.sh`, `code/rust.sh`) |
 
-  The `COMMAND_UTILS` runtime integration belongs in row two: its gated omz plugins provide eza,
-  fzf and zoxide integration, while `custom_env.sh` writes the `tree` alias, registers
-  `compdef bat=batcat`, configures Editor and Micro, and defines yazi's `y()` cwd-following wrapper.
-  `command/modern_cli/main.sh` owns the bulk packages and binaries and dispatches bat, fdfind and
-  Micro, but never appends shell startup files itself.
+  `compdef` is in row two rather than row four because `compinit` runs at l.127, well before
+  l.209 — `custom_env.sh`'s `COMMAND_UTILS` block writes `compdef bat=batcat` there. Two rules
+  govern that line and the symlinks around it: **`compinit` looks at a file only if its name
+  matches `_*`**, and **it registers by the name on that file's `#compdef` first line, not by the
+  file name and not by whether the command exists.** Debian's three packagers diverged along both
+  axes: `bat` ships `_batcat` declaring `#compdef batcat` (`PROJECT_EXECUTABLE=batcat`, matching
+  the binary it actually ships); `fd-find` ships `_fd` declaring `#compdef fd` though its binary is
+  `fdfind` (Debian #936036, fixed 2019, since regressed, no open bug); `tealdeer` ships a perfectly
+  valid `#compdef tldr` in a file named `tldr.zsh`, which `_*` never globs, so `_comps[tldr]` is
+  empty with no error, no clue, and no Debian bug against `src=rust-tealdeer`. Net effect: `fd`
+  catches a completion that was dangling on a name Debian never installed — free; `bat` creates a
+  name nobody registered — hence the one `compdef` line; `tldr` needs neither, because
+  `modern_cli/tldr.sh` fixes it at the source. If Debian ever fixes fd properly, add the
+  mirror-image `compdef fd=fdfind`; do **not** add it pre-emptively, since `compdef name=service`
+  on an unregistered service prints `compdef: unknown command or service: fdfind` on every start
+  (it does leave `_comps[fd]` intact).
 
-  `compinit` registers a completion by the `#compdef` declaration inside its source file. Debian's
-  `_batcat` declares `#compdef batcat`, so the new `bat` symlink needs `compdef bat=batcat` after
-  `compinit`; Debian's `_fd` already declares `#compdef fd`, so the new `fd` symlink catches that
-  completion without another line. Real symlinks win over aliases because child processes and
-  plugin probes such as `(( $+commands[fd] ))` can see them.
+  Two ways of avoiding that `compdef` line were vetted and rejected. **Doing for bat what
+  `modern_cli/tldr.sh` does for tldr cannot work** — tldr's defect is its *file name*, bat's is its
+  *content*: symlinking `_batcat` to `_bat` yields `_comps[batcat]=_bat` with `_comps[bat]` still
+  empty (verified on trixie / bat 0.25.0), and `batcat --completion zsh` prints the same
+  `#compdef batcat` because `PROJECT_EXECUTABLE` is baked in at build time. **A hand-written `_bat`
+  shim works but is the worse mechanism** — a missing `_batcat` is loud on every shell start under
+  `compdef` and a silent no-op at the first `<TAB>` under the shim, and it buys only file-placement
+  tidiness against the mechanism zsh provides for exactly this.
+
+  An alias would *not* have needed the `bat` line: zsh expands aliases into `words` before
+  completion dispatch, so `alias bat=batcat` inherits `_batcat` for free — and by the same
+  mechanism `alias fd=fdfind` **destroys** the `_fd` completion it would otherwise get. The symlink
+  wins on the other axis: an alias is shell-local state, so `(( $+commands[fd] ))` (which
+  `fzf.plugin.zsh:267` uses to pick `FZF_DEFAULT_COMMAND`) is false under it and no `$SHELL -c`
+  child — fzf's `--preview` above all — can see it, while `PATH` is exported and inherited by
+  every child.
 
   `~/.local/bin` is the one `PATH` entry the repo does *not* write itself: `command/omz.sh:44`
   uncomments omz's own template line (`export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH`,
@@ -657,15 +689,18 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
   cover tarball / `go install` / conda installs that no packager touched, and they pay for it by
   running a generator on every shell start. Verified present on Debian 13 trixie: `_batcat`
   `_delta` `_dust` `_eza` `_fd` `_gh` `_procs` `_rg`. Whether a packager bothered is the only
-  variable — it does not follow from how the tool was installed.
+  variable — it does not follow from how the tool was installed. The `_` in that criterion is
+  load-bearing: tealdeer's `tldr.zsh` is in the same directory and is perfectly valid, yet never
+  loads (see the `compinit` discussion above).
   - `gh` — `dpkg -S` confirms `_gh` comes from the `gh` package itself, and `app/git/main.sh`
     installs from the official apt repo. The plugin would regenerate the same thing asynchronously
     on every start.
   - `procs` — the plugin runs `procs --gen-completion-out zsh`, which Debian's 0.14.10 rejects
     (`error: unexpected argument '--gen-completion-out' found`), and it redirects with `>|`, so
     the failed run truncates the completion file to empty. `_procs` ships with the package anyway.
-  - `bat` — no omz plugin exists, and none is wanted: `_batcat` ships with the package. The
-    symlinked `bat` command is registered with that service through `compdef bat=batcat`.
+  - `bat` — no omz plugin exists, and none is wanted: `_batcat` ships with the package. The one
+    `compdef bat=batcat` line the symlinked name needs is covered in the `compinit` discussion
+    above.
   - `bat-extras` (`eth-p/bat-extras`, a third-party suite, not sharkdp's) — **not installed at
     all**, a tool rejection rather than a plugin one. No Debian package exists, so it would mean a
     `build.sh` install path this repo has no precedent for; 1.6k★ but semi-dormant (last commit
