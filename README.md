@@ -32,6 +32,12 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
 
 | main args          | script args                             |
 | ------------------ | --------------------------------------- |
+| `--command-utils`  |                                         |
+| `--code-bash`      |                                         |
+| `--code-go`        |                                         |
+| `--code-python`    |                                         |
+| `--code-rust`      |                                         |
+| `--tools-protobuf` |                                         |
 | `--app-claude`     | `--app-claude-copilot-api`              |
 |                    | `--app-claude-base-url <v>`             |
 |                    | `--app-claude-auth-token <v>`           |
@@ -39,17 +45,11 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
 |                    | `--app-claude-default-sonnet-model <v>` |
 |                    | `--app-claude-default-haiku-model <v>`  |
 | `--app-docker`     |                                         |
-| `--app-github`     |                                         |
+| `--app-git`        | `--app-git-user-name <v>`               |
+|                    | `--app-git-user-email <v>`              |
 | `--app-micro`      |                                         |
 | `--app-tmux`       |                                         |
 | `--app-vscode`     |                                         |
-| `--code-bash`      |                                         |
-| `--code-go`        |                                         |
-| `--code-python`    |                                         |
-| `--code-rust`      |                                         |
-| `--command-utils`  | `--command-utils-git-user-name <v>`     |
-|                    | `--command-utils-git-user-email <v>`    |
-| `--tools-protobuf` |                                         |
 
 ```bash
 xargs -L1 code --install-extension < debian/vscode/extensions.txt

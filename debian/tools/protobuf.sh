@@ -8,18 +8,20 @@ get_protoc_latest() {
 
 main() {
     sudo apt-get update
-    sudo apt-get install -y build-essential clang-format unzip
+    sudo apt-get install -y build-essential
+
+    sudo apt-get install -y clang-format unzip
 
     local version
     version="$(get_protoc_latest)"
     if [[ -z $version ]]; then
-        echo "Failed to determine the latest protoc version." >&2
+        echo 'Failed to determine the latest protoc version.' >&2
         return 1
     fi
 
-    curl -fsSL "https://github.com/protocolbuffers/protobuf/releases/download/v$version/protoc-$version-linux-x86_64.zip" \
+    curl -fsSL "https://github.com/protocolbuffers/protobuf/releases/latest/download/protoc-$version-linux-x86_64.zip" \
         -o "/tmp/protoc-$version-linux-x86_64.zip"
-    unzip "/tmp/protoc-$version-linux-x86_64.zip" -d "$HOME/.local"
+    unzip -o "/tmp/protoc-$version-linux-x86_64.zip" -d "$HOME/.local"
     rm -f "$HOME/.local/readme.txt"
 }
 

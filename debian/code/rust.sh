@@ -7,8 +7,8 @@ install_rust() {
         echo >> "$HOME/.zshenv"
     fi
 
-    echo "# Rust" >> "$HOME/.zshenv"
-    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+    echo '# Rust' >> "$HOME/.zshenv"
+    curl --proto '=https' --tlsv1.2 -sSf 'https://sh.rustup.rs' | sh -s -- -y
     rm -f "$HOME/.profile"
 }
 
@@ -17,8 +17,6 @@ main() {
     sudo apt-get install -y build-essential
 
     install_rust
-
-    sed -i '/^plugins=(/s/)/ rust)/' "$HOME/.zshrc"
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
