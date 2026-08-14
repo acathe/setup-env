@@ -2,7 +2,12 @@
 
 set -euo pipefail
 
+CODE_GO="${CODE_GO:-0}"
+CODE_PYTHON="${CODE_PYTHON:-0}"
+CODE_RUST="${CODE_RUST:-0}"
+
 APP_CLAUDE_COPILOT_API="${APP_CLAUDE_COPILOT_API:-0}"
+APP_GIT="${APP_GIT:-0}"
 
 parse_args() {
     POSITIONAL=()
@@ -29,12 +34,53 @@ install_claude_code() {
     curl -fsSL 'https://claude.ai/install.sh' | bash
 }
 
+install_lsp() {
+    export PATH="$HOME/.local/bin:$PATH"
+    claude plugin marketplace add 'anthropics/claude-plugins-official'
+
+    if [[ $APP_GIT == '1' ]]; then
+        claude plugin install 'commit-commands@claude-plugins-official'
+    fi
+
+    if [[ $CODE_GO == '1' ]]; then
+        export PATH="$HOME/go/bin:/usr/local/go/bin:$PATH"
+        go install 'golang.org/x/tools/gopls@latest'
+        claude plugin install 'gopls-lsp@claude-plugins-official'
+    fi
+
+    if [[ $CODE_PYTHON == '1' ]]; then
+        export PATH="$HOME/.local/bin:$PATH"
+        uv tool install 'pyright[nodejs]'
+        claude plugin install 'pyright-lsp@claude-plugins-official'
+    fi
+
+    if [[ $CODE_RUST == '1' ]]; then
+        export PATH="$HOME/.cargo/bin:$PATH"
+        rustup component add rust-analyzer
+        claude plugin install 'rust-analyzer-lsp@claude-plugins-official'
+    fi
+
+    if ! command -v jq > /dev/null 2>&1; then
+        sudo apt-get update
+        sudo apt-get install -y jq
+    fi
+
+    local tmp
+    tmp="$(mktemp "$HOME/.claude/settings.json.XXXXXX")"
+    jq 'del(.extraKnownMarketplaces["claude-plugins-official"])
+        | if .extraKnownMarketplaces == {} then del(.extraKnownMarketplaces) else . end' \
+        "$HOME/.claude/settings.json" > "$tmp"
+    mv "$tmp" "$HOME/.claude/settings.json"
+}
+
 main() {
     install_claude_code
 
     if [[ $APP_CLAUDE_COPILOT_API == '1' ]]; then
         bash './copilot_api/main.sh' "$@"
     fi
+
+    install_lsp
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then

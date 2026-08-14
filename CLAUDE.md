@@ -209,6 +209,32 @@ runs `debian/main.sh --unattended <flags>` inside the image (build context is `.
 So container flags are really debian flags — `--unattended` (see `command/omz.sh`) makes oh-my-zsh
 install non-interactively and switches the login shell.
 
+### Claude Code LSP integration
+
+`debian/app/claude/main.sh` reads `CODE_GO`, `CODE_PYTHON` and `CODE_RUST` from the Debian
+dispatcher instead of parsing `--code-*` again. This is a clean one-shot flow and assumes
+`--app-claude` is paired with at least one of those language flags. The language components run
+first and own their toolchains; the Claude component then owns both the server and plugin halves of
+its LSP integration.
+
+`install_lsp()` exposes `~/.local/bin` for the newly installed `claude`, then explicitly adds
+`claude-plugins-official` because automatic registration does not happen until the first interactive
+Claude launch. Each language stays in one block: Go adds `~/go/bin` and `/usr/local/go/bin`, installs
+latest `gopls`, then `gopls-lsp`; Python adds `~/.local/bin`, installs the isolated
+`pyright[nodejs]` uv tool, then `pyright-lsp`; Rust adds `~/.cargo/bin`, installs the
+`rust-analyzer` rustup component, then `rust-analyzer-lsp`.
+
+The explicit marketplace add writes `extraKnownMarketplaces`, while plugin install writes
+`enabledPlugins`. After all plugins are installed, the script uses `jq` and a mode-600 temporary file
+to remove only the official marketplace declaration (and the empty parent map), preserving
+`enabledPlugins`, copilot/custom marketplaces and the separate registry/cache files. This deliberately
+relies on Claude Code 2.1.232 continuing to recognize its internal official registry; never replace
+that cleanup with `marketplace remove`, which would uninstall the plugins.
+
+`install_lsp()` runs after the optional copilot-api child because `install_settings()` replaces
+`~/.claude/settings.json`; registering or cleaning LSP state earlier would let that template erase the
+final `enabledPlugins` entries.
+
 ### copilot-api integration
 
 `copilot_api/main.sh` validates the requested models, installs the completed `settings.json` as
