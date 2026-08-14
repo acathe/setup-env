@@ -52,25 +52,25 @@ Three independent setup trees, selected by `--setup`:
   *terminal client / jump box*, not a dev machine: its omz plugin list is picked around the
   ssh-to-remote workflow (connect, manage keys, move files) and deliberately omits `git`.
 - `debian/` — the richest tree; installs zsh + oh-my-zsh unconditionally, then a
-  matrix of optional components. `--command-utils` runs the flat `command/utils.sh`, which installs
-  the bulk command-utility package set (including bat, fd-find and tealdeer), warms the `tldr` cache,
-  and downloads yazi / `ya` and `choose` into `/usr/local/bin`. Micro remains an independent
-  component under
-  `debian/app/micro/`, gated by `APP_MICRO` / `--app-micro`. One component is shaped unusually:
-  `--app-git` deliberately spans all three layers of a single concern instead of being split by
-  kind: it installs the tooling (`gh` from the official apt repo, `git-delta`, `lazygit`), writes the
-  global git config, owns the `gh auth login` block in `01-first_run.zsh`, and owns
+  matrix of optional components. `--command-modern-cli` is a nested dispatcher, the same shape as
+  `--app-claude`: `command/modern_cli/main.sh` installs the bulk of the CLI tools itself, then runs
+  the five sub-scripts under it — `modern_cli/bat/`, `modern_cli/fdfind.sh`, `modern_cli/micro/`,
+  `modern_cli/tldr.sh` and `modern_cli/yazi.sh` — each still installing its own packages and owning
+  whatever config that tool needs, none of them carrying a flag of its own. One component is shaped
+  unusually: `--app-git`
+  deliberately spans all three layers of a single concern instead of being split by kind: it
+  installs the tooling (`gh` from the official apt repo, `git-delta`, `lazygit`), writes the global
+  git config, owns the `gh auth login` block in `01-first_run.zsh`, and owns
   `~/.config/lazygit/config.yml`. That is why `git-delta` / `lazygit` are absent from
-  `command/utils.sh`'s package list, and why the delta pager config is unconditional — the script
-  that writes it is the one that installed delta, so no cross-flag read is needed.
+  `--command-modern-cli`'s package list, and why the delta pager config is unconditional — the
+  script that writes it is the one that installed delta, so no cross-flag read is needed.
   That last drop point is why the component lives in `debian/app/git/` (`main.sh` + `config.yml`)
-  rather than as a flat `app/git.sh`: it follows the existing `debian/app/micro/` directory-component
-  shape, with a script beside a shipped config, and installs its template with
-  `install -Dm 644 './config.yml' "$HOME/.config/lazygit/config.yml"`. A shipped template rather than
-  an `echo` block because it is six lines of static YAML with no interpolation. It owns only the Nerd
-  Fonts version, side-panel width and delta pager; `nerdFontsVersion: "3"` must stay a string because
-  the unquoted integer fails the unmarshal. Five things about lazygit are worth knowing before
-  touching that file.
+  rather than as a flat `app/git.sh`: it is the `debian/command/modern_cli/micro/` shape,
+  `install -Dm 644 './config.yml' "$HOME/.config/lazygit/config.yml"` and all. A shipped template
+  rather than an `echo` block because it is six lines of static YAML with no interpolation. It owns
+  only the Nerd Fonts version, side-panel width and delta pager; `nerdFontsVersion: "3"` must stay a
+  string because the unquoted integer fails the unmarshal. Five things about lazygit are worth
+  knowing before touching that file.
 
   **lazygit has no plugin system.** The entire extension surface is that one config file:
   `customCommands`, the `git.paging` pager, the `os.*` command hooks, `services` for self-hosted
@@ -85,10 +85,10 @@ Three independent setup trees, selected by `--setup`:
   Copying master's `Custom_Pagers.md` produces config that does nothing here. Changing the install
   channel means rewriting that whole block.
 
-  **Unknown keys are silently ignored.** `app_config.go:202` is a bare
-  `yaml.Unmarshal(content, base)` with no `KnownFields(true)`, on master too. A key from a newer
-  version's docs neither errors nor gets stripped; it is invisible dead config that only a version
-  check finds — the YAML *syntax* check cannot see it either.
+  **Unknown keys are silently ignored — the same trap as micro's `truecolor`.**
+  `app_config.go:202` is a bare `yaml.Unmarshal(content, base)` with no `KnownFields(true)`, on
+  master too. A key from a newer version's docs neither errors nor gets stripped; it is invisible
+  dead config that only a version check finds — the YAML *syntax* check cannot see it either.
 
   **lazygit rewrites this file itself.** `app_config.go:221`'s `migrateUserConfig()` writes the
   file back when it finds a key it can migrate. None of 0.50.0's five migratable keys is one we
@@ -120,15 +120,98 @@ Three independent setup trees, selected by `--setup`:
     p10k-media's bundled `MesloLGS NF` is Nerd Fonts **v2.3.3** (not rebuilt since 2023-04-03) and
     covers 270/324 of lazygit's icons, against 321/328 for Nerd Fonts v3.4.0's own `Meslo.zip`.
     `~/.p10k.zsh` declaring `POWERLEVEL9K_MODE=nerdfont-v3` is the signal that the v3 font is the
-    one installed.
+    one installed — also the prerequisite behind `debian/todo.md`'s eza `icons` item.
 
-  The same general config rule applies at this layer: **a tool's own config file is a shipped
-  artifact, never an `echo` block.** `app/micro/settings.json` is copied into place,
-  `app/git/config.yml` is installed with `install -Dm 644`, and `copilot_api/settings.json` is a
-  shipped template completed through `jq` interpolation. What is left to `echo` is only the files
-  this repo invented (`00-setup_env.zsh`, `01-first_run.zsh`, `setup-env.plugin.zsh`) and appends
-  into files an upstream installer or the shell already made (`tmux.conf.local`, `.zshenv`, the ssh
-  config) — plus the git config, which goes through `git config --global` and has no file to ship.
+  `modern_cli/bat/` installs the `bat` package, makes the `~/.local/bin/bat` symlink over Debian's
+  `batcat`, and ships `~/.config/bat/config`. The symlinked name needs one `compdef bat=batcat`
+  line, which `custom_env.sh` writes — see the `compinit` discussion under Conventions for why that
+  line is required and an alias would not have been. Four things about `bat/config` are worth
+  knowing before touching it. Its two lines are verbatim the two options bat's own
+  `--generate-config-file` template leaves commented out, so it diffs cleanly against upstream. Its
+  format is a shell word-split per line, so — unlike micro's JSON — it takes `#` comments,
+  whole-line *or* trailing, which is what lets it carry the managed-by header; that same splitting
+  makes `--theme="TwoDark"`'s quotes decorative rather than load-bearing, the opposite of
+  `git/config.yml`'s. Where micro and lazygit silently ignore an unknown key, bat **hard-errors**
+  on one — the file's words are prepended to argv, so clap rejects it and *every* `bat` run fails
+  until it is removed. And it must be the **only** place bat's theme is set: `BAT_THEME` in the
+  environment outranks the config file (verified in both directions). delta is unaffected either
+  way — its theme comes from gitconfig (`delta.syntax-theme`), not from `BAT_THEME`.
+
+  With `bat/config` the rule is uniform across the repo: **a tool's own config file is always a
+  shipped artifact, never an `echo` block.** `micro/settings.json`, `git/config.yml` and
+  `bat/config` land through the same `install -Dm 644`, and `copilot_api/settings.json` is that
+  plus `jq` interpolation; what is left to `echo` is only the files this repo invented
+  (`00-setup_env.zsh`, `01-first_run.zsh`, `setup-env.plugin.zsh`) and the appends into files an
+  upstream installer or the shell already made (`tmux.conf.local`, `.zshenv`, the ssh config) —
+  plus the git config, which goes through `git config --global` and has no file to ship.
+
+  `modern_cli/fdfind.sh` is that same arrangement for `fd` minus the config file: it installs
+  `fd-find` and makes the `~/.local/bin/fd` symlink over Debian's `fdfind`, and extracting it is
+  what removed `link_binaries()` from `main.sh` — `fd` was its only entry. Unlike bat it needs no
+  `compdef` line, because Debian's `_fd` declares `#compdef fd` and the symlinked name is therefore
+  already registered.
+
+  `glow` deliberately stays in `modern_cli/main.sh`'s bulk apt list rather than becoming a directory
+  component: setup-env owns no Glow config. Trixie ships Glow 2.0.0 with Glamour 0.8.0; the generated
+  `~/.config/glow/glow.yml` already selects `style: "auto"`, `mouse: false`, `pager: false` and
+  `width: 80`, and none needs a repo-wide override. The non-default switches are not general
+  improvements either. `--all` only expands the TUI's Markdown search to the dotfiles,
+  `node_modules` and `GOPATH` it normally ignores; TUI line numbers count rendered display lines,
+  not source lines; and preserved newlines are consumed by the TUI pager's Glamour path, useful for
+  poetry or hand-laid-out notes but harmful to normal Markdown reflow. Keep all three opt-in.
+
+  Glow has no plugin API. Glamour 0.8.0's built-in top-level styles are `auto`, `ascii`, `dark`,
+  `dracula`, `tokyo-night`, `light`, `notty` and `pink`; One Dark is not one of them. As of
+  2026-08-10 the organised community themes are other palettes, while the One Dark files found are
+  unmaintained or lack a reusable licence, so this tree ships no Glow stylesheet. That also leaves
+  no reason for a Glow alias, helper function, completion artifact or global `GLOW_*` /
+  `GLAMOUR_*` setting; the later omz-plugin rejection remains the shell-side half of this choice.
+
+  The one planned integration is yazi's official `piper` recipe:
+  `CLICOLOR_FORCE=1 glow -w=$w -s=dark "$1"`. `dark` there is Glow's built-in style, not yazi's One
+  Dark flavor. Non-TTY output on Glow 2.x quantises the RGB colours used by parts of that style —
+  chiefly Chroma code highlighting — to ANSI/256 colours even with `CLICOLOR_FORCE=1`; layout,
+  emphasis and syntax categories are unchanged. Do not promise TrueColor parity until a released
+  Glow contains the still-open `--color=always` work, and do not fake a TTY or `TERM` meanwhile.
+
+  Paging stays opt-in too. `glow -p` sends the rendered document to `$PAGER`, falling back to
+  `less -r`; `PAGER='less -R' glow -p FILE.md` is the safer one-shot form because `-R` passes ANSI
+  colour sequences without allowing every control character. Do not export `PAGER='less -R'`:
+  pager options belong in `$LESS` (the `APP_TMUX` block already owns this tree's `LESS` value), and
+  a global `$PAGER` changes unrelated programs. Glow parses Markdown, not roff or Git patches, so it
+  is not a `MANPAGER`, Git pager or replacement for delta either.
+
+  `modern_cli/yazi.sh` fetches the latest release zip, installs the `yazi` / `ya` binaries into
+  `~/.local/bin`, installs the `_yazi` / `_ya` completions the zip already ships into
+  `$ZSH_CUSTOM/completions/`, brings its own `file` (yazi needs it for mime detection and the
+  Debian docker base image has none) and `unzip`, and owns the `y()` cwd-following wrapper in
+  `00-setup_env.zsh` — all of that in its own script rather than in the `modern_cli/main.sh` that
+  runs it, so that script's own `install_binaries()` covers only `choose`. Both drop points are
+  under `$HOME` and already on `PATH` / `fpath` (see the `~/.local/bin` note under Conventions and
+  `oh-my-zsh.sh:76`'s unconditional `fpath=(… $ZSH_CUSTOM/{functions,completions} …)`), so apart
+  from that one `apt-get` the component needs no `sudo`. Writing a per-component `_foo` there is
+  not the ownership violation that touching `00-setup_env.zsh` would be — no other component writes
+  that filename, so none of the duplicate-append hazards the `omz_custom` rule exists to prevent
+  apply. Its install channel is settled, the two obvious alternatives vetted and rejected.
+  **cargo** is out: yazi's MSRV is `1.95.0` against trixie's apt `cargo` 1.85.0 and backports'
+  1.94.1, so it would mean a ≥1.95 toolchain (117 MB) plus a 5–15 minute build to reproduce what
+  upstream CI already publishes — and `cargo install --force yazi-build`, the only command that
+  works, does its real work in a `build.rs` that `git clone`s and builds under `env::temp_dir()`
+  without ever cleaning up. The **official `.deb`** is out too: ffmpeg, imagemagick, poppler-utils,
+  7zip and `xsel|xclip|wl-clipboard` are hard `Depends:` — 200 new packages on a
+  `--no-install-recommends` dry run — and its assets carry only the bash completions. The zip is
+  the most complete artifact of the three: `scripts/build.sh` sets `YAZI_GEN_COMPLETIONS=1`, so its
+  `completions/` holds every shell, zsh included.
+
+  `modern_cli/tldr.sh` is the smallest: it installs `tealdeer` (leaving
+  `~/.config/tealdeer/config.toml` unseeded at its defaults), warms the offline page cache with
+  `tldr --update || true` (a network failure is not fatal — the cache fills on first use), and
+  symlinks Debian's `/usr/share/zsh/vendor-completions/tldr.zsh` into `$ZSH_CUSTOM/completions/`
+  under the name `_tldr` — the only reason that completion ever loads, for which see the `compinit`
+  discussion under Conventions. A symlink rather than `install -Dm 644` because the source is a
+  packaged file that apt will upgrade in place; the `[[ -f $completion ]]` guard ahead of it is
+  there because `ln -sf` against a missing source does not fail, it leaves a dangling link — the
+  exact silent-no-op failure mode the symlink exists to undo.
 - `container/` — builds and runs a Docker dev container (`dev-container`) or the
   `copilot-api` image.
 
@@ -143,6 +226,11 @@ script installs them (`--app-vscode` on debian only adds the omz `vscode` plugin
 `windows-wip/vscode/` holds only the C#/PowerShell delta on top of `debian/vscode/`; `README.md`
 documents the manual `code --install-extension` step and the `files.readonlyInclude` merge caveat.
 
+`debian/todo.md` is the debian tree's pending-work list, carrying only what is still undone, each
+item with its current state, the fix, and the upstream citation behind it. Everything already
+settled lives in this file instead; the two are meant to be read together, and an item that lands
+here should leave `debian/todo.md`.
+
 ### The dispatcher pattern
 
 1. Env-var defaults with override: `export FOO="${FOO:-0}"`. The platform roots `debian/main.sh`
@@ -156,10 +244,9 @@ documents the manual `code --install-extension` step and the `files.readonlyIncl
    The grouping is dependency-shaped — a language toolchain (`--code-*`) can be a prerequisite for
    an app, never the reverse — and the `export` block and `parse_args()`'s cases repeat it, so the
    file reads top-to-bottom in the order it runs. Every gate runs exactly one script; a component
-   made of several scripts can nest them under its own directory and let its `main.sh` run them
-   (`--app-claude` does this, while `--command-utils` remains a flat script). Exporting is a
-   deliberate cross-cutting mechanism: a leaf can read *another* component's flag to add
-   integration config only when both are enabled —
+   made of several scripts nests them under its own directory and lets its `main.sh` run them
+   (`--command-modern-cli`, `--app-claude`). Exporting is a deliberate cross-cutting mechanism: a
+   leaf can read *another* component's flag to add integration config only when both are enabled —
    e.g. `tmux.sh` reads `APP_CLAUDE` (Claude Code passthrough / extended-keys when `--app-tmux` +
    `--app-claude`). That env read is intentional, not a missing `parse_args`. The
    `command/omz_custom/` scripts read component flags for a different reason: they *own* drop
@@ -307,16 +394,16 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
 - **Every GitHub release download goes through `releases/latest/download/<asset>`.** A tag never
   appears in a URL. What decides whether any version resolution happens at all is the *asset
   filename*. `choose-x86_64-unknown-linux-gnu` and `yazi-x86_64-unknown-linux-gnu.zip` carry no
-  version, so `command/utils.sh` downloads both directly from pure literal URLs — single-quoted,
-  per the quoting rule — with no helper at all. `protoc-35.1-linux-x86_64.zip` embeds one, so
-  `tools/protobuf.sh` still resolves it, but only to build the *filename*, never a
-  `/releases/download/v<tag>/` path. `get_protoc_latest()` is that resolver:
-  `curl -fsSIL -o /dev/null -w '%{url_effective}'` on `/releases/latest` piped through one
+  version, so `command/modern_cli/main.sh` and `command/modern_cli/yazi.sh` download in one line
+  from a pure literal URL — single-quoted, per the quoting rule — with no helper at all.
+  `protoc-35.1-linux-x86_64.zip` embeds one, so `tools/protobuf.sh` still resolves it, but only to
+  build the *filename*, never a `/releases/download/v<tag>/` path. `get_protoc_latest()` is that
+  resolver: `curl -fsSIL -o /dev/null -w '%{url_effective}'` on `/releases/latest` piped through one
   `sed -E 's#.*/tag/v?([^/]+)$#\1#'` (the `v?` strips the tag prefix the asset name does not want),
   followed at the call site by an `if [[ -z $version ]]` guard, since a network failure yields an
   empty string rather than a non-zero exit and `set -e` cannot catch it. **Resolving a version only
   to write it straight back into the URL path is the tell that the step is dead weight** — that was
-  the older yazi path in `command/utils.sh`, with the bare number never used for anything.
+  `command/modern_cli/yazi.sh` before, with the bare number never used for anything.
 
   Two things this does *not* buy. It does not pin a version — `latest` is `latest` either way, so a
   re-run picks up whatever shipped since. And `latest` plus an explicit version in the asset name
@@ -364,12 +451,12 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
   `append_plugin` once per remaining plugin (`colored-man-pages` first on debian, `brew` on macos),
   each optional one gated on its component's exported flag: `docker`/`docker-compose` on
   `APP_DOCKER`, `python`/`uv` on `CODE_PYTHON`, `eza`/`zoxide`/`fzf`/`fzf-tab` on
-  `COMMAND_UTILS`, and so on; on macos `ssh` on `COMMAND_SSH`, whose `~/.ssh/config` is written
-  later by `command/ssh.sh`. Leaving an optional plugin ungated hides that dependency and leaves a
-  silently no-op plugin behind whenever the component is off.
+  `COMMAND_MODERN_CLI`, and so on; on macos `ssh` on `COMMAND_SSH`, whose `~/.ssh/config` is
+  written later by `command/ssh.sh`. Leaving an optional plugin ungated hides that dependency and
+  leaves a silently no-op plugin behind whenever the component is off.
 
-  The installing component (`code/go.sh`, `app/docker.sh`, `command/utils.sh`, …) keeps its installs
-  and its non-zsh config but must not touch `plugins=()` — nor `00-setup_env.zsh` or
+  The installing component (`code/go.sh`, `app/docker.sh`, `command/modern_cli/main.sh`, …) keeps its
+  installs and its non-zsh config but must not touch `plugins=()` — nor `00-setup_env.zsh` or
   `01-first_run.zsh`, which follow the same rule for the same reason. `omz_custom` runs second in
   the tree, so a plugin name reaches `.zshrc` *before* its tool is installed — harmless, since
   nothing reads the array until a shell starts, which is after setup ends.
@@ -413,9 +500,10 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
      uses. Unrelated and still required: `macos/main.sh`'s own `eval` line, which runs in the
      setup-time *bash* process so child scripts can find brew — no zsh plugin can reach that.
 
-  **The debian tree violates 1–3 whenever `--command-utils` is on**, and appends `z` (zsh-z)
+  **The debian tree violates 1–3 whenever `--command-modern-cli` is on**, and appends `z` (zsh-z)
   unconditionally even though `zoxide` then takes over the same command name. macos satisfies all
-  six today. Preserve those constraints when the debian array is eventually reordered.
+  six today. Both are pending the `--command-modern-cli` rework — `debian/todo.md` §1 and §2 hold
+  the analysis, the fix and the target array.
 
   Should *removing* a name from the array ever be needed again: delimit on spaces and parens
   (`s/(z /(/; s/ z / /; s/ z)/)/`), never `\<z\>`. `-` is not a word constituent, so `\<z\>` also
@@ -443,24 +531,54 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
   | `plugins=()`, `ZSH_THEME=`, anything `compinit` or `lib/*.zsh` reads | `.zshrc` |
   | `PATH` and anything a non-interactive shell needs | `.zshenv` (see `code/go.sh`, `code/rust.sh`) |
 
-  The `COMMAND_UTILS` runtime integration belongs in row two: its gated omz plugins provide eza,
-  fzf and zoxide integration, while `custom_env.sh` writes the `bat`, `fd` and `tree` aliases, adds
-  `micror` only when `APP_MICRO` is also enabled, and defines yazi's `y()` cwd-following wrapper.
-  `command/utils.sh` owns the packages and binaries but never appends shell startup files itself.
-  This tree deliberately uses zsh aliases for Debian's `batcat` / `fdfind` names; changing those
-  compatibility names to real executables or adding completion artifacts is a separate component
-  change.
+  `compdef` is in row two rather than row four because `compinit` runs at l.127, well before
+  l.209 — `custom_env.sh`'s `COMMAND_MODERN_CLI` block writes `compdef bat=batcat` there. Two rules
+  govern that line and the symlinks around it: **`compinit` looks at a file only if its name
+  matches `_*`**, and **it registers by the name on that file's `#compdef` first line, not by the
+  file name and not by whether the command exists.** Debian's three packagers diverged along both
+  axes: `bat` ships `_batcat` declaring `#compdef batcat` (`PROJECT_EXECUTABLE=batcat`, matching
+  the binary it actually ships); `fd-find` ships `_fd` declaring `#compdef fd` though its binary is
+  `fdfind` (Debian #936036, fixed 2019, since regressed, no open bug); `tealdeer` ships a perfectly
+  valid `#compdef tldr` in a file named `tldr.zsh`, which `_*` never globs, so `_comps[tldr]` is
+  empty with no error, no clue, and no Debian bug against `src=rust-tealdeer`. Net effect: `fd`
+  catches a completion that was dangling on a name Debian never installed — free; `bat` creates a
+  name nobody registered — hence the one `compdef` line; `tldr` needs neither, because
+  `modern_cli/tldr.sh` fixes it at the source. If Debian ever fixes fd properly, add the
+  mirror-image `compdef fd=fdfind`; do **not** add it pre-emptively, since `compdef name=service`
+  on an unregistered service prints `compdef: unknown command or service: fdfind` on every start
+  (it does leave `_comps[fd]` intact).
+
+  Two ways of avoiding that `compdef` line were vetted and rejected. **Doing for bat what
+  `modern_cli/tldr.sh` does for tldr cannot work** — tldr's defect is its *file name*, bat's is its
+  *content*: symlinking `_batcat` to `_bat` yields `_comps[batcat]=_bat` with `_comps[bat]` still
+  empty (verified on trixie / bat 0.25.0), and `batcat --completion zsh` prints the same
+  `#compdef batcat` because `PROJECT_EXECUTABLE` is baked in at build time. **A hand-written `_bat`
+  shim works but is the worse mechanism** — a missing `_batcat` is loud on every shell start under
+  `compdef` and a silent no-op at the first `<TAB>` under the shim, and it buys only file-placement
+  tidiness against the mechanism zsh provides for exactly this.
+
+  An alias would *not* have needed the `bat` line: zsh expands aliases into `words` before
+  completion dispatch, so `alias bat=batcat` inherits `_batcat` for free — and by the same
+  mechanism `alias fd=fdfind` **destroys** the `_fd` completion it would otherwise get. The symlink
+  wins on the other axis: an alias is shell-local state, so `(( $+commands[fd] ))` (which
+  `fzf.plugin.zsh:267` uses to pick `FZF_DEFAULT_COMMAND`) is false under it and no `$SHELL -c`
+  child — fzf's `--preview` above all — can see it, while `PATH` is exported and inherited by
+  every child.
 
   `~/.local/bin` is the one `PATH` entry the repo does *not* write itself: `command/omz.sh:44`
   uncomments omz's own template line (`export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH`,
   `.zshrc` l.2), and `omz.sh` runs first in the tree — so any later component can drop a binary
-  there and have it resolve. At this layer `tools/protobuf.sh`'s `protoc` relies on that placement
-  and therefore needs no `sudo`. Being in `.zshrc`, the entry is interactive-only; a
-  non-interactive `zsh -c` will not see it.
+  there and have it resolve. `modern_cli/fdfind.sh`'s `fd` symlink, `modern_cli/bat/main.sh`'s `bat`
+  symlink, `modern_cli/yazi.sh`'s `yazi` / `ya` and `tools/protobuf.sh`'s `protoc` all rely on this,
+  and it is why none of those placements needs `sudo`. Being in `.zshrc` it is
+  interactive-only — enough for the `(( $+commands[fd] ))` probes plugins do while `.zshrc` is
+  still being sourced (l.2 precedes the `source $ZSH/oh-my-zsh.sh` at l.75), but a non-interactive
+  `zsh -c` will not see it.
 
   Only `PYTHON_AUTO_VRUN` is in the first row today — `python.plugin.zsh:103` decides at load
   time whether to register the `chpwd` hook, and the plugin's own README says to set it "before
-  sourcing oh-my-zsh".
+  sourcing oh-my-zsh". `zstyle ':omz:plugins:eza' …` belongs there too (`eza.plugin.zsh:9-54`
+  builds its aliases at load time) and is pending — `debian/todo.md` §3.
 
   Row four earns its second clause from where the first row sits. `setup-env` is sourced at l.203
   — **after** `compinit` (l.127) and **after** `lib/*.zsh` (l.197) — so anything those two read is
@@ -521,16 +639,19 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
   `main()` — the only write to that file anywhere in the tree, so a re-run rebuilds it instead of
   accumulating duplicate blocks, and no component can append behind its back. The unconditional
   section comes first, then one gated block per component, each headed by a `#` title, in the
-  order those components run in `debian/main.sh`: `COMMAND_UTILS` owns the `bat`, `fd` and `tree`
-  aliases, the optional `micror` alias when `APP_MICRO` is also enabled, and yazi's `y()`
-  cwd-following wrapper; `APP_DOCKER` owns the `lzd` alias; `APP_GIT` owns the `lg()` wrapper;
-  `APP_MICRO` owns editor selection and the `EDITOR="code --wait"` branch nested one level deeper
-  on `APP_VSCODE`; and `APP_TMUX` owns mouse-friendly `LESS`. Block titles name the *component
-  concern*, not necessarily the executable — `# Git` rather than `# lazygit`, and `# Editor` for
-  the Micro editor block. Intra-file order is cosmetic — the whole file lands at l.209, after every
-  plugin, which is exactly what lets a value here override one a plugin set — but following the
-  dispatcher keeps it predictable. The `00-` prefix is load order, not decoration: omz sources
-  `$ZSH_CUSTOM/*.zsh` alphabetically, so a second file must pick its number the same way.
+  order those components run in `debian/main.sh`: `COMMAND_MODERN_CLI` — one gate holding five
+  `#` sections, since everything the five `modern_cli/` sub-scripts need here lands in one place
+  (`# Modern CLI tools`; `# bat`, only `compdef bat=batcat` because everything else bat needs lives
+  in `~/.config/bat/config`; `# Editor` then `# Micro`, with the `EDITOR="code --wait"` branch
+  nested one level deeper on `APP_VSCODE`; `# yazi`, the `y()` wrapper that cd's to wherever yazi
+  was left — `fdfind.sh` and `tldr.sh` contribute nothing) — then `APP_DOCKER` (`# Docker`, the
+  `lzd` alias), `APP_GIT` (`# Git`, the `lg()` wrapper) and `APP_TMUX` (`# tmux mouse scroll`).
+  Block titles name the *component*, not the tool, wherever the two differ — `# Git` rather than
+  `# lazygit` — matching `# Editor` / `# Micro` above them. Intra-file order is cosmetic — the
+  whole file lands at l.209, after every plugin, which is exactly what lets a value here override
+  one a plugin set — but following the dispatcher keeps it predictable. The `00-` prefix is load
+  order, not decoration: omz sources `$ZSH_CUSTOM/*.zsh` alphabetically, so a second file must
+  pick its number the same way.
 
   `lg` and `lzd` are the short commands lazygit's and lazydocker's own READMEs suggest, and both
   names were checked clear before being taken — nothing this tree installs or enables defines
@@ -544,6 +665,17 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
   `gui.go:882` writes the file on *every* quit, `q` recording `os.Getwd()` and `shift+Q` recording
   `gui.InitialDir`, so running `lg` from a subdirectory and quitting with `q` lands the shell at
   the repo root — `shift+Q` is the way back. (Verified against 0.50.0 under a pty.)
+
+  The `# Micro` block's `MICRO_TRUECOLOR=1` is the only way to get true color out of micro on
+  Debian, and it belongs there rather than in `micro/settings.json`: trixie ships micro 2.0.14,
+  whose option list (`micro -options`, and the v2.0.14 tag's own `runtime/help/options.md`) has no
+  `truecolor` key at all — upstream added one later, and even there it is the enum
+  `"auto"`/`"on"`/`"off"`, not a boolean. **micro silently ignores unknown keys in `settings.json`**
+  — a bogus option neither errors nor gets stripped when micro rewrites the file — so a wrong key
+  there is invisible dead config, and only a version check finds it. It matters because `one-dark`
+  is a hex colorscheme like every non-`-tc` scheme micro ships: without the variable micro emits
+  zero 24-bit sequences even under `COLORTERM=truecolor`, degrading the whole palette to 256-color
+  approximations — exactly what stops it matching VS Code's `One Dark Pro`.
 
   Every variable in the unconditional section would in fact *work* from `setup-env` too — each is
   either guarded by `(( ! ${+VAR} ))` or read at runtime. It sits after the plugins because that is
@@ -607,9 +739,9 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
 - **`set -e` and trailing `[[ … ]] && cmd`.** A function whose *last* statement is a false
   conditional AND-list returns 1, and at the call site `set -e` takes that as a failure and exits
   — the guard inside the list only protects the `[[ … ]]` itself, not the function's exit status.
-  `install_plugin()` ends on `[[ $COMMAND_UTILS == '1' ]] && append_plugin 'fzf-tab'`, so without
-  a trailing `return 0` the entire default install path (`COMMAND_UTILS=0`) dies right there,
-  taking `install_theme`, the three env scripts and `debian/main.sh` down with it.
+  `install_plugin()` ends on `[[ $COMMAND_MODERN_CLI == '1' ]] && append_plugin 'fzf-tab'`, so
+  without a trailing `return 0` the entire default install path (`COMMAND_MODERN_CLI=0`) dies
+  right there, taking `install_theme`, the three env scripts and `debian/main.sh` down with it.
   Hence the explicit `return 0`. It hides nothing: any genuine failure inside the function already
   exits the script at the failing command, never reaching the `return`. Prefer it to "make sure
   the last line happens to be unconditional", which the next edit quietly breaks. The same
@@ -623,15 +755,18 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
   cover tarball / `go install` / conda installs that no packager touched, and they pay for it by
   running a generator on every shell start. Verified present on Debian 13 trixie: `_batcat`
   `_delta` `_dust` `_eza` `_fd` `_gh` `_procs` `_rg`. Whether a packager bothered is the only
-  variable — it does not follow from how the tool was installed.
+  variable — it does not follow from how the tool was installed. The `_` in that criterion is
+  load-bearing: tealdeer's `tldr.zsh` is in the same directory and is perfectly valid, yet never
+  loads (see the `compinit` discussion above).
   - `gh` — `dpkg -S` confirms `_gh` comes from the `gh` package itself, and `app/git/main.sh`
     installs from the official apt repo. The plugin would regenerate the same thing asynchronously
     on every start.
   - `procs` — the plugin runs `procs --gen-completion-out zsh`, which Debian's 0.14.10 rejects
     (`error: unexpected argument '--gen-completion-out' found`), and it redirects with `>|`, so
     the failed run truncates the completion file to empty. `_procs` ships with the package anyway.
-  - `bat` — no omz plugin exists, and none is wanted: `_batcat` ships with the package, and this
-    tree exposes `batcat` through a zsh alias.
+  - `bat` — no omz plugin exists, and none is wanted: `_batcat` ships with the package. The one
+    `compdef bat=batcat` line the symlinked name needs is covered in the `compinit` discussion
+    above.
   - `bat-extras` (`eth-p/bat-extras`, a third-party suite, not sharkdp's) — **not installed at
     all**, a tool rejection rather than a plugin one. No Debian package exists, so it would mean a
     `build.sh` install path this repo has no precedent for; 1.6k★ but semi-dormant (last commit
@@ -653,8 +788,10 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
     `open_command` (xdg-open). Unusable headless or over ssh.
   - `npm` — node is installed as a runtime only (the `agent-inject` plugin that
     `--app-claude-copilot-api` installs runs on node); npm is never driven by hand.
-  - `lazygit` `lazydocker` `btop` `duf`, and yazi — pure TUI or single-shot display; type the name
-    and press enter. An omz plugin would add no useful shell integration at this layer.
+  - `lazygit` `lazydocker` `btop` `duf`, and yazi's TUI half — pure TUI or single-shot display;
+    type the name, press enter. Completion buys nothing. (yazi's own `_yazi` / `_ya` are a separate
+    matter, covering the `ya` package manager and yazi's flags; `modern_cli/yazi.sh` installs them
+    from the release zip, so no plugin is needed there either.)
   - `jq` `sd` `hyperfine` `choose` `glow` — no omz plugin exists; `jsontools`' functionality is
     fully covered by jq. `choose` ships no completion upstream, and `glow` has one usage worth
     completing (`glow <file>`).

@@ -2,11 +2,10 @@
 
 set -euo pipefail
 
-COMMAND_UTILS="${COMMAND_UTILS:-0}"
+COMMAND_MODERN_CLI="${COMMAND_MODERN_CLI:-0}"
 
 APP_DOCKER="${APP_DOCKER:-0}"
 APP_GIT="${APP_GIT:-0}"
-APP_MICRO="${APP_MICRO:-0}"
 APP_TMUX="${APP_TMUX:-0}"
 APP_VSCODE="${APP_VSCODE:-0}"
 
@@ -28,17 +27,27 @@ render_blocks() {
     echo 'ZSHZ_CASE=smart'
     echo 'ZSHZ_TILDE=1'
 
-    if [[ $COMMAND_UTILS == '1' ]]; then
+    if [[ $COMMAND_MODERN_CLI == '1' ]]; then
         echo
-        echo '# Command utilities'
-        echo 'alias bat="batcat"'
-        echo 'alias fd="fdfind"'
+        echo '# Modern CLI tools'
+        # eza 插件不提供 tree 别名，手写补上（ls/ll/la 等由插件承担）
         echo 'alias tree="eza --tree"'
-        if [[ $APP_MICRO == '1' ]]; then
-            echo
-            echo '# Micro'
-            echo 'alias micror="micro -readonly true"'
+        echo
+        echo '# bat'
+        echo 'compdef bat=batcat'
+        echo
+        echo '# Editor'
+        echo 'export EDITOR=micro'
+        if [[ $APP_VSCODE == '1' ]]; then
+            echo 'if [[ "$TERM_PROGRAM" == "vscode" ]]; then'
+            echo '  export EDITOR="code --wait"'
+            echo 'fi'
         fi
+        echo 'export VISUAL="$EDITOR"'
+        echo
+        echo '# Micro'
+        echo 'export MICRO_TRUECOLOR=1'
+        echo 'alias micror="micro -readonly true"'
         echo
         echo '# yazi'
         echo 'function y() {'
@@ -67,18 +76,6 @@ render_blocks() {
         echo '        rm -f $LAZYGIT_NEW_DIR_FILE > /dev/null'
         echo '    fi'
         echo '}'
-    fi
-
-    if [[ $APP_MICRO == '1' ]]; then
-        echo
-        echo '# Editor'
-        echo 'export EDITOR=micro'
-        if [[ $APP_VSCODE == '1' ]]; then
-            echo 'if [[ "$TERM_PROGRAM" == "vscode" ]]; then'
-            echo '  export EDITOR="code --wait"'
-            echo 'fi'
-        fi
-        echo 'export VISUAL="$EDITOR"'
     fi
 
     if [[ $APP_TMUX == '1' ]]; then

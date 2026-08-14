@@ -9,7 +9,5 @@
   "rmtrailingws": true,
   "savecursor": true,
   "saveundo": true,
-  "scrollbar": true,
-  "showchars": "tab=»,itab=»",
-  "truecolor": true
+  "scrollbar": true
 }

@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-export COMMAND_UTILS="${COMMAND_UTILS:-0}"
+export COMMAND_MODERN_CLI="${COMMAND_MODERN_CLI:-0}"
 
 export CODE_BASH="${CODE_BASH:-0}"
 export CODE_GO="${CODE_GO:-0}"
@@ -14,7 +14,6 @@ export TOOLS_PROTOBUF="${TOOLS_PROTOBUF:-0}"
 export APP_CLAUDE="${APP_CLAUDE:-0}"
 export APP_DOCKER="${APP_DOCKER:-0}"
 export APP_GIT="${APP_GIT:-0}"
-export APP_MICRO="${APP_MICRO:-0}"
 export APP_TMUX="${APP_TMUX:-0}"
 export APP_VSCODE="${APP_VSCODE:-0}"
 
@@ -22,8 +21,8 @@ parse_args() {
     POSITIONAL=()
     while (($# > 0)); do
         case "$1" in
-            --command-utils)
-                COMMAND_UTILS=1
+            --command-modern-cli)
+                COMMAND_MODERN_CLI=1
                 shift
                 ;;
             --code-bash)
@@ -58,10 +57,6 @@ parse_args() {
                 APP_GIT=1
                 shift
                 ;;
-            --app-micro)
-                APP_MICRO=1
-                shift
-                ;;
             --app-tmux)
                 APP_TMUX=1
                 shift
@@ -82,8 +77,8 @@ main() {
     bash './command/omz.sh' "$@"
     bash './command/omz_custom/main.sh' "$@"
 
-    if [[ $COMMAND_UTILS == '1' ]]; then
-        bash './command/utils.sh' "$@"
+    if [[ $COMMAND_MODERN_CLI == '1' ]]; then
+        bash './command/modern_cli/main.sh' "$@"
     fi
 
     if [[ $CODE_BASH == '1' ]]; then
@@ -116,10 +111,6 @@ main() {
 
     if [[ $APP_GIT == '1' ]]; then
         bash './app/git/main.sh' "$@"
-    fi
-
-    if [[ $APP_MICRO == '1' ]]; then
-        bash './app/micro/main.sh' "$@"
     fi
 
     if [[ $APP_TMUX == '1' ]]; then
