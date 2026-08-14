@@ -29,6 +29,10 @@
     "bashIde.shfmt.spaceRedirects": true,
     "claudeCode.disableLoginPrompt": true,
     "claudeCode.preferredLocation": "sidebar",
+    "cmake.pinnedCommands": [
+        "workbench.action.tasks.configureTaskRunner",
+        "workbench.action.tasks.runTask"
+    ],
     "diffEditor.hideUnchangedRegions.enabled": true,
     "diffEditor.ignoreTrimWhitespace": false,
     "docker.extension.dockerEngineAvailabilityPrompt": false,
@@ -63,7 +67,11 @@
         "**/lib/python*/**": true, // Python
         "**/sdk/go*/src/**": true, // Go
         "**/typeshed-fallback/**": true, // Python
-        "/usr/local/go/src/**": true // Go
+        "/usr/include/**": true, // C/C++
+        "/usr/lib/gcc/**": true, // C/C++
+        "/usr/lib64/gcc/**": true, // C/C++
+        "/usr/local/go/src/**": true, // Go
+        "/usr/local/include/**": true // C/C++
     },
     "git.autofetch": true,
     "git.confirmSync": false,

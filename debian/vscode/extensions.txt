@@ -1,5 +1,6 @@
 anthropic.claude-code
 charliermarsh.ruff
+cheshirekow.cmake-format
 christian-kohler.path-intellisense
 davidanson.vscode-markdownlint
 docker.docker
@@ -9,6 +10,7 @@ fill-labs.dependi
 golang.go
 kshetline.ligatures-limited
 leosj29.bash-sh-runner
+llvm-vs-code-extensions.vscode-clangd
 mads-hartmann.bash-ide-vscode
 ms-azuretools.vscode-containers
 ms-ceintl.vscode-language-pack-zh-hans
@@ -19,6 +21,8 @@ ms-python.vscode-python-envs
 ms-vscode-remote.remote-containers
 ms-vscode-remote.remote-ssh
 ms-vscode-remote.remote-ssh-edit
+ms-vscode.cmake-tools
+ms-vscode.cpp-devtools
 ms-vscode.remote-explorer
 pkief.material-icon-theme
 redhat.vscode-xml
