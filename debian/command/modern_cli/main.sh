@@ -24,7 +24,6 @@ main() {
         unzip \
         glow \
         eza \
-        bat \
         fd-find \
         ripgrep \
         zoxide \
@@ -41,6 +40,7 @@ main() {
 
     install_binaries
 
+    bash './bat/main.sh' "$@"
     bash './micro/main.sh' "$@"
 }
 

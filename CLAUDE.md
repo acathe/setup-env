@@ -53,10 +53,10 @@ Three independent setup trees, selected by `--setup`:
   ssh-to-remote workflow (connect, manage keys, move files) and deliberately omits `git`.
 - `debian/` — the richest tree; installs zsh + oh-my-zsh unconditionally, then a
   matrix of optional components. `--command-utils` is now a nested dispatcher:
-  `command/modern_cli/main.sh` still installs the bulk command-utility package set (including bat,
+  `command/modern_cli/main.sh` still installs the bulk command-utility package set (including
   fd-find and tealdeer), warms the `tldr` cache, and downloads yazi / `ya` and `choose` into
-  `/usr/local/bin`, then runs `modern_cli/micro/` to install Micro and its config. The child carries
-  no flag of its own. One component is shaped unusually: `--app-git` deliberately spans all three
+  `/usr/local/bin`, then runs `modern_cli/bat/` and `modern_cli/micro/`; each child installs its own
+  package and config and carries no flag of its own. One component is shaped unusually: `--app-git` deliberately spans all three
   layers of a single concern instead of being split by kind: it installs the tooling (`gh` from the
   official apt repo, `git-delta`, `lazygit`), writes the global git config, owns the `gh auth login`
   block in `01-first_run.zsh`, and owns `~/.config/lazygit/config.yml`. That is why `git-delta` /
@@ -121,13 +121,26 @@ Three independent setup trees, selected by `--setup`:
     `~/.p10k.zsh` declaring `POWERLEVEL9K_MODE=nerdfont-v3` is the signal that the v3 font is the
     one installed.
 
-  The same general config rule applies at this layer: **a tool's own config file is a shipped
-  artifact, never an `echo` block.** `modern_cli/micro/settings.json` and `app/git/config.yml` land
-  through the same `install -Dm 644`, and `copilot_api/settings.json` is that plus `jq`
-  interpolation. What is left to `echo` is only the files this repo invented (`00-setup_env.zsh`,
-  `01-first_run.zsh`, `setup-env.plugin.zsh`) and appends into files an upstream installer or the
-  shell already made (`tmux.conf.local`, `.zshenv`, the ssh config) — plus the git config, which
-  goes through `git config --global` and has no file to ship.
+  `modern_cli/bat/` installs the `bat` package, makes the `~/.local/bin/bat` symlink over Debian's
+  `batcat`, and ships `~/.config/bat/config`. The symlinked name needs one `compdef bat=batcat`
+  line, which `custom_env.sh` writes. Its two config lines are verbatim the two options bat's own
+  `--generate-config-file` template leaves commented out, so it diffs cleanly against upstream. Its
+  format is a shell word-split per line, so — unlike micro's JSON — it takes `#` comments,
+  whole-line *or* trailing, which is what lets it carry the managed-by header; that same splitting
+  makes `--theme="TwoDark"`'s quotes decorative rather than load-bearing, the opposite of
+  `git/config.yml`'s. Where micro and lazygit silently ignore an unknown key, bat **hard-errors**
+  on one — the file's words are prepended to argv, so clap rejects it and *every* `bat` run fails
+  until it is removed. And it must be the **only** place bat's theme is set: `BAT_THEME` in the
+  environment outranks the config file. delta is unaffected either way — its theme comes from
+  gitconfig (`delta.syntax-theme`), not from `BAT_THEME`.
+
+  With `bat/config` the rule is uniform across the repo: **a tool's own config file is always a
+  shipped artifact, never an `echo` block.** `micro/settings.json`, `git/config.yml` and
+  `bat/config` land through the same `install -Dm 644`, and `copilot_api/settings.json` is that
+  plus `jq` interpolation; what is left to `echo` is only the files this repo invented
+  (`00-setup_env.zsh`, `01-first_run.zsh`, `setup-env.plugin.zsh`) and the appends into files an
+  upstream installer or the shell already made (`tmux.conf.local`, `.zshenv`, the ssh config) —
+  plus the git config, which goes through `git config --global` and has no file to ship.
 - `container/` — builds and runs a Docker dev container (`dev-container`) or the
   `copilot-api` image.
 
@@ -442,19 +455,19 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
   | `PATH` and anything a non-interactive shell needs | `.zshenv` (see `code/go.sh`, `code/rust.sh`) |
 
   The `COMMAND_UTILS` runtime integration belongs in row two: its gated omz plugins provide eza,
-  fzf and zoxide integration, while `custom_env.sh` writes the `bat`, `fd` and `tree` aliases,
-  configures Editor and Micro, and defines yazi's `y()` cwd-following wrapper.
-  `command/modern_cli/main.sh` owns the bulk packages and binaries and dispatches Micro, but never
-  appends shell startup files itself. This tree deliberately uses zsh aliases for Debian's `batcat`
-  / `fdfind` names; changing those compatibility names to real executables or adding completion
-  artifacts is a separate component change.
+  fzf and zoxide integration, while `custom_env.sh` writes the `fd` and `tree` aliases, registers
+  `compdef bat=batcat`, configures Editor and Micro, and defines yazi's `y()` cwd-following wrapper.
+  `command/modern_cli/main.sh` owns the bulk packages and binaries and dispatches bat and Micro, but
+  never appends shell startup files itself. The real `~/.local/bin/bat` symlink is visible to child
+  processes; `compdef` maps that new command name to Debian's `_batcat` completion service. The fd
+  compatibility name remains a zsh alias for now.
 
   `~/.local/bin` is the one `PATH` entry the repo does *not* write itself: `command/omz.sh:44`
   uncomments omz's own template line (`export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH`,
   `.zshrc` l.2), and `omz.sh` runs first in the tree — so any later component can drop a binary
-  there and have it resolve. At this layer `tools/protobuf.sh`'s `protoc` relies on that placement
-  and therefore needs no `sudo`. Being in `.zshrc`, the entry is interactive-only; a
-  non-interactive `zsh -c` will not see it.
+  there and have it resolve. `modern_cli/bat/main.sh`'s `bat` symlink and
+  `tools/protobuf.sh`'s `protoc` both rely on that placement, and neither needs `sudo`. Being in
+  `.zshrc`, the entry is interactive-only; a non-interactive `zsh -c` will not see it.
 
   Only `PYTHON_AUTO_VRUN` is in the first row today — `python.plugin.zsh:103` decides at load
   time whether to register the `chpwd` hook, and the plugin's own README says to set it "before
@@ -519,10 +532,10 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
   `main()` — the only write to that file anywhere in the tree, so a re-run rebuilds it instead of
   accumulating duplicate blocks, and no component can append behind its back. The unconditional
   section comes first, then one gated block per component, each headed by a `#` title, in the
-  order those components run in `debian/main.sh`: `COMMAND_UTILS` owns the `bat`, `fd` and `tree`
-  aliases, Editor selection and its `EDITOR="code --wait"` branch on `APP_VSCODE`, the Micro runtime
-  settings, and yazi's `y()` cwd-following wrapper; `APP_DOCKER` owns the `lzd` alias; `APP_GIT`
-  owns the `lg()` wrapper; and `APP_TMUX` owns mouse-friendly `LESS`. Block titles name the
+  order those components run in `debian/main.sh`: `COMMAND_UTILS` owns the `fd` and `tree` aliases,
+  bat's `compdef`, Editor selection and its `EDITOR="code --wait"` branch on `APP_VSCODE`, the Micro
+  runtime settings, and yazi's `y()` cwd-following wrapper; `APP_DOCKER` owns the `lzd` alias;
+  `APP_GIT` owns the `lg()` wrapper; and `APP_TMUX` owns mouse-friendly `LESS`. Block titles name the
   *component concern*, not necessarily the executable — `# Git` rather than `# lazygit`, and
   `# Editor` / `# Micro` within the command-utilities block. Intra-file order is cosmetic — the
   whole file lands at l.209, after every plugin, which is exactly what lets a value here override
@@ -639,8 +652,8 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
   - `procs` — the plugin runs `procs --gen-completion-out zsh`, which Debian's 0.14.10 rejects
     (`error: unexpected argument '--gen-completion-out' found`), and it redirects with `>|`, so
     the failed run truncates the completion file to empty. `_procs` ships with the package anyway.
-  - `bat` — no omz plugin exists, and none is wanted: `_batcat` ships with the package, and this
-    tree exposes `batcat` through a zsh alias.
+  - `bat` — no omz plugin exists, and none is wanted: `_batcat` ships with the package. The
+    symlinked `bat` command is registered with that service through `compdef bat=batcat`.
   - `bat-extras` (`eth-p/bat-extras`, a third-party suite, not sharkdp's) — **not installed at
     all**, a tool rejection rather than a plugin one. No Debian package exists, so it would mean a
     `build.sh` install path this repo has no precedent for; 1.6k★ but semi-dormant (last commit
