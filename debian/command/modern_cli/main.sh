@@ -21,7 +21,7 @@ main() {
     bash './choose.sh' "$@"
     bash './eza.sh' "$@"
     bash './fdfind.sh' "$@"
-    bash './fzf.sh' "$@"
+    bash './fzf/main.sh' "$@"
     bash './micro/main.sh' "$@"
     bash './tldr.sh' "$@"
     bash './yazi.sh' "$@"

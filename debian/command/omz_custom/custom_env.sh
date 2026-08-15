@@ -38,6 +38,17 @@ render_blocks() {
         echo '# bat'
         echo 'compdef bat=batcat'
         echo
+        echo '# fzf'
+        echo 'export FZF_CTRL_T_OPTS="--preview \"bat --color=always --style=numbers --line-range=:200 -- {}\" --preview-window=right,60%,wrap --bind \"ctrl-/:change-preview-window(down|hidden|)\""'
+        echo 'export FZF_ALT_C_OPTS="--preview \"eza --tree --level=2 --color=always --icons=never -- {}\" --preview-window=right,60%,wrap --bind \"ctrl-/:change-preview-window(down|hidden|)\""'
+        echo
+        echo '# fzf-tab'
+        echo 'zstyle ":completion:*:*:*:*:*" menu no'
+        echo 'zstyle ":completion:*:descriptions" format "[%d]"'
+        echo 'zstyle ":completion:*" list-colors ${(s.:.)LS_COLORS}'
+        echo 'zstyle ":completion:*:git-checkout:*" sort false'
+        echo 'zstyle ":fzf-tab:*" switch-group "<" ">"'
+        echo
         echo '# Editor'
         echo 'export EDITOR=micro'
         if [[ $APP_VSCODE == '1' ]]; then

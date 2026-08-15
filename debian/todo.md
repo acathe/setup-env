@@ -7,15 +7,14 @@
 
 ## 总览
 
-- [ ] 1 修 `--command-modern-cli` 下的三处插件顺序回退
-- [ ] 4 fzf / fzf-tab / magic-enter 的配置落 `00-setup_env.zsh`
+- [ ] 4 magic-enter 的运行期命令落 `00-setup_env.zsh`
 - [ ] 5 atuin 的 zsh 补全落 fpath
 - [ ] 6 引入 atuin 接管 `^R` 与 `↑`
-- [ ] 7 CLAUDE.md 同步（随 1、4 落地）
+- [ ] 7 CLAUDE.md 同步（随 4 落地）
 - [ ] 8 yazi 的推荐配置、插件与 One Dark flavor
 
-1、4 只动 `command/omz_custom/`，5、6 只动 `command/modern_cli/main.sh`，互不冲突，且全部
-gate 在 `--command-modern-cli`，默认安装路径不受影响。7 是随 1、4 一起改的文档债。8 独立收拢
+4 只动 `command/omz_custom/`，5、6 只动 `command/modern_cli/main.sh`，互不冲突，且全部
+gate 在 `--command-modern-cli`，默认安装路径不受影响。7 是随 4 一起改的文档债。8 独立收拢
 `command/modern_cli/yazi/`，只额外改它在 `modern_cli/main.sh` 的调用路径和落地后的 `CLAUDE.md` 说明。
 
 ### Modern CLI 工具配置
@@ -26,7 +25,7 @@ gate 在 `--command-modern-cli`，默认安装路径不受影响。7 是随 1、
 - [x] `eza`
 - [x] `ripgrep`
 - [x] `zoxide`
-- [ ] `fzf`
+- [x] `fzf`
 - [x] `hyperfine`
 - [x] `sd`
 - [x] `btop`
@@ -42,109 +41,26 @@ gate 在 `--command-modern-cli`，默认安装路径不受影响。7 是随 1、
 
 ---
 
-## 1 · `--command-modern-cli` 下的三处插件顺序回退
+## 4 · magic-enter 的运行期命令 → `00-setup_env.zsh`
 
-**文件**：`debian/command/omz_custom/main.sh` 的 `install_plugin()`
+**文件**：`custom_env.sh` 已有的 `COMMAND_MODERN_CLI` gate
 
-**现状** `fzf` 混在中段的 `COMMAND_MODERN_CLI` 那批里（`:50`），`fzf-tab` 追加在函数最末
-（`:69`）—— 即 `zsh-autosuggestions` / `zsh-syntax-highlighting` 之后。`append_plugin()` 是纯尾部
-追加，数组顺序就是调用顺序，所以这三条同时违反 `CLAUDE.md`「omz plugin ordering」的：
+**现状** magic-enter 把 `MAGIC_ENTER_OTHER_COMMAND` 默认成 `ls -lh .`。启用 modern CLI 后 `ls`
+由 eza 插件接管，而 eza 的 `-h` 是 `--header`，不是 coreutils `ls` 的 human-readable；无论当前 eza
+插件是否额外补 `--show-group`，这层参数语义错配都还在。Git 仓库分支仍由插件自己的
+`git status -u .` 处理，只需修非 Git 目录的 fallback。
 
-| # | 违反 | 上游依据 |
-| --- | --- | --- |
-| 1 | `zsh-syntax-highlighting` 不是最后一个 | 上游 INSTALL.md 硬要求 |
-| 2 | `fzf-tab` 落在包装 ZLE widget 的插件之后 | fzf-tab README 第 2 条 |
-| 3 | `fzf` 在 `fzf-tab` 之前 | fzf 的 `completion.zsh` 把当时的 `^I` 绑定存为 `fzf_default_completion`，作非 `**` 触发时的回退 |
-
-第 3 条反了的后果不是「不生效」而是**套娃**：fzf-tab 成为最外层 widget，它调用 orig widget 取
-补全列表时会真的运行交互式的 `fzf-completion`，弹出两层 fzf。
-
-**改法** 从中段 gate 块删掉 `append_plugin 'fzf'`（`eza` / `zoxide` 留原位 —— omz 内置、纯别名、
-不碰 ZLE，位置自由），尾部改成：
+**改法** 在现有 modern CLI gate 中加入：
 
 ```bash
-    append_plugin 'ohmyzsh-full-autoupdate'
-    append_plugin 'you-should-use'
-    [[ $COMMAND_MODERN_CLI == '1' ]] && append_plugin 'fzf-tab'
-    [[ $COMMAND_MODERN_CLI == '1' ]] && append_plugin 'fzf'
-    append_plugin 'zsh-autosuggestions'
-    append_plugin 'zsh-syntax-highlighting' # 上游要求最后
-
-    return 0
+        echo
+        echo '# magic-enter'
+        echo 'MAGIC_ENTER_OTHER_COMMAND="eza -lah --git --icons"'
 ```
 
-同时满足约束 4：四个 clone 插件全部排在 `ohmyzsh-full-autoupdate` 之后。末条虽已是无条件语句，
-`return 0` 仍保留 —— 理由见 `CLAUDE.md` 的 `set -e` 一节，靠「最后一行碰巧无条件」会被下一次编辑
-悄悄弄坏。
-
-**全 flag 开启后的目标数组**：
-
-```zsh
-plugins=(setup-env aliases colored-man-pages dirhistory extract fancy-ctrl-z magic-enter safe-paste
-         sudo universalarchive eza zoxide docker docker-compose git tmux vscode golang python uv
-         rust ohmyzsh-full-autoupdate you-should-use fzf-tab fzf zsh-autosuggestions
-         zsh-syntax-highlighting)
-```
-
-（实际是一行；启用 modern CLI 时 `z` 已由 `omz_custom/main.sh` 反向 gate 掉。中段工具插件的
-相对顺序无约束。）
-
----
-
-## 4 · fzf / fzf-tab / magic-enter 的配置 → `00-setup_env.zsh`
-
-**文件**：`custom_env.sh` 已有的 `COMMAND_MODERN_CLI` 块
-
-三者的变量都是**运行期**读，落 `00-setup_env.zsh`（l.209，在全部插件之后）正合适 —— 这也正是
-这个文件能覆盖插件已设值的原因。追加在现有 `compdef bat=batcat` / `alias tree` / `function y()`
-之后即可，不新开 gate 块。
-
-```zsh
-# ── fzf ──
-# 软链之后 $+commands[fd] 为真，插件会自行设 FZF_DEFAULT_COMMAND；这里显式覆盖以补上 --follow，
-# 并补齐插件不设的两项 —— fzf 0.60 的 ^T / Alt-C 默认走内置 walker，它不读 .gitignore
-export FZF_DEFAULT_COMMAND="fd --type f --hidden --follow --exclude .git"
-export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
-export FZF_ALT_C_COMMAND="fd --type d --hidden --follow --exclude .git"
-export FZF_DEFAULT_OPTS="--height 40% --layout=reverse --border --info=inline --cycle"
-export FZF_CTRL_T_OPTS="--preview \"bat --color=always --style=numbers --line-range=:200 {}\" --preview-window=right,60%,wrap"
-export FZF_ALT_C_OPTS="--preview \"eza --tree --level=2 --color=always --icons {}\""
-
-# ── fzf-tab ──
-zstyle ":completion:*:*:*:*:*" menu no
-zstyle ":completion:*:descriptions" format "[%d]"
-zstyle ":completion:*" list-colors ${(s.:.)LS_COLORS}
-zstyle ":completion:*:git-checkout:*" sort false
-zstyle ":fzf-tab:complete:cd:*" fzf-preview "eza -1 --color=always --icons $realpath"
-zstyle ":fzf-tab:*" switch-group "<" ">"
-zstyle ":fzf-tab:*" fzf-flags --height=40% --layout=reverse --border --cycle
-
-# ── magic-enter ──
-MAGIC_ENTER_OTHER_COMMAND="eza -lah --git --icons"
-```
-
-五个要点：
-
-- **`FZF_CTRL_T_OPTS` 里的 `bat` 不需要再 gate 一层**。bat 与 fzf 同属 `--command-modern-cli`，
-  开了这个 flag 就一定有 `bat`，不存在跨 flag 依赖。
-- **`menu no` 必须写成五级 pattern**。zstyle 按 pattern 具体度决胜，omz `lib/completion.zsh:14`
-  设的是五级的 `zstyle ':completion:*:*:*:*:*' menu select`，比 fzf-tab README 里单级的
-  `':completion:*'` 更具体，照抄 README 无效。fzf-tab 靠它才拿得到 unambiguous prefix。
-- **`list-colors` 是覆盖不是新增**。`lib/completion.zsh:31` 把它设成了空串。
-- **`FZF_DEFAULT_COMMAND` 的覆盖成立**。`fzf.plugin.zsh:266` 的赋值有 `[[ -z … ]]` 守卫且发生在
-  l.203，我们在 l.209 重设，晚者胜。
-- **`MAGIC_ENTER_OTHER_COMMAND` 是修语义错配，不是审美偏好**。默认值 `ls -lh .` 装了 eza 后经
-  别名变成 `eza -g -l -h .`，而 eza 的 `-h` 是 `--header` 不是 human-readable。不装 eza 时默认值
-  没问题，装了才需要改。插件在 `:4` 用 `: ${VAR:="ls -lh ."}` 设默认，widget 在 `:19` 于运行期读
-  该变量 —— 我们在 l.209 的赋值晚于插件的 l.203，覆盖成立。
-
-**两层引号写法**（已实测）：`FZF_*_OPTS` 的值内含 `--preview "…"` 一层引号，是仓库里第一处需要
-两层的生成行。写成 `echo 'export FZF_CTRL_T_OPTS="--preview \"bat …\" …"'` —— 外层 bash 单引号把
-`\"` 原样吐出，zsh 的 `"…"` 再把 `\"` 还原成 `"`，`${(z)…}` 切词后 `--preview` 的参数正是一个整词。
-既守住「`echo` 单引号」的约定，也不必动用 `'\''`。
-
-选定内联界面，不用 `ftb-tmux-popup`。写入前按「与上游默认值有无实质差异」再过滤一遍 ——
-无条件段当初就是这样筛掉 `PYTHON_VENV_NAME` 与 `DIRHISTORY_SIZE` 的。
+插件加载时只写默认值，widget 在按 Enter 时才读取变量，所以 `00-setup_env.zsh` 的后置赋值有效。
+图标前提由已落地的 eza `icons` zstyle 满足。fzf / fzf-tab 的配置与 widget 顺序已经落地，相关定论和
+`$realpath` preview 的上游回归都已移入 `CLAUDE.md`，不再是本节待办。
 
 ---
 
@@ -232,11 +148,8 @@ eval "$(atuin init zsh --disable-ai)"
 
 不是独立工作，是上面几节落地后必须一起改的文档债，列出来免得漏：
 
-- **随第 1 节**：删掉「omz plugin ordering」里
-  「The debian tree still violates 1–3 whenever `--command-modern-cli` is on」那句现状陈述及其
-  `debian/todo.md` §1 指针。
-- **随第 4 节**：新记两条 —— zstyle 按具体度决胜、覆盖 omz 的 `menu select` 必须同为五级 pattern；
-  `FZF_*_OPTS` 那种两层引号的生成写法（`echo '… "… \"…\" …"'`）。
+- **随第 4 节**：在 `00-setup_env.zsh` 的 modern CLI gate 清单中加入 `# magic-enter`，并记录它只
+  覆盖非 Git 目录 fallback、变量由 widget 在运行期读取。
 
 ---
 
@@ -475,8 +388,7 @@ Yazi 默认主题，而不是静默换成不一致的 Dracula / Catppuccin。不
 APP_GIT=1 COMMAND_MODERN_CLI=1 CODE_PYTHON=1 HOME=$T bash debian/command/omz_custom/main.sh
 
 grep '^plugins=' "$T/.zshrc"
-# setup-env 首位、fzf-tab 在 fzf 前、二者都在 zsh-autosuggestions 前、
-# zsh-syntax-highlighting 末位、无 z
+# setup-env 首位
 
 cat "$T/.oh-my-zsh/custom/plugins/setup-env/setup-env.plugin.zsh"   # eza zstyle + PYTHON_AUTO_VRUN
 zsh -n "$T/.oh-my-zsh/custom/"{00-setup_env.zsh,01-first_run.zsh}
@@ -492,16 +404,14 @@ zsh -n "$T/.oh-my-zsh/custom/plugins/setup-env/setup-env.plugin.zsh"
 bindkey '^R'                # → atuin-search
 bindkey '^[[A'              # → atuin-up-search
 bindkey '^T'                # → fzf-file-widget（fzf 仍在）
-echo $FZF_DEFAULT_COMMAND   # → fd --type f --hidden --follow --exclude .git
+echo $FZF_DEFAULT_COMMAND   # → fd --type f --strip-cwd-prefix --hidden --follow --exclude .git
 ls -l ~/.local/bin/{fd,bat} # → fdfind / batcat
 yazi --version              # → 本次 package.toml 验证过的稳定版
 ya pkg list                 # → 4 plugins + onedark flavor，revision 均被锁定
 ```
 
 - 启动无 stderr（重点看 uv / rust / docker 的异步补全生成）。
-- `<TAB>` 走 fzf-tab，有 `[...]` 分组标题与文件配色，`<` `>` 能切组。
-- `cd <TAB>` 出 eza 目录预览；`vim **<TAB>` 走 fzf —— 证明回退链方向正确，且没有套娃出两层 fzf。
-- `^T` 有 bat 预览，且在带 `.gitignore` 的仓库里不列 `node_modules`。
+- `^T` 的 bat 预览在 atuin 接管 `^R` 后仍正常，且在带 `.gitignore` 的仓库里不列 `node_modules`。
 - `ll` 有表头、git 状态列、图标、相对时间；目录排在前。
 - 空命令行回车：git 仓库出 `git status -u .`，其他目录出 `eza -lah --git --icons`。
 - `fd <TAB>` / `bat <TAB>` / `atuin <TAB>` 均有补全（`yazi <TAB>` / `ya <TAB>` 由
