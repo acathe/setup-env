@@ -1,1058 +1,355 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code when changing this repository. Keep this file focused on current architecture, executable workflows, ownership boundaries, and
+failure modes that are not obvious from reading one script.
 
-## Overview
+## Project shape
 
-Bash scripts that provision development environments. There is no build step — the
-entry point is `main.sh`, which is designed to be piped straight from `curl`:
+This repository is a collection of Bash provisioning scripts. There is no build step and no test suite. The public entry point is designed to be piped from
+`curl`:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
     | bash -s -- --setup <macos|debian|container> [flags]
 ```
 
-`main.sh` shallow-clones the repo (branch from `--branch`, default `master`) into a
-temp dir and hands off to `<setup>/main.sh` (default `macos`), forwarding all unrecognized
-flags — the top-level `main.sh` itself understands only `--branch` and `--setup`.
-
-## Linting / running
-
-- Lint: `shellcheck **/*.sh` (config in `.shellcheckrc`; `SC2016` disabled because
-  single-quoted `jq`/`sed` programs contain `$` that is not a shell expansion).
-- The files `omz_custom/pre_plugin.sh`, `omz_custom/custom_env.sh` and `omz_custom/first_run.sh` write
-  into `$ZSH_CUSTOM` are zsh, not bash — they come from `echo` blocks and heredocs inside a bash
-  script, so `shellcheck` never inspects their contents. Render them (see below) and check with
-  `zsh -n`.
-- No test suite. To exercise a change without the full remote install, run a dispatcher
-  directly, e.g. `bash debian/main.sh --app-tmux` — note it still does real `apt` installs
-  and always runs `command/omz.sh` then `command/omz_custom/main.sh` first.
-- For fzf, parse `debian/command/modern_cli/fzf/fzfrc` with the trixie binary under
-  `FZF_DEFAULT_OPTS_FILE=debian/command/modern_cli/fzf/fzfrc FZF_DEFAULT_OPTS= fzf --version`, then
-  render `00-setup_env.zsh` and
-  inspect `${(z)FZF_CTRL_T_OPTS}` / `${(z)FZF_ALT_C_OPTS}` under `zsh -f`. Plugin-order changes
-  need a real ZLE smoke test, not only `bindkey`: ordinary Tab and `**<Tab>` must each invoke fzf
-  once, with `fzf_default_completion=fzf-tab-complete`; `^T` and Alt-C must remain single calls.
-- To check a `plugins=()` change, or anything `pre_plugin.sh` / `custom_env.sh` / `first_run.sh`
-  generates, without installing anything: run `command/omz_custom/main.sh` against a throwaway
-  `HOME` with a stub `git` (and, for macos, a `sed` shim mapping BSD `-i ''` to GNU `-i`) on
-  `PATH`, after copying `~/.oh-my-zsh/templates/zshrc.zsh-template` to `$HOME/.zshrc`. Every step
-  is just `git clone` + `sed` + plain file writes, so the four artefacts come out exact; component
-  flags are read from the environment, so `APP_GIT=1 command/omz_custom/main.sh` renders the gated
-  blocks too. Re-running the same `HOME` with every flag back off is the other half: `plugins=`
-  loses `setup-env`, `01-first_run.zsh` disappears, and the plugin file stays behind unreferenced
-  (see "Empty output is no output" and "Only `first_run.sh` deletes"). For load order, source the
-  rendered files in `oh-my-zsh.sh`'s own order (`setup-env` → the other plugins →
-  `00-setup_env.zsh`) under `zsh -f`: `chpwd_functions[(r)auto_vrun]` proves `PYTHON_AUTO_VRUN`
-  landed early enough (source the real `plugins/python/python.plugin.zsh` after it), and
-  `ZSH_HIGHLIGHT_HIGHLIGHTERS` coming out `(main brackets)` rather than `(brackets)` proves
-  `00-setup_env.zsh` landed late enough. For `01-first_run.zsh`, run omz's l.209 loop
-  (`for f ("$ZSH_CUSTOM"/*.zsh(N)); do source $f; done`) in two separate `zsh -f` invocations: it
-  fires on the first, is silent on the second, and `00-setup_env.zsh` does not grow again.
-
-## Architecture
-
-Three independent setup trees, selected by `--setup`:
-
-- `macos/` — Xcode CLT check, Homebrew, oh-my-zsh, plus optional apps. Positioned as a
-  *terminal client / jump box*, not a dev machine: its omz plugin list is picked around the
-  ssh-to-remote workflow (connect, manage keys, move files) and deliberately omits `git`.
-- `debian/` — the richest tree; installs zsh + oh-my-zsh unconditionally, then a
-  matrix of optional components. `--command-modern-cli` is a nested dispatcher, the same shape as
-  `--app-claude`: `command/modern_cli/main.sh` installs the bulk of the CLI tools itself — including
-  eza and zoxide — then runs the eight components under it: `modern_cli/atuin/`, `modern_cli/bat/`,
-  `modern_cli/choose.sh`, `modern_cli/fdfind.sh`, `modern_cli/fzf/`, `modern_cli/micro/`,
-  `modern_cli/tldr.sh` and `modern_cli/yazi/main.sh`. Each still installs its own
-  packages and owns whatever non-shell config that tool needs; none carries a flag of its own. One
-  component is shaped unusually: `--app-git`
-  deliberately spans all three layers of a single concern instead of being split by kind: it
-  installs the tooling (`gh` from the official apt repo, `git-delta`, `lazygit`), writes the global
-  git config, owns the `gh auth login` block in `01-first_run.zsh`, and owns
-  `~/.config/lazygit/config.yml`. That is why `git-delta` / `lazygit` are absent from
-  `--command-modern-cli`'s package list, and why the delta pager config is unconditional — the
-  script that writes it is the one that installed delta, so no cross-flag read is needed.
-  That last drop point is why the component lives in `debian/app/git/` (`main.sh` + `config.yml`)
-  rather than as a flat `app/git.sh`: it is the `debian/command/modern_cli/micro/` shape,
-  `install -Dm 644 './config.yml' "$HOME/.config/lazygit/config.yml"` and all. A shipped template
-  rather than an `echo` block because it is six lines of static YAML with no interpolation. It owns
-  only the Nerd Fonts version, side-panel width and delta pager; `nerdFontsVersion: "3"` must stay a
-  string because the unquoted integer fails the unmarshal. Five things about lazygit are worth
-  knowing before touching that file.
-
-  **lazygit has no plugin system.** The entire extension surface is that one config file:
-  `customCommands`, the `git.paging` pager, the `os.*` command hooks, `services` for self-hosted
-  PR URLs, and `keybinding.*`. There is no official theme gallery either — each colour scheme's own
-  org ships a port that sets nothing but the `gui.theme` keys. This file deliberately has no
-  `gui.theme`, so lazygit is not part of the tree's One Dark baseline; adding one would be a separate
-  `--app-git` change against the 0.50.0 schema, not something to infer from the other tools.
-
-  **The file is written against Debian's version, 0.50.0, and the pager keys have moved twice
-  since.** trixie ships 0.50.0 (upstream 2025-05-03) while upstream is at 0.63.1 (2026-07-15):
-  `git.paging` (object) → `git.pagers` (array, 0.63.1) → `git.diffRenderers` (master, unreleased).
-  Copying master's `Custom_Pagers.md` produces config that does nothing here. Changing the install
-  channel means rewriting that whole block.
-
-  **Unknown keys are silently ignored — the same trap as micro's `truecolor`.**
-  `app_config.go:202` is a bare `yaml.Unmarshal(content, base)` with no `KnownFields(true)`, on
-  master too. A key from a newer version's docs neither errors nor gets stripped; it is invisible
-  dead config that only a version check finds — the YAML *syntax* check cannot see it either.
-
-  **lazygit rewrites this file itself.** `app_config.go:221`'s `migrateUserConfig()` writes the
-  file back when it finds a key it can migrate. None of 0.50.0's five migratable keys is one we
-  write, so it never fires — **but that is a constraint on adding keys: check the migration list
-  first.** If it ever does fire, a re-run's `install -Dm 644` puts the template back. Note also
-  that `state.yml` in the same directory is lazygit's own state file; only `config.yml` is ours.
-
-  **delta reaches lazygit only through this file.** `git.paging.useConfig` defaults to `false`, so
-  `core.pager delta` in the gitconfig is invisible to lazygit — without the `pager` line it renders
-  git's own diff colouring. `--paging=never` is required (delta's default `paging = auto` wraps
-  less around it and breaks lazygit's rendering). Everything else delta needs is *inherited*: it
-  reads the global `[delta]` section on its own, so `setup_git()` configures both callers at once.
-  The cost is that `side-by-side` comes along, and delta 0.18.2 has no `--no-side-by-side`
-  (`--side-by-side=false` is a hard error); hence `gui.sidePanelWidth: 0.2` against the 0.3333
-  default, widening the main panel to fit two columns.
-
-  Vetted rejections for that file, recorded so they don't get re-proposed:
-  - `os.editPreset` — redundant. `guessDefaultEditor()` (`file.go:149-169`) reads `core.editor`,
-    then `$GIT_EDITOR` / `$VISUAL` / `$EDITOR`, and takes everything up to the first space, so
-    `custom_env.sh`'s `EDITOR=micro` and its `EDITOR="code --wait"` both land correctly with
-    nothing written.
-  - `update.method: never` — dead. `updates.go:166` skips the check outright when
-    `GetBuildSource() != "buildBinary"`, and `lazygit --version` reports `build source='debian'`.
-  - `git.paging.colorArg: always` — already the default (`lazygit --config`), even though the
-    official docs list it next to `pager`.
-  - `gui.nerdFontsVersion: "2"` — the wrong lever for a v2 font.
-    `patchFileIconsForNerdFontsV2()` substitutes only **3** codepoints, so it repairs almost
-    nothing. The version to set is `"3"`, and what decides whether that works is the terminal font:
-    p10k-media's bundled `MesloLGS NF` is Nerd Fonts **v2.3.3** (not rebuilt since 2023-04-03) and
-    covers 270/324 of lazygit's icons, against 321/328 for Nerd Fonts v3.4.0's own `Meslo.zip`.
-    `~/.p10k.zsh` declaring `POWERLEVEL9K_MODE=nerdfont-v3` is the signal that the v3 font is the
-    one installed — also the prerequisite for the eza plugin's `icons` zstyle.
-
-  `modern_cli/atuin/` installs trixie's `atuin` package (18.6.1-1), whose `/usr/bin/atuin` and
-  `/usr/share/zsh/vendor-completions/_atuin` already cover the binary and completion halves. It also
-  owns `~/.config/atuin/config.toml`, installed from `modern_cli/atuin/config.toml` with the same
-  overwrite-on-rerun policy as the other managed tool configs. The file contains only two material
-  deviations: `enter_accept = false`, because 18.6.1's generated config explicitly writes `true`
-  even though the Rust fallback is false, and `filter_mode_shell_up_key_binding = "session"`, so Up
-  stays within the current shell session while Ctrl-R keeps the global/fuzzy defaults.
-
-  No `update_check` key or generated completion belongs in that component. Debian removes Atuin's
-  `check-update` default feature at build time, and the package already owns `_atuin`; copying the
-  official-binary instructions for either would duplicate dead work. The remaining popular config
-  lines are defaults (`show_preview = true`, `secrets_filter = true`) or subjective UI choices
-  (`inline_height`, the `autumn` / `marine` themes), so they stay opt-in.
-
-  Atuin's zsh half lands through the one runtime drop point: the `COMMAND_MODERN_CLI` block in
-  `custom_env.sh` emits `eval "$(atuin init zsh)"`. It loads after omz's plugins, so Atuin takes
-  Ctrl-R and Up from fzf / omz while fzf keeps Ctrl-T, Alt-C and `**` completion. The shared section
-  has already set `ZSH_AUTOSUGGEST_STRATEGY=(history completion)` by then, so 18.6.1's init prepends
-  its optional strategy and the final array is `(atuin history completion)`. Its preexec / precmd
-  history hooks and ZLE search widgets come from the same init output. Loading those widgets after
-  `zsh-syntax-highlighting` is a deliberate, version-bound exception to the usual ordering rule:
-  on trixie's zsh 5.9, zsh-syntax-highlighting 0.8 uses the `zle-line-pre-redraw` hook rather than
-  wrapping the widgets that existed at source time, so later Atuin widgets remain highlighted.
-  Do not add `--disable-ai`: 18.6.1 accepts only `--disable-ctrl-r` / `--disable-up-arrow` and
-  predates the `?` AI binding entirely.
-
-  Installation remains local-first. The setup never imports old shell history: Atuin's bulk import
-  path bypasses the live `secrets_filter`, `history_filter`, `cwd_filter` and leading-space checks,
-  and repeated-import idempotency is not promised. It likewise never runs `register`, `login`,
-  `sync`, the packaged server service or an external plugin; account creation and E2EE sync are
-  explicit user choices. The built-in themes are only `default`, `autumn` and `marine`, and no
-  official or organised, maintained One Dark port exists, so the ANSI-based `default` theme is the
-  portable choice and naturally follows a One Dark terminal palette.
-
-  `modern_cli/bat/` installs the `bat` package, makes the `~/.local/bin/bat` symlink over Debian's
-  `batcat`, and ships `~/.config/bat/config`. The symlinked name needs one `compdef bat=batcat`
-  line, which `custom_env.sh` writes — see the `compinit` discussion under Conventions for why that
-  line is required and an alias would not have been. Four things about `bat/config` are worth
-  knowing before touching it. Its two lines are verbatim the two options bat's own
-  `--generate-config-file` template leaves commented out, so it diffs cleanly against upstream. Its
-  format is a shell word-split per line, so — unlike micro's JSON — it takes `#` comments,
-  whole-line *or* trailing, which is what lets it carry the managed-by header; that same splitting
-  makes `--theme="TwoDark"`'s quotes decorative rather than load-bearing, the opposite of
-  `git/config.yml`'s. Where micro and lazygit silently ignore an unknown key, bat **hard-errors**
-  on one — the file's words are prepended to argv, so clap rejects it and *every* `bat` run fails
-  until it is removed. And it must be the **only** place bat's theme is set: `BAT_THEME` in the
-  environment outranks the config file (verified in both directions). Yazi's Piper code preview
-  invokes bat without `--theme`, so it inherits the same file. delta is unaffected either way — its
-  theme comes from gitconfig (`delta.syntax-theme`), not from `BAT_THEME`.
-
-  With `bat/config` the rule is uniform across the repo: **a tool's own config file is always a
-  shipped artifact, never an `echo` block.** `micro/settings.json`, `git/config.yml`, `bat/config`,
-  `fzf/fzfrc`, `atuin/config.toml`, `yazi/yazi.toml`, `yazi/init.lua` and `yazi/keymap.toml` all
-  land through `install -Dm 644`, and `copilot_api/settings.json` is that plus `jq` interpolation.
-  What is left to `echo` is only the files this repo invented (`00-setup_env.zsh`,
-  `01-first_run.zsh`, `setup-env.plugin.zsh`) and the appends into files an
-  upstream installer or the shell already made (`tmux.conf.local`, `.zshenv`, the ssh config) —
-  plus the git config, which goes through `git config --global` and has no file to ship.
-
-  `modern_cli/fdfind.sh` is that same arrangement for `fd` minus the config file: it installs
-  `fd-find` and makes the `~/.local/bin/fd` symlink over Debian's `fdfind`, and extracting it is
-  what removed `link_binaries()` from `main.sh` — `fd` was its only entry. Unlike bat it needs no
-  `compdef` line, because Debian's `_fd` declares `#compdef fd` and the symlinked name is therefore
-  already registered.
-
-  `eza` stays in `modern_cli/main.sh`'s bulk apt list and has no static tool config artifact. This is
-  deliberate: trixie's 0.21.0 reads `theme.yml` / `theme.yaml`,
-  but those files configure only colours, style attributes, glyphs and filename / extension
-  mappings — eza has no `config.yaml` / `config.toml` for general display flags. The official eza
-  repository links to the same-organisation `eza-themes` community collection, but its One Dark
-  entry is not built in, release-coupled or compatibility-tested; it has not changed since
-  2024-09-18 and its `security_context` shape is already stale for 0.21.0. This tree therefore ships
-  no eza theme.
-
-  eza has no plugin system. Debian already ships `_eza` in zsh's vendor completions, while the OMZ
-  `eza` plugin owns the aliases and is enabled by `omz_custom/main.sh`. Before that plugin loads,
-  `pre_plugin.sh` writes five settings under the same `COMMAND_MODERN_CLI` gate: directories first,
-  Git status, headers, icons and relative times. All five materially differ from both the OMZ and
-  eza defaults: the first four are off by default, and eza's default time style is not `relative`.
-  They become `--group-directories-first`, `--git`, `-h`, `--icons=auto` and
-  `--time-style='relative'`; auto icons do not pollute redirected output but still need a Nerd Font
-  v3, while Git status adds work in large repositories. The plugin has no `tree` alias, so the
-  runtime `alias tree="eza --tree"` remains in `custom_env.sh`.
-
-  The remaining OMZ settings stay absent rather than restating defaults or turning preferences into
-  policy. Unset `show-group` adds no `-g` despite its README incorrectly claiming a default of yes;
-  unset `size-prefix` keeps eza's SI behavior; colour scale is off, its `gradient` mode is merely the
-  inactive default, and hyperlinks remain opt-in. eza's shell integration stays centralized by
-  landing point — plugin selection in `omz_custom/main.sh`, load-time zstyles in
-  `omz_custom/pre_plugin.sh`, and the runtime tree alias in `omz_custom/custom_env.sh` — rather than
-  being appended by the installing component.
-
-  `modern_cli/fzf/` installs the `fzf` package and ships `~/.config/fzf/fzfrc`. Trixie currently
-  supplies `0.60.3-1+b2`; its binary identifies itself only as `0.60 (devel)`, so use `dpkg-query`
-  rather than `fzf --version` when the Debian patch version matters. `pre_plugin.sh` exports
-  `FZF_DEFAULT_OPTS_FILE` from the first-loaded `setup-env` plugin — fzf does not discover that XDG
-  path on its own. Version
-  0.60.3 parses the file first, then `FZF_DEFAULT_OPTS`, then argv, so a user's environment or a
-  caller's command-line flags can still override the shipped baseline. The file uses the same
-  shell-word parser as the environment variable: blank lines and `#` comments work, while an
-  unknown option hard-errors every invocation. Standalone fzf reports the config path; Debian's
-  zsh widgets first concatenate the file into `FZF_DEFAULT_OPTS`, so their error names that
-  variable instead.
-
-  `fzfrc` deliberately contains only `--layout=reverse`, `--border` and `--cycle`; it ships no
-  colour scheme. The One Dark snippet in fzf's Wiki is a static community contribution last changed
-  in 2019, not a release-maintained official theme or an actively maintained theme project, so
-  vendoring its colour literals would make this tree their maintainer. fzf instead keeps its own
-  terminal-derived default palette. The file also has no height, global preview, popup, padding or
-  icon glyphs. The packaged zsh key bindings already prepend a 40% height to `^T` / Alt-C, fzf-tab
-  calculates a dynamic height and supplies reverse/cycle itself, and standalone fzf is more useful
-  full-screen. Current fzf-tab clears `FZF_DEFAULT_OPTS` when `use-fzf-default-opts` is off but
-  leaves `FZF_DEFAULT_OPTS_FILE` visible (Aloxaf/fzf-tab#537), so every option in this file must stay
-  safe for completion too; layout/border/cycle are, whereas a global preview or `--tmux` would not be.
-
-  The shell half stays centralized under `omz_custom/` but is split by read time. `pre_plugin.sh`
-  writes the opts-file path plus `FZF_DEFAULT_COMMAND`, `FZF_CTRL_T_COMMAND` and
-  `FZF_ALT_C_COMMAND` into the first-loaded `setup-env` plugin. This is correctness, not merely
-  early tidiness: omz initializes fzf with `fzf --zsh`, which parses the inherited opts-file path,
-  and the generated key-binding script decides at load time whether empty Ctrl-T / Alt-C commands
-  disable their widgets. Setting these four values first repairs stale inherited values before
-  either decision. `FZF_DEFAULT_COMMAND` is only the TTY-input default — fzf explicitly does not
-  reuse it for shell widgets — so all three commands remain necessary. They use fd's official
-  `.gitignore` recipe (`--strip-cwd-prefix --hidden --follow --exclude .git`); the first two select
-  files only so bat can preview every `^T` candidate, while Alt-C selects directories only.
-
-  `custom_env.sh` supplies the two preview option strings after plugin loading because widgets read
-  them at invocation time: bat for files, a two-level icon-free eza tree for directories, `--`
-  before `{}`, and Ctrl-/ to cycle right/down/hidden layouts. The adjacent fzf-tab block uses a
-  five-field `menu no` pattern to outrank omz's equally specific `menu select`, restores
-  `list-colors`, keeps Git checkout's ordering and binds `<` / `>` for group switching. It
-  deliberately has no `cd` preview: `$realpath` is empty in fzf-tab v1.3.0/current master (open
-  issue #575; PR #577 is still unmerged), and this tree neither pins nor patches a plugin managed
-  by `ohmyzsh-full-autoupdate`.
-
-  Zoxide owns no install-time config at all, so its package stays in `modern_cli/main.sh`'s bulk apt
-  list rather than getting a leaf script. Trixie ships zoxide 0.9.7. It has no static config file,
-  theme or plugin API: configuration is `zoxide init` plus the `_ZO_*` environment variables. Oh My
-  Zsh's `zoxide` plugin already owns initialization and does exactly one
-  `eval "$(zoxide init --cmd ${ZOXIDE_CMD_OVERRIDE:-z} zsh)"`; that output supplies `z` / `zi`,
-  the `chpwd` hook and completion. When `COMMAND_MODERN_CLI=1`, `install_plugin()` therefore omits
-  zsh-z's `z` plugin and includes `zoxide`; with the flag off it does the reverse, and
-  `custom_env.sh` emits `ZSHZ_CASE` / `ZSHZ_TILDE` only for that zsh-z path. A second init or a
-  third-party zsh wrapper would duplicate functions, completion and the scoring hook. This
-  component targets a fresh, empty Debian container, so setup deliberately does not inspect or
-  import `~/.z` or any other legacy navigation database.
-
-  Vetted configuration rejections for zoxide 0.9.7:
-  - `ZOXIDE_CMD_OVERRIDE` / `--cmd` — the default `z` is the wanted command. `--hook pwd` is already
-    the default and matches this tree's directory-change workflow.
-  - `_ZO_DATA_DIR`, `_ZO_EXCLUDE_DIRS` and `_ZO_MAXAGE` — their defaults already select the XDG
-    data location, exclude `$HOME` and use the upstream ageing threshold. `_ZO_ECHO` and
-    `_ZO_RESOLVE_SYMLINKS` change visible or path-identity semantics rather than improving every
-    environment. `_ZO_DOCTOR=0` only suppresses the generated missing-hook diagnostic, hiding the
-    exact ordering regression it exists to report.
-  - `_ZO_FZF_OPTS` — `zi` already feeds fzf NUL-delimited score-and-path rows, fixes the path to
-    field 2, and supplies its own height / layout / border plus an `ls` preview. Setting the variable
-    replaces that complete default rather than appending one option; swapping in eza would require
-    copying the whole upstream option string and tracking it across upgrades.
-  - Extra shell plugins, a theme, or Yazi / powerlevel10k glue — zoxide has no such extension or
-    visual layer. Yazi's default `Z` binding already invokes zoxide, and powerlevel10k renders the
-    resulting working directory without knowing which command changed it.
-
-  `glow` deliberately stays in `modern_cli/main.sh`'s bulk apt list rather than becoming a directory
-  component: setup-env owns no Glow config. Trixie ships Glow 2.0.0 with Glamour 0.8.0; the generated
-  `~/.config/glow/glow.yml` already selects `style: "auto"`, `mouse: false`, `pager: false` and
-  `width: 80`, and none needs a repo-wide override. The non-default switches are not general
-  improvements either. `--all` only expands the TUI's Markdown search to the dotfiles,
-  `node_modules` and `GOPATH` it normally ignores; TUI line numbers count rendered display lines,
-  not source lines; and preserved newlines are consumed by the TUI pager's Glamour path, useful for
-  poetry or hand-laid-out notes but harmful to normal Markdown reflow. Keep all three opt-in.
-
-  Glow has no plugin API. Glamour 0.8.0's built-in top-level styles are `auto`, `ascii`, `dark`,
-  `dracula`, `tokyo-night`, `light`, `notty` and `pink`; One Dark is not one of them. As of
-  2026-08-10 the organised community themes are other palettes, while the One Dark files found are
-  unmaintained or lack a reusable licence, so this tree ships no Glow stylesheet. That also leaves
-  no reason for a Glow alias, helper function, completion artifact or global `GLOW_*` /
-  `GLAMOUR_*` setting; the later omz-plugin rejection remains the shell-side half of this choice.
-
-  Glow's one Yazi integration is an adaptation of the official `piper` recipe shipped in
-  `modern_cli/yazi/yazi.toml`: `CLICOLOR_FORCE=1 glow -w=$w "$1"`. Omitting the recipe's
-  `-s=dark` leaves style selection at Glow's `auto` baseline rather than coupling it to a Yazi
-  flavor. Non-TTY output on Glow 2.x can quantise the selected style's RGB colours — chiefly
-  Chroma code highlighting — to ANSI/256 colours even with `CLICOLOR_FORCE=1`; layout, emphasis
-  and syntax categories are unchanged. Do not promise TrueColor parity until a released Glow
-  contains the still-open `--color=always` work, and do not fake a TTY or `TERM` meanwhile.
-
-  Paging stays opt-in too. `glow -p` sends the rendered document to `$PAGER`, falling back to
-  `less -r`; `PAGER='less -R' glow -p FILE.md` is the safer one-shot form because `-R` passes ANSI
-  colour sequences without allowing every control character. Do not export `PAGER='less -R'`:
-  pager options belong in `$LESS` (the `APP_TMUX` block already owns this tree's `LESS` value), and
-  a global `$PAGER` changes unrelated programs. Glow parses Markdown, not roff or Git patches, so it
-  is not a `MANPAGER`, Git pager or replacement for delta either.
-
-  `modern_cli/choose.sh` downloads the latest release's unversioned x86_64 GNU asset directly and
-  installs it as `~/.local/bin/choose`; it has no package, completion or config of its own, and the
-  user-level drop point is why this component needs no `sudo`.
-
-  `modern_cli/yazi/` is a directory component because it owns three static config artifacts alongside
-  `main.sh`. The script keeps the old flat component's direct flow: download the unversioned x86_64
-  GNU zip from `releases/latest/download` to `/tmp/yazi.zip`, unpack it under `/tmp`, then install
-  `yazi` / `ya` into `~/.local/bin` and the zip's `_yazi` / `_ya` completions into
-  `$ZSH_CUSTOM/completions/`. It installs its direct `file` and `unzip` dependencies and deliberately
-  does not resolve, pin or validate the release version; a rerun picks up whatever `latest` supplies.
-
-  After installing the binaries, `install_plugins()` prepends `~/.local/bin` to `PATH` and passes all
-  six official plugins to one `ya pkg add`: `piper`, `git`, `toggle-pane`, `smart-enter`,
-  `smart-filter` and `smart-paste`. This component targets a clean Debian first install, so it does
-  not inspect or reconcile pre-existing package state. With neither `YAZI_CONFIG_HOME` nor
-  `XDG_CONFIG_HOME` set in that environment, Ya uses its default `~/.config/yazi/` and maintains the
-  runtime `package.toml` there; that mutable manifest is not a shipped artifact.
-
-  Only after all plugins succeed does `install -Dm 644` deploy `yazi.toml`, `init.lua` and
-  `keymap.toml`. `yazi.toml` sends Markdown through Piper and Glow first, then replaces Yazi's two
-  built-in `code` MIME scopes (`text/*` and `application/{mbox,javascript,wine-extension-ini}`) with
-  `piper -- bat -p --color=always`; its Git fetchers still cover both files and directories.
-  `init.lua` fixes Git status-sign order at 1500. `keymap.toml` binds `T` to
-  maximize or restore the preview pane, replaces `l` with smart-enter, adds smart-filter on `F`, and
-  replaces `p` with smart-paste; smart-enter keeps its default single-hovered-item behavior rather
-  than enabling `open_multi`.
-
-  Those `$HOME` drop points are already on `PATH` / `fpath` (see the `~/.local/bin` note under
-  Conventions and `oh-my-zsh.sh:76`'s unconditional
-  `fpath=(… $ZSH_CUSTOM/{functions,completions} …)`). The `y()` cwd-following wrapper remains owned
-  by `command/omz_custom/custom_env.sh`, the only writer of `00-setup_env.zsh`; the component never
-  appends shell config behind that landing point.
-
-  There is deliberately no `theme.toml`. Built-in `z` / `Z` still cover fzf and zoxide, and the
-  default opener still reads `$EDITOR`. The selected official plugins add repository state and
-  keyboard-only file-management improvements without desktop dependencies; jump-to-char, chmod and
-  further visual changes remain opt-in. The official flavor collection contains no One Dark flavor,
-  so a small community package is not a reason to override Yazi's maintained defaults. Mount,
-  clipboard and media extensions also stay out of the headless SSH baseline, as do their desktop or
-  image-stack dependencies.
-
-  The install channel itself is settled, with the two obvious alternatives rejected. **cargo** is
-  out: yazi's MSRV is `1.95.0` against trixie's apt `cargo` 1.85.0 and backports' 1.94.1, so it would
-  mean a ≥1.95 toolchain (117 MB) plus a 5–15 minute build to reproduce what upstream CI already
-  publishes — and `cargo install --force yazi-build`, the only command that works, does its real
-  work in a `build.rs` that `git clone`s and builds under `env::temp_dir()` without ever cleaning
-  up. The **official `.deb`** is out too: ffmpeg, imagemagick, poppler-utils, 7zip and
-  `xsel|xclip|wl-clipboard` are hard `Depends:` — 200 new packages on a
-  `--no-install-recommends` dry run — and its assets carry only the bash completions. The zip is the
-  most complete artifact of the three: `scripts/build.sh` sets `YAZI_GEN_COMPLETIONS=1`, so its
-  `completions/` holds every shell, zsh included.
-
-  `modern_cli/tldr.sh` is the smallest: it installs `tealdeer` (leaving
-  `~/.config/tealdeer/config.toml` unseeded at its defaults), warms the offline page cache with
-  `tldr --update || true` (a network failure is not fatal — the cache fills on first use), and
-  symlinks Debian's `/usr/share/zsh/vendor-completions/tldr.zsh` into `$ZSH_CUSTOM/completions/`
-  under the name `_tldr` — the only reason that completion ever loads, for which see the `compinit`
-  discussion under Conventions. A symlink rather than `install -Dm 644` because the source is a
-  packaged file that apt will upgrade in place; the `[[ -f $completion ]]` guard ahead of it is
-  there because `ln -sf` against a missing source does not fail, it leaves a dangling link — the
-  exact silent-no-op failure mode the symlink exists to undo.
-- `container/` — builds and runs a Docker dev container (`dev-container`), the
-  `copilot-api` image, or a one-shot `copilot-api-config` task.
-
-`windows-wip/` is **not** a setup tree — it is a staging area for scripts awaiting Windows
-adaptation. No `--setup` value reaches it and nothing runs it; `windows-wip/code/{csharp,powershell}.sh`
-are still the Debian `apt` versions they were before being moved out of `debian/code/`.
-
-`debian/vscode/` and `windows-wip/vscode/` are reference data, not dispatcher components — no
-script installs them (`--app-vscode` on debian only adds the omz `vscode` plugin in
-`command/omz_custom/main.sh` and the `EDITOR="code --wait"` branch in
-`command/omz_custom/custom_env.sh`).
-`windows-wip/vscode/` holds only the C#/PowerShell delta on top of `debian/vscode/`; `README.md`
-documents the manual `code --install-extension` step and the `files.readonlyInclude` merge caveat.
-
-`debian/todo.md` is the debian tree's pending-work list, carrying only what is still undone, each
-item with its current state, the fix, and the upstream citation behind it. Everything already
-settled lives in this file instead; the two are meant to be read together, and an item that lands
-here should leave `debian/todo.md`.
-
-### The dispatcher pattern
-
-1. Env-var defaults with override: `export FOO="${FOO:-0}"`. The platform roots `debian/main.sh`
-   and `macos/main.sh` export their flag vars so leaf scripts can read them.
-2. `parse_args()` walks `$@`, sets vars for known flags, and pushes everything else onto
-   `POSITIONAL` so downstream scripts can still see their own flags.
-3. Boolean flags (`--app-tmux`) `shift` once; value flags (`--branch <v>`) use the
-   `numOfArgs` idiom that guards against a missing trailing value before `shift`ing twice.
-4. `main()` runs each enabled component's leaf script, gated on `FOO == '1'`, in a fixed group
-   order: **`--command-*` → `--code-*` → `--tools-*` → `--app-*`**, alphabetical within each group.
-   The grouping is dependency-shaped — a language toolchain (`--code-*`) can be a prerequisite for
-   an app, never the reverse — and the `export` block and `parse_args()`'s cases repeat it, so the
-   file reads top-to-bottom in the order it runs. Every gate runs exactly one script; a component
-   made of several scripts nests them under its own directory and lets its `main.sh` run them
-   (`--command-modern-cli`, `--app-claude`). Exporting is a deliberate cross-cutting mechanism: a
-   leaf can read *another* component's flag to add integration config only when both are enabled —
-   e.g. `tmux.sh` reads `APP_CLAUDE` (Claude Code passthrough / extended-keys when `--app-tmux` +
-   `--app-claude`). That env read is intentional, not a missing `parse_args`. The
-   `command/omz_custom/` scripts read component flags for a different reason: they *own* drop
-   points that every component writes through, so they gate their `append_plugin` calls and their
-   generated blocks instead of letting the component touch `plugins=()` or the file.
-5. Standard footer guard so scripts are both runnable and sourceable:
-
-   ```bash
-   if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
-       cd "$(dirname "${BASH_SOURCE[0]}")"
-       parse_args "$@"
-       set -- "${POSITIONAL[@]}"   # restore positional params
-       main "$@"
-   fi
-   ```
-
-**When adding a new component**, mirror this pattern: add the `export FOO=...` default and
-`--flag` case to the relevant `main.sh` — in its group's slot — add the gated
-`bash './path/foo.sh' "$@"` call, write the leaf script with the same footer, and document the flag
-in `README.md`'s table. Four lists then have to stay in that same order: `main()`'s gates, the
-`export` block, `parse_args()`'s cases, and the README table.
-Runtime shell config the component needs goes to `command/omz_custom/custom_env.sh` — a block
-gated on the new flag, never a `>>` into `00-setup_env.zsh` from the component's own script
-(see Conventions); config a plugin reads *while loading* goes to
-`command/omz_custom/pre_plugin.sh` instead, same rule. If it also wants an omz plugin, that goes
-in `command/omz_custom/main.sh` — an `append_plugin` call in `install_plugin()` gated on the new
-flag, plus a `git clone` in `download_plugin()` if it is third-party — never a `sed` on
-`plugins=()` from the component's own script. If it needs a one-off
-*interactive* step the unattended install cannot perform (a login prompt, a wizard), that goes in
-`command/omz_custom/first_run.sh` — a block gated on the new flag, same ownership rule. In
-`pre_plugin.sh` and `first_run.sh` the gated block is the *whole* addition; there is no second
-condition to keep in step (see "Empty output is no output").
-
-### Nesting
-
-Flags cascade through nested dispatchers. `--app-claude` (in `debian/main.sh`) invokes
-`debian/app/claude/main.sh`, whose own `--app-claude-copilot-api` then invokes
-`debian/app/claude/copilot_api/main.sh`, which parses the base URL, auth token and three default
-model value flags. `README.md` groups flags as "main args" vs "script args" to reflect which
-dispatcher owns them.
-
-### Container flow
-
-`container/dev-container/main.sh` base64-encodes the forwarded setup flags
-(`setup_args_b64`) and passes them as a Docker build-arg. The `Dockerfile` decodes them and
-runs `debian/main.sh --unattended <flags>` inside the image (build context is `../../debian`).
-So container flags are really debian flags — `--unattended` (see `command/omz.sh`) makes oh-my-zsh
-install non-interactively and switches the login shell.
-
-### Claude Code plugin and LSP integration
-
-`debian/app/claude/main.sh` reads `CODE_GO`, `CODE_PYTHON` and `CODE_RUST` from the Debian
-dispatcher instead of parsing `--code-*` again. The language components run first and own their
-toolchains; when enabled, the Claude component then owns both the server and plugin halves of each
-LSP integration. `--app-claude` itself has no language-flag dependency because it always installs its
-common plugins.
-
-`install_plugin()` exposes `~/.local/bin` for the newly installed `claude`, then explicitly adds
-`claude-plugins-official` because automatic registration does not happen until the first interactive
-Claude launch. It always installs `claude-code-setup@claude-plugins-official`,
-`claude-md-management@claude-plugins-official`, `claude-security@claude-plugins-official` and
-`hookify@claude-plugins-official` as marketplace plugins, not their internal skills. `APP_GIT` adds
-`commit-commands`; each language stays in one block: Go adds `~/go/bin` and `/usr/local/go/bin`,
-installs latest `gopls`, then `gopls-lsp`; Python adds `~/.local/bin`, installs the isolated
-`pyright[nodejs]` uv tool, then `pyright-lsp`; Rust adds `~/.cargo/bin`, installs the
-`rust-analyzer` rustup component, then `rust-analyzer-lsp`.
-
-The explicit marketplace add writes `extraKnownMarketplaces`, while plugin install writes
-`enabledPlugins`. After all plugins are installed, the script uses `jq` and a mode-600 temporary file
-to remove only the official marketplace declaration (and the empty parent map), preserving
-`enabledPlugins`, copilot/custom marketplaces and the separate registry/cache files. This deliberately
-relies on Claude Code 2.1.233 continuing to recognize its internal official registry; never replace
-that cleanup with `marketplace remove`, which would uninstall the plugins.
-
-`install_plugin()` runs after the optional copilot-api child because `install_settings()` replaces
-`~/.claude/settings.json`; registering or cleaning enabled plugin state earlier would let that template
-erase the final `enabledPlugins` entries.
-
-### copilot-api integration
-
-`copilot_api/main.sh` validates the requested models, installs the completed `settings.json` as
-`~/.claude/settings.json`, then installs the copilot-api plugins. The caller must supply the Opus,
-Sonnet and Haiku default models through their value flags or corresponding
-`APP_CLAUDE_DEFAULT_*_MODEL` variables. `check_model()` requests
-`$APP_CLAUDE_BASE_URL/v1/models` for each model, uses `jq` only to extract the `claude_model_id`
-values, then checks for an exact line match. `main()` owns the empty/missing-model error; there is
-no generation, family or fallback selection.
-
-`install_settings()` passes those three models plus `APP_CLAUDE_BASE_URL` (default
-`http://localhost:4141`) and `APP_CLAUDE_AUTH_TOKEN` to `jq` under their final `ANTHROPIC_*` key
-names, merges `$ARGS.named` into the shipped template, writes it directly to the target, and sets
-the target directory and file to modes 700 and 600 respectively. A model's
-`[1m]` suffix already tells Claude Code to use its extended context window, so the template
-deliberately leaves `CLAUDE_CODE_AUTO_COMPACT_WINDOW` unset and lets Claude Code keep its own
-output and compaction reserves. It configures automatic teammate mode, the large workflow size
-guideline and fullscreen TUI. The server must already be reachable at `APP_CLAUDE_BASE_URL`.
-
-The installed marketplace supplies both `agent-inject` and `tool-search`. `tool-search` provides
-the GPT Responses deferred-tool MCP bridge; Claude Code's native `ENABLE_TOOL_SEARCH` must stay
-unset because it can withhold the full tool definitions the gateway needs. Both plugins use Node,
-npm and npx, but `install_plugins()` deliberately keeps the old lightweight bootstrap: it checks
-only whether `node` exists and installs NodeSource LTS when it does not, leaving plugin installation
-to report an incomplete or incompatible existing runtime. Node remains this integration's private
-dependency — there is no standalone `--tools-node` component or `debian/tools/node.sh` — and
-`build-essential` remains unnecessary for the prebuilt package and plugins.
-
-## Conventions
-
-- Every script starts with `#!/usr/bin/env bash` and `set -euo pipefail`.
-- **Quoting: `'…'` for literals, `"…"` only where something expands.** A double quote in this
-  repo is a claim that the string contains a `$`, a `` ` ``, or an escape — so `append_plugin 'z'`,
-  `[[ $CODE_GO == '1' ]]`, `bash './code/go.sh' "$@"`, `curl -fsSL 'https://…'`, `echo 'Docker is
-  not installed.' >&2`. Three corollaries, each of which has already bitten:
-
-  1. **`${VAR:-default}` takes a bare default**, not a quoted one. The surrounding double quotes
-     already suppress splitting, and `"${BRANCH:-'master'}"` expands to a literal `'master'`,
-     quotes and all — a silent bug, not a style choice.
-  2. Bare words stay bare where the repo never quoted them: `> /dev/null`, command names, apt /
-     brew formula names, option values (`--restart unless-stopped`, `-p 4141:4141`), and
-     `git config --global delta.navigate true`. Paths, URLs, filenames, cask names and container
-     names do get quoted.
-  3. Single quotes cannot contain a single quote — not even with `\'`, since bash has no escape
-     inside `'…'`; the quote has to be broken (`'\''`). The next rule is what keeps that out of
-     this repo entirely.
-- **Generated content: the `echo` is single-quoted, the content inside it is double-quoted.**
-  Every line written into `00-setup_env.zsh`, `.zshenv`, `.zshrc` or `tmux.conf.local` goes out as
-  `echo '…'`, so bash emits it verbatim and nothing can expand at setup time. Quoting *within* the
-  generated line — read later by zsh or tmux, not by bash — is then free to be `"…"`:
-
-  ```bash
-  echo 'export YSU_MESSAGE_POSITION="after"'
-  echo 'alias tree="eza --tree"'
-  echo 'export PATH="$PATH:/usr/local/go/bin"'      # $PATH survives to .zshenv
-  echo '    IFS= read -r -d "" cwd < "$tmp"'        # zsh reads "" as the NUL delimiter
-  echo 'set -as terminal-features "xterm*:extkeys"' # tmux.conf.local
-  ```
-
-  Never flip the outer pair to double in order to put single quotes inside — that is how
-  `export PATH="$PATH:…"` silently becomes the build machine's literal `PATH`. And never stack
-  `'\''`: with the content double-quoted there is no single quote left to escape. The only `echo`s
-  that legitimately open with `"` are the ones whose *own* text interpolates a variable
-  (`echo "Host $COMMAND_SSH_HOST"`, `echo "Unsupported setup: $SETUP" >&2`) — plus
-  `omz_custom`'s `echo "$blocks"`, which replays lines that were emitted by single-quoted `echo`s
-  inside a `$( … )` and captured verbatim. Parameter expansion is not re-scanned, so a `$` sitting
-  in `$blocks` reaches the file as text exactly as it would have from the original `echo '…'`.
-- Prefer `command -v foo` guards before use; install missing deps with
-  `sudo apt-get update && sudo apt-get install -y foo` (debian) inline.
-- **Every GitHub release download goes through `releases/latest/download/<asset>`.** A tag never
-  appears in a URL. What decides whether any version resolution happens at all is the *asset
-  filename*. `choose-x86_64-unknown-linux-gnu` and `yazi-x86_64-unknown-linux-gnu.zip` carry no
-  version, so `command/modern_cli/choose.sh` and `command/modern_cli/yazi/main.sh` download in one
-  line from pure literal URLs — single-quoted, per the quoting rule — with no helper at all.
-  `protoc-35.1-linux-x86_64.zip` embeds one, so `tools/protobuf.sh` still resolves it, but only to
-  build the *filename*, never a `/releases/download/v<tag>/` path. `get_protoc_latest()` is that
-  resolver: `curl -fsSIL -o /dev/null -w '%{url_effective}'` on `/releases/latest` piped through one
-  `sed -E 's#.*/tag/v?([^/]+)$#\1#'` (the `v?` strips the tag prefix the asset name does not want),
-  followed at the call site by an `if [[ -z $version ]]` guard, since a network failure yields an
-  empty string rather than a non-zero exit and `set -e` cannot catch it. **Resolving a version only
-  to write it straight back into the URL path is the tell that the step is dead weight** — that was
-  Yazi's old resolver, with the bare number never used for anything.
-
-  This does not pin a version — `latest` is `latest` either way, so a re-run of choose or Yazi picks
-  up whatever shipped since. `latest` plus an explicit version in an asset filename still has a
-  race: if upstream publishes between resolution and download the old filename 404s — loud, not
-  silent, since `curl -f` exits non-zero and `set -e` aborts before anything is installed.
-
-  `container/copilot-api/main.sh`'s `get_copilot_api_latest()` is the same helper but sits outside
-  this rule: it has no asset URL to write. `$version` is a git ref for `docker build`
-  (`…/copilot-api.git#v$version`) and the tag of the image it then runs.
-- Config edits are done in-place with `sed -i` against known upstream markers (e.g.
-  toggling commented lines in `.zshrc` / `tmux.conf.local`, or inserting into `plugins=(...)`).
-  These depend on the exact upstream file format — verify the marker still exists upstream
-  when a `sed` edit silently no-ops.
-- **omz plugin ownership**. Every `plugins=()` and `ZSH_THEME=` edit in a tree lives under
-  `command/omz_custom/` and nowhere else. The directory name maps to `$ZSH_CUSTOM`
-  (`~/.oh-my-zsh/custom/`) because everything it produces lands there: the `plugins/*` and
-  `themes/*` clones, `00-setup_env.zsh`, `01-first_run.zsh`, and the self-authored
-  `plugins/setup-env/` plugin. `command/omz.sh` installs oh-my-zsh itself (and, on debian, the
-  `zsh` package) and does nothing else.
-
-  Inside the directory the split is by **landing point**, one file each. `main.sh` owns `.zshrc` —
-  both edits it makes (`plugins=()` and `ZSH_THEME=`) and the clones those edits need — and then
-  calls the env scripts in the order zsh will load what they write: `pre_plugin.sh` (debian only)
-  owns `plugins/setup-env/setup-env.plugin.zsh`, `custom_env.sh` owns `00-setup_env.zsh`, and
-  `first_run.sh` (debian only) owns `01-first_run.zsh`. Those three are identical in shape — two
-  functions and no more. `render_blocks()` holds every `echo` and every gate, and only writes to
-  stdout; `main()` decides where that goes and whether it goes anywhere at all: one line for
-  `custom_env.sh` (`render_blocks > "$ZSH_CUSTOM/00-setup_env.zsh"`), capture-test-write-or-skip
-  for the other two, with `first_run.sh` additionally removing a file an earlier run left (see
-  "Empty output is no output" and "Only `first_run.sh` deletes" below). The one exception to
-  "`main.sh` owns `.zshrc`" falls out of that: `pre_plugin.sh` also owns the single word
-  `setup-env` inside `plugins=()`, because the plugin file and its array entry have to appear
-  together. There are **no per-plugin leaf scripts** — `main.sh` is four functions on both trees
-  and that is the whole design:
-
-  | function | what it does |
-  | --- | --- |
-  | `download_plugin()` | every `git clone` for the third-party plugins, one block |
-  | `install_plugin()` | resets `plugins=()`, then one `append_plugin` call per plugin |
-  | `append_plugin()` | one `sed` appending a name before the closing `)` |
-  | `install_theme()` | clones powerlevel10k and points `ZSH_THEME=` at it (on macos, plus the Meslo cask) |
-
-  `install_plugin()` resets the array to `plugins=(aliases)` on both trees — `setup-env` is not
-  named here, `pre_plugin.sh` prepends it afterwards if it wrote a plugin at all — then calls
-  `append_plugin` once per remaining plugin (`colored-man-pages` first on debian, `brew` on macos),
-  each optional one gated on its component's exported flag: `docker`/`docker-compose` on
-  `APP_DOCKER`, `python`/`uv` on `CODE_PYTHON`, `eza`/`zoxide`/`fzf`/`fzf-tab` on
-  `COMMAND_MODERN_CLI`, and so on; on macos `ssh` on `COMMAND_SSH`, whose `~/.ssh/config` is
-  written later by `command/ssh.sh`. Debian's `z` entry is the inverse gate on
-  `COMMAND_MODERN_CLI`, because zoxide takes over that command when the component is enabled.
-  Leaving an optional plugin ungated hides that dependency and leaves a silently no-op plugin
-  behind whenever the component is off.
-
-  The installing component (`code/go.sh`, `app/docker.sh`, `command/modern_cli/fzf/main.sh`, …) keeps its
-  installs and its non-zsh config but must not touch `plugins=()` — nor `00-setup_env.zsh` or
-  `01-first_run.zsh`, which follow the same rule for the same reason. `omz_custom` runs second in
-  the tree, so a plugin name reaches `.zshrc` *before* its tool is installed — harmless, since
-  nothing reads the array until a shell starts, which is after setup ends.
-- **omz plugin ordering** (debian and macos trees alike). `append_plugin()` appends before the
-  closing `)`, so **array order is exactly the call order in `main.sh`'s `install_plugin()`** — no
-  anchors, no insert-before tricks. Reordering the array means reordering those calls. The single
-  exception is `setup-env`, prepended by `pre_plugin.sh` afterwards.
-
-  **`setup-env` must be first** — the one constraint this repo imposes on itself rather than
-  inheriting from upstream. It is the plugin `pre_plugin.sh` writes, and its entire job is to
-  set values the *other* plugins read while they are being sourced (the eza zstyles, fzf's
-  bootstrap variables and `PYTHON_AUTO_VRUN` today).
-  `oh-my-zsh.sh:203` is a plain `for plugin ($plugins)`, so first-in-the-array means
-  first-sourced. Demote it and whatever it sets silently stops taking effect for every plugin
-  ahead of it. What pins it is `pre_plugin.sh`'s own `sed` — a *prepend* into the array
-  (`/^plugins=(/s/(/(setup-env /`) run right after it writes the plugin file. An `append_plugin`
-  call in `install_plugin()` could not do this: the name has to be able to stay out of the array
-  entirely, and only the script that decides whether the plugin exists knows that.
-
-  The remaining constraints come from upstream except item 3, which is this repo's deliberate
-  composition of two upstream widgets:
-
-  1. `zsh-syntax-highlighting` must be **last** (upstream INSTALL.md).
-  2. `fzf-tab` must load **before** anything that wraps ZLE widgets — i.e. before
-     `zsh-autosuggestions` and `zsh-syntax-highlighting` (fzf-tab README).
-  3. `fzf` must load **after** `fzf-tab`. fzf's `completion.zsh` saves whatever `^I` is bound to
-     at that moment as `fzf_default_completion` and calls it when the `**` trigger is absent.
-     Reversed, fzf-tab becomes the outer widget and its "call the original to get the completion
-     list" step runs the interactive `fzf-completion`, nesting two fzf UIs. This ordering is an
-     intentional exception to fzf-tab's general advice to load after other `^I` binders; a real
-     tmux PTY test confirmed ordinary Tab and `**<Tab>` each invoke fzf exactly once, with
-     `^I=fzf-completion`, `fzf_default_completion=fzf-tab-complete` and no second UI on cancel.
-  4. Cloned (third-party) plugins must load **after** `ohmyzsh-full-autoupdate`. It runs
-     `git -C "$packageDir" pull` **synchronously** (`ohmyzsh-full-autoupdate.plugin.zsh:170` — no
-     `&` / `&|`) while omz is sourcing the array in order, so plugins after it pick up the freshly
-     pulled code on the *same* shell start; ones before it load stale code and only see the update
-     next time.
-  5. Anything that replaces or binds a ZLE widget (`safe-paste` → `bracketed-paste`,
-     `magic-enter` → `accept-line`, `fancy-ctrl-z` → `^Z`, `dirhistory` → Alt-arrows) must normally
-     load before `zsh-syntax-highlighting`. In practice they all sit near the front already. Atuin
-     is the one version-bound exception: it loads from `00-setup_env.zsh` so it can take Ctrl-R from
-     fzf, and trixie's zsh 5.9 puts zsh-syntax-highlighting 0.8 on its hook-based path, which also
-     highlights widgets registered later (see the Atuin paragraph above).
-  6. macos only: `brew` must stay ahead of `command-not-found` — the Homebrew handler the latter
-     sources bails on `command -v brew`. That carries more weight than it looks: `homebrew.sh`
-     deliberately does **not** write `eval "$(brew shellenv)"` into `.zprofile` (upstream's
-     `install.sh` only *prints* that instruction), so the `brew` plugin is the only thing putting
-     brew on `PATH` in an interactive shell — the one gap being `zsh -l -c '…'`, which nothing here
-     uses. Unrelated and still required: `macos/main.sh`'s own `eval` line, which runs in the
-     setup-time *bash* process so child scripts can find brew — no zsh plugin can reach that.
-
-  The debian tree now satisfies 1–5: its relevant tail is `ohmyzsh-full-autoupdate` →
-  `you-should-use` → `fzf-tab` → `fzf` → `zsh-autosuggestions` →
-  `zsh-syntax-highlighting`. macos satisfies all six.
-
-  Should *removing* a name from the array ever be needed again: delimit on spaces and parens
-  (`s/(z /(/; s/ z / /; s/ z)/)/`), never `\<z\>`. `-` is not a word constituent, so `\<z\>` also
-  matches the tail of `fancy-ctrl-z` and eats the separator behind it, fusing two entries into
-  `fancy-ctrl-magic-enter` — omz then reports `plugin not found` on every start while both real
-  plugins silently vanish. Any name ending in `-<single letter>` hits this. (BSD sed has no
-  `\<`/`\>` anyway, so macos could never have used them; there `sed -i` must also be written
-  `sed -i ''`.)
-- **Three drop points for the shell config this repo owns:
-  `$ZSH_CUSTOM/plugins/setup-env/setup-env.plugin.zsh`, `$ZSH_CUSTOM/00-setup_env.zsh` and
-  `$ZSH_CUSTOM/01-first_run.zsh`** — one script each, as above. The first two differ only in
-  *when* they load, and that is the whole basis for deciding where a given setting goes. The test
-  is **when the variable is read, not what it is**. The third sits on a different axis — not
-  *when* it loads but *how often* it runs: once, ever.
-
-  `oh-my-zsh.sh`'s own order: plugin dirs join `fpath` (l.92) → `compinit` (l.127) → `lib/*.zsh`
-  (l.197) → **plugins sourced in `plugins=()` order (l.203)** → **`$ZSH_CUSTOM/*.zsh` in
-  alphabetical order (l.209)** → theme (l.214). So:
-
-  | config | goes to |
-  | --- | --- |
-  | anything a plugin reads *while loading* | `$ZSH_CUSTOM/plugins/setup-env/setup-env.plugin.zsh` |
-  | aliases, functions, `compdef`, env vars read at runtime | `$ZSH_CUSTOM/00-setup_env.zsh` |
-  | a one-off interactive step (login prompt, wizard) | `$ZSH_CUSTOM/01-first_run.zsh` |
-  | `plugins=()`, `ZSH_THEME=`, anything `compinit` or `lib/*.zsh` reads | `.zshrc` |
-  | `PATH` and anything a non-interactive shell needs | `.zshenv` (see `code/go.sh`, `code/rust.sh`) |
-
-  `compdef` is in row two rather than row four because `compinit` runs at l.127, well before
-  l.209 — `custom_env.sh`'s `COMMAND_MODERN_CLI` block writes `compdef bat=batcat` there. Two rules
-  govern that line and the symlinks around it: **`compinit` looks at a file only if its name
-  matches `_*`**, and **it registers by the name on that file's `#compdef` first line, not by the
-  file name and not by whether the command exists.** Debian's three packagers diverged along both
-  axes: `bat` ships `_batcat` declaring `#compdef batcat` (`PROJECT_EXECUTABLE=batcat`, matching
-  the binary it actually ships); `fd-find` ships `_fd` declaring `#compdef fd` though its binary is
-  `fdfind` (Debian #936036, fixed 2019, since regressed, no open bug); `tealdeer` ships a perfectly
-  valid `#compdef tldr` in a file named `tldr.zsh`, which `_*` never globs, so `_comps[tldr]` is
-  empty with no error, no clue, and no Debian bug against `src=rust-tealdeer`. Net effect: `fd`
-  catches a completion that was dangling on a name Debian never installed — free; `bat` creates a
-  name nobody registered — hence the one `compdef` line; `tldr` needs neither, because
-  `modern_cli/tldr.sh` fixes it at the source. If Debian ever fixes fd properly, add the
-  mirror-image `compdef fd=fdfind`; do **not** add it pre-emptively, since `compdef name=service`
-  on an unregistered service prints `compdef: unknown command or service: fdfind` on every start
-  (it does leave `_comps[fd]` intact).
-
-  Two ways of avoiding that `compdef` line were vetted and rejected. **Doing for bat what
-  `modern_cli/tldr.sh` does for tldr cannot work** — tldr's defect is its *file name*, bat's is its
-  *content*: symlinking `_batcat` to `_bat` yields `_comps[batcat]=_bat` with `_comps[bat]` still
-  empty (verified on trixie / bat 0.25.0), and `batcat --completion zsh` prints the same
-  `#compdef batcat` because `PROJECT_EXECUTABLE` is baked in at build time. **A hand-written `_bat`
-  shim works but is the worse mechanism** — a missing `_batcat` is loud on every shell start under
-  `compdef` and a silent no-op at the first `<TAB>` under the shim, and it buys only file-placement
-  tidiness against the mechanism zsh provides for exactly this.
-
-  An alias would *not* have needed the `bat` line: zsh expands aliases into `words` before
-  completion dispatch, so `alias bat=batcat` inherits `_batcat` for free — and by the same
-  mechanism `alias fd=fdfind` **destroys** the `_fd` completion it would otherwise get. The symlink
-  wins on the other axis: an alias is shell-local state, so `(( $+commands[fd] ))` (which
-  `fzf.plugin.zsh:267` uses to pick its initial `FZF_DEFAULT_COMMAND`) is false under it and no
-  `$SHELL -c` child — fzf's `--preview` above all — can see it, while `PATH` is exported and
-  inherited by every child. `00-setup_env.zsh` later replaces that initial command with the
-  follow/strip-prefix variant, but the executable still has to be visible when the plugin loads.
-
-  `~/.local/bin` is the one `PATH` entry the repo does *not* write itself: `command/omz.sh:44`
-  uncomments omz's own template line (`export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH`,
-  `.zshrc` l.2), and `omz.sh` runs first in the tree — so any later component can drop a binary
-  there and have it resolve. `modern_cli/fdfind.sh`'s `fd` symlink, `modern_cli/bat/main.sh`'s `bat`
-  symlink, `modern_cli/choose.sh`'s `choose`, `modern_cli/yazi/main.sh`'s `yazi` / `ya` and
-  `tools/protobuf.sh`'s `protoc` all rely on this, and it is why none of those placements needs
-  `sudo`. Being in `.zshrc` it is
-  interactive-only — enough for the `(( $+commands[fd] ))` probes plugins do while `.zshrc` is
-  still being sourced (l.2 precedes the `source $ZSH/oh-my-zsh.sh` at l.75), but a non-interactive
-  `zsh -c` will not see it.
-
-  Three kinds of settings are in the first row today. The five `zstyle ':omz:plugins:eza' …`
-  entries are there because `eza.plugin.zsh:9-60` reads them into `_EZA_HEAD` / `_EZA_TAIL` and
-  immediately builds its aliases. The fzf block replaces inherited opts-file/default/empty
-  widget-command values before omz runs `fzf --zsh` and sources the generated registration gates.
-  `PYTHON_AUTO_VRUN` is there because `python.plugin.zsh:103` decides at load time whether to
-  register the `chpwd` hook, and the plugin's own README says to set it "before sourcing
-  oh-my-zsh". Assigning any of these values in `00-setup_env.zsh` is too late.
-
-  Row four earns its second clause from where the first row sits. `setup-env` is sourced at l.203
-  — **after** `compinit` (l.127) and **after** `lib/*.zsh` (l.197) — so anything those two read is
-  out of its reach and can only come from `.zshrc` itself: `ZSH_DISABLE_COMPFIX`, `ZSH_COMPDUMP`,
-  `CASE_SENSITIVE` / `HYPHEN_INSENSITIVE` (`lib/completion.zsh:17,20`, with l.26 `unset`ting them
-  right after, so a late assignment leaves no trace at all), `HIST_STAMPS`,
-  `DISABLE_MAGIC_FUNCTIONS`, `DISABLE_LS_COLORS`, `DISABLE_AUTO_TITLE`. Nothing this repo writes
-  today falls in that class — worth knowing only before adding one.
-
-  The reverse direction has a trap worth knowing before moving anything into `setup-env`: a value
-  living in an associative array that the plugin itself declares cannot be set early at all.
-  `colored-man-pages` creates `less_termcap` with `typeset -AHg`; assigning `less_termcap[so]`
-  before that runs is not merely ineffective — zsh treats the undeclared name as an ordinary
-  array and errors out on `so` as a subscript. Such values can only come from
-  `00-setup_env.zsh`.
-
-  What goes in either file is filtered once more by intent: **only settings that differ materially
-  from the upstream default get written at all.** A line restating a default, or one whose effect
-  the default already covers, is noise that reads like a deliberate choice — `PYTHON_VENV_NAME`
-  was dropped because `PYTHON_VENV_NAMES` already defaults to `venv .venv`. Documentation is the
-  second filter: `DIRHISTORY_SIZE` was dropped because the dirhistory README never mentions the
-  variable and states the 30-entry limit as fact.
-
-  **`plugins/setup-env/`** is a plugin this repo authors rather than clones, and it reaches the
-  shell through the mechanism already in place for every other plugin: a name in `plugins=()`.
-  No zsh-side dispatcher — being first in the array *is* the ordering guarantee. The layout is
-  upstream's: `is_plugin()` (`oh-my-zsh.sh:81`) only recognises `plugins/<name>/<name>.plugin.zsh`
-  (or `_<name>`), and a missing file makes l.96 print `[oh-my-zsh] plugin 'setup-env' not found`
-  on every start — which is why the file and the array entry are written by the same script, in
-  that order, and by nothing else. Two things it does *not* interact with, both worth
-  knowing: `ohmyzsh-full-autoupdate` finds its update targets with
-  `find -L "$custom" -type d -name ".git"` (`ohmyzsh-full-autoupdate.plugin.zsh:151`), so a
-  non-repo directory is skipped; and l.92 is `fpath=("$ZSH_CUSTOM/plugins/$plugin" $fpath)` —
-  a *prepend*, so the later a plugin sits in the array the earlier its dir sits in `fpath`.
-  First-in-array means last in completion priority. Irrelevant for a plugin that ships no
-  completions, but don't expect to override someone's `_foo` from here. macos has no load-time
-  settings today, so its tree has no `setup-env` plugin and no `pre_plugin.sh` at all.
-
-  **Empty output is no output.** `pre_plugin.sh` and `first_run.sh` both capture their
-  `render_blocks()` into a variable before writing anything, and on an empty render they write
-  nothing at all — no plugin and no `plugins=()` entry for the first, no `01-first_run.zsh` for the
-  second. Rendering first is what makes the test the *content* rather than a restated list of
-  flags, so a component added to one of these files can never desync from the condition that
-  decides whether the file exists. `custom_env.sh` is deliberately not in this scheme — its
-  unconditional section means `00-setup_env.zsh` is always wanted, so there is nothing to filter.
-
-  **Only `first_run.sh` deletes**, and the asymmetry is deliberate. An `01-first_run.zsh` left over
-  from an earlier run would fire again: `custom_env.sh` rewrites `00-setup_env.zsh` with `>` every
-  run, so the `SETUP_ENV_FIRST_RUN=0` sentinel is gone and the guard at the top of the stale file
-  reads `${SETUP_ENV_FIRST_RUN:-1}` — a second `gh auth login` for a component the user just turned
-  off. Hence the `rm -f`. A stale `setup-env.plugin.zsh` has no such effect: `install_plugin()`
-  resets the array wholesale every run, and omz's two loops (l.90 for `fpath`, l.203 for sourcing)
-  only ever walk `$plugins`, so the file is simply never read. Deleting there would be tidiness,
-  not correctness, and would need a second `sed` to pull the name out of the array on top. **Do not
-  add one back** without a reason that survives this paragraph.
-
-  **`00-setup_env.zsh`** is `custom_env.sh`'s `render_blocks()` redirected into place by its
-  `main()` — the only write to that file anywhere in the tree, so a re-run rebuilds it instead of
-  accumulating duplicate blocks, and no component can append behind its back. The shared section
-  comes first. On Debian its trailing `# z` subsection is reverse-gated on
-  `COMMAND_MODERN_CLI != '1'`; because the flag defaults to 0, an all-flags-off render still matches
-  macos byte-for-byte. Positively gated component blocks follow, each headed by a `#` title, in the
-  order those components run in `debian/main.sh`: `COMMAND_MODERN_CLI` — one gate holding eight
-  `#` sections, since the shell config for modern CLI tools lands here rather than in per-tool files
-  (`# Atuin`, containing the official zsh init; `# eza`, containing the `tree` alias;
-  `# bat`, only `compdef bat=batcat` because everything else bat needs lives in
-  `~/.config/bat/config`; `# fzf`, the two runtime preview option strings (its four load-time
-  exports live in `setup-env`); `# fzf-tab`, five completion zstyles; `# Editor` then `# Micro`, with
-  the `EDITOR="code --wait"` branch nested one level deeper on `APP_VSCODE`; `# yazi`, the `y()`
-  wrapper that cd's to wherever yazi was left — `choose.sh`, `fdfind.sh`, `tldr.sh` and the
-  bulk-installed zoxide need no runtime shell lines here) — then `APP_DOCKER` (`# Docker`, the `lzd`
-  alias), `APP_GIT` (`# Git`, the `lg()` wrapper) and `APP_TMUX` (`# tmux mouse scroll`).
-  Block titles name the *component*, not the tool, wherever the two differ — `# Git` rather than
-  `# lazygit` — matching `# Editor` / `# Micro` above them. Intra-file order is cosmetic — the
-  whole file lands at l.209, after every plugin, which is exactly what lets a value here override
-  one a plugin set — but following the dispatcher keeps it predictable. The `00-` prefix is load
-  order, not decoration: omz sources `$ZSH_CUSTOM/*.zsh` alphabetically, so a second file must
-  pick its number the same way.
-
-  The `# fzf` option strings are the first generated lines here that need two quote layers:
-  `echo 'export FZF_CTRL_T_OPTS="--preview \"bat …\" …"'`. Bash's outer single quotes preserve
-  every backslash, zsh's generated outer double quotes turn `\"` into literal quote characters in
-  the variable, and fzf's shell-word parser then keeps the preview command and Ctrl-/ bind action
-  as one argument each. The preview command itself ends in `-- {}`; fzf shell-quotes the replacement
-  path, while `--` stops bat/eza from treating a leading `-` as an option. Do not flatten either
-  quote layer or move these previews into `fzfrc`, which is also consumed by history and fzf-tab.
-
-  The fzf-tab `menu no` must use `:completion:*:*:*:*:*`, not the README's broader
-  `:completion:*`: zstyle resolves the more specific pattern first, and omz's
-  `lib/completion.zsh` sets `menu select` with five fields. `list-colors` similarly replaces the
-  empty value omz installs. There are intentionally no fzf-tab layout/cycle/height flags — the
-  plugin already supplies all three — and no `use-fzf-default-opts yes`; only the conservative
-  opts file currently reaches it.
-
-  `lg` and `lzd` are the short commands lazygit's and lazydocker's own READMEs suggest, and both
-  names were checked clear before being taken — nothing this tree installs or enables defines
-  either. Of the two forms lazygit's README offers, the `lg()` function from *Changing Directory On
-  Exit* is the one written, not the one-line `alias lg='lazygit'` from *Usage* — same shape as the
-  `y()` wrapper two blocks up, and it works on Debian's 0.50.0 without pre-creating `~/.lazygit/`
-  (`CreateFileWithContent` starts with `os.MkdirAll`, `oscommands/os.go:173`). Two consequences
-  worth knowing: the function's `export` leaves `LAZYGIT_NEW_DIR_FILE` in the environment of every
-  later child process — harmless, since a bare `lazygit` then just writes that file too and nothing
-  reads it; and the cd is **not** limited to the switch-repos case the README describes.
-  `gui.go:882` writes the file on *every* quit, `q` recording `os.Getwd()` and `shift+Q` recording
-  `gui.InitialDir`, so running `lg` from a subdirectory and quitting with `q` lands the shell at
-  the repo root — `shift+Q` is the way back. (Verified against 0.50.0 under a pty.)
-
-  The `# Micro` block's `MICRO_TRUECOLOR=1` is the only way to get true color out of micro on
-  Debian, and it belongs there rather than in `micro/settings.json`: trixie ships micro 2.0.14,
-  whose option list (`micro -options`, and the v2.0.14 tag's own `runtime/help/options.md`) has no
-  `truecolor` key at all — upstream added one later, and even there it is the enum
-  `"auto"`/`"on"`/`"off"`, not a boolean. **micro silently ignores unknown keys in `settings.json`**
-  — a bogus option neither errors nor gets stripped when micro rewrites the file — so a wrong key
-  there is invisible dead config, and only a version check finds it. It matters because `one-dark`
-  is a hex colorscheme like every non-`-tc` scheme micro ships: without the variable micro emits
-  zero 24-bit sequences even under `COLORTERM=truecolor`, degrading the whole palette to 256-color
-  approximations — exactly what stops it matching VS Code's `One Dark Pro`.
-
-  Every variable in the unconditional section would in fact *work* from `setup-env` too — each is
-  either guarded by `(( ! ${+VAR} ))` or read at runtime. It sits after the plugins because that is
-  where upstream puts it: zsh-autosuggestions' README points Oh My Zsh users at "a file in the
-  `$ZSH_CUSTOM` directory" for exactly these variables, and zsh-syntax-highlighting's docs write
-  the highlighter list with `+=`, which presumes the plugin already ran. (you-should-use and zsh-z
-  never mention placement.)
-
-  That `+=` makes one line **positionally locked** rather than merely conveniently placed:
-  `ZSH_HIGHLIGHT_HIGHLIGHTERS+=(brackets)` is the upstream form and only works after the plugin
-  loads. Run it earlier and the array goes from empty to `(brackets)`, so the plugin's closing
-  `[[ $#ZSH_HIGHLIGHT_HIGHLIGHTERS -eq 0 ]] && …=(main)` never fires and `main` — the entire body
-  of syntax highlighting — silently vanishes. Never move that line into `setup-env`; if it ever
-  has to go there, switch it back to an explicit `=(main brackets)`.
-
-  Both trees' `custom_env.sh` carry the same unconditional section verbatim — keep them in sync
-  (`diff` the two files; with every debian flag off the two generated `00-setup_env.zsh` should
-  `cmp` equal, which is the check worth running). They cannot be hoisted into one shared file:
-  `container/dev-container/main.sh` builds with `../../debian` as the docker context, so anything
-  outside `debian/` never reaches the image.
-
-  **`01-first_run.zsh`** exists because the container path can never be interactive: the
-  `Dockerfile` runs `debian/main.sh --unattended` under *bash*, and `.zshrc` is not sourced at
-  build time at all. Anything needing a TTY — `gh auth login`'s device flow is the motivating case
-  — has to be deferred to the first interactive shell, which is what powerlevel10k does with its
-  own configuration wizard. `first_run.sh` captures `render_blocks()` into a variable first and
-  writes the file in one `{ echo … } >` block only when that came out non-empty: the guard, the
-  sentinel write, then the rendered blocks.
-
-  ```zsh
-  [[ ${SETUP_ENV_FIRST_RUN:-1} == 0 ]] && return
-
-  {
-      echo
-      echo "# first run"
-      echo "SETUP_ENV_FIRST_RUN=0"
-  } >> "$ZSH_CUSTOM/00-setup_env.zsh"
-  ```
-
-  `00-setup_env.zsh` sorts before `01-first_run.zsh`, so on every later shell the sentinel is
-  already set when the guard reads it, and the `return` — which exits only the sourced file, not
-  omz's `for` loop at l.209 — skips everything below. **The sentinel is written before the blocks
-  run, not after**: were it last, a hung or aborted prompt would keep it from landing and *every*
-  new shell would re-prompt — five tmux panes, five `gh auth login`s. The cost is that a Ctrl-C'd
-  step is not retried and the user runs it by hand. Each block still carries its own guard
-  (`gh auth status` before `gh auth login`) so a shell that already has credentials, or a mounted
-  `~/.config/gh`, is left alone.
-
-  Re-running setup resets both `00-setup_env.zsh` and `01-first_run.zsh` (`custom_env.sh`'s and
-  `first_run.sh`'s `main()` both use `>`), so the sentinel disappears and first-run fires once more
-  with whatever component set the new flags produced. That is the intent, not a leak. Turning
-  every first-run component *off* and re-running is the other half of it: the render comes out
-  empty, so `first_run.sh` deletes the file rather than rewriting it, and nothing fires at all. One
-  ordering worth knowing: the file is sourced at l.209 and the theme at l.214, so on a fresh
-  machine the first-run prompts come *before* p10k's own configuration wizard.
-
-  macos has no component needing an interactive first step, so its tree has no `first_run.sh` and
-  no `01-first_run.zsh` — the same reasoning that leaves it without a `setup-env` plugin. It does
-  have `custom_env.sh`: `00-setup_env.zsh` is needed on both trees, macos's copy just holds the
-  unconditional section and no gated blocks.
-- **`set -e` and trailing `[[ … ]] && cmd`.** A function whose *last* statement is a false
-  conditional AND-list returns 1, and at the call site `set -e` takes that as a failure and exits
-  — the guard inside the list only protects the `[[ … ]]` itself, not the function's exit status.
-  `install_plugin()` used to end on the optional `fzf-tab` gate, making the whole default install
-  path (`COMMAND_MODERN_CLI=0`) die before `install_theme` and the three env scripts. Its current
-  tail is unconditional after the fzf/fzf-tab reorder, but the explicit `return 0` remains as the
-  function's contract rather than relying on that accidental ordering. It hides nothing: any
-  genuine failure already exits at the failing command, never reaching the return. Prefer it to
-  "make sure the last line happens to be unconditional", which the next edit quietly breaks. The same
-  reasoning is why the gated blocks in `custom_env.sh` / `pre_plugin.sh` / `first_run.sh` are `if`
-  blocks — an `if` whose condition is false still returns 0, so a trailing gated block cannot make
-  `render_blocks()` return 1.
-- **omz plugin selection (debian tree)** — vetted rejections, recorded so they don't get
-  re-proposed. The governing criterion first: **a tool whose Debian package already ships
-  `_<tool>` into `/usr/share/zsh/vendor-completions/` gets no omz plugin.** That directory is on
-  the default `fpath`, so the completion is already live; the omz plugins for these tools exist to
-  cover tarball / `go install` / conda installs that no packager touched, and they pay for it by
-  running a generator on every shell start. Verified present on Debian 13 trixie: `_atuin`
-  `_batcat` `_delta` `_dust` `_eza` `_fd` `_gh` `_procs` `_rg`. Whether a packager bothered is the
-  only variable — it does not follow from how the tool was installed. The `_` in that criterion is
-  load-bearing: tealdeer's `tldr.zsh` is in the same directory and is perfectly valid, yet never
-  loads (see the `compinit` discussion above).
-  - `atuin` — the package's `_atuin` is already complete. Oh My Zsh has no built-in Atuin plugin,
-    and Atuin's own `atuin.plugin.zsh` is only a conditional wrapper around `atuin init zsh`; the
-    equivalent `eval` in `custom_env.sh` supplies history hooks and ZLE bindings without cloning a
-    plugin solely to source that line.
-  - `gh` — `dpkg -S` confirms `_gh` comes from the `gh` package itself, and `app/git/main.sh`
-    installs from the official apt repo. The plugin would regenerate the same thing asynchronously
-    on every start.
-  - `procs` — the plugin runs `procs --gen-completion-out zsh`, which Debian's 0.14.10 rejects
-    (`error: unexpected argument '--gen-completion-out' found`), and it redirects with `>|`, so
-    the failed run truncates the completion file to empty. `_procs` ships with the package anyway.
-  - `bat` — no omz plugin exists, and none is wanted: `_batcat` ships with the package. The one
-    `compdef bat=batcat` line the symlinked name needs is covered in the `compinit` discussion
-    above.
-  - `bat-extras` (`eth-p/bat-extras`, a third-party suite, not sharkdp's) — **not installed at
-    all**, a tool rejection rather than a plugin one. No Debian package exists, so it would mean a
-    `build.sh` install path this repo has no precedent for; 1.6k★ but semi-dormant (last commit
-    2025-02-22, last release `v2024.08.24`); and four of its six scripts are dead weight here —
-    only `batgrep` and `batpipe` would work, the rest needing man-db, entr or prettier, or
-    overlapping delta from `--app-git`.
-  - bat as the man pager (`export MANPAGER="bat -plman"`, which bat's README does recommend) —
-    collides head-on with the unconditionally installed `colored-man-pages`, which wraps `man` with
-    `PAGER=less` plus `LESS_TERMCAP_*`; `man` prefers `MANPAGER`, so setting it would leave the
-    plugin a silent no-op. Moot anyway until something installs man-db.
-  - `tldr` — binds exactly one key sequence: `Esc`, then `t`·`l`·`d`·`r`, rewriting the buffer to
-    `tldr <first word>`. A four-character sequence never becomes muscle memory, and that widget is
-    the plugin's *entire* content — it ships no completion, so it was never a candidate for the
-    criterion above.
-  - `debian` — 37 apt aliases, and it shadows `as` `ad` `au` `ai` `ap` `ac` `di` and other very
-    short command names; it also prefers aptitude, which is not installed by default. `apt` is
-    already short enough.
-  - `node` — six lines total, whose only function `node-docs` opens a browser through
-    `open_command` (xdg-open). Unusable headless or over ssh.
-  - `npm` — node is installed as a runtime only (the `agent-inject` plugin that
-    `--app-claude-copilot-api` installs runs on node); npm is never driven by hand.
-  - `lazygit` `lazydocker` `btop` `duf`, and yazi's TUI half — pure TUI or single-shot display;
-    type the name, press enter. Completion buys nothing. (yazi's own `_yazi` / `_ya` are a separate
-    matter, covering the `ya` package manager and yazi's flags; `modern_cli/yazi/main.sh` installs them
-    from the release zip, so no plugin is needed there either.)
-  - `jq` `sd` `hyperfine` `choose` `glow` — no omz plugin exists; `jsontools`' functionality is
-    fully covered by jq. `choose` ships no completion upstream, and `glow` has one usage worth
-    completing (`glow <file>`).
-  - `pip` — the tree installs uv.
-  - `command-not-found` — on Debian this needs the `command-not-found` package plus the apt-file
-    database, which is large. (macos keeps the plugin; there the handler is Homebrew's own.)
-  - `history` — four `history | grep` aliases (`h` / `hl` / `hs` / `hsi`), covered by fzf's `^R`.
-  - `zsh-completions` — 7.8k★ and active, but Debian already ships completions for nearly
-    everything this tree installs; the overlap is high.
-  - `zsh-autopair` — 626★, two years without a commit.
-  - `forgit` — 5k★, but its `ga` / `gd` / `gco` aliases shadow the `git` plugin's, and it overlaps
-    the already-installed lazygit.
-  - `fzf-git.sh` — maintained by fzf's author and less invasive than forgit, but its complete
-    Ctrl-G object-picker family still overlaps lazygit / the existing Git workflow and adds another
-    key-prefix surface for a feature unrelated to ordinary file completion.
-  - `fzf-zsh-plugin` — duplicates the apt-installed binary, omz's `fzf` integration, fzf-tab and the
-    fd/bat/eza previews, while adding unrelated Docker, tmux and Kubernetes helpers. A second fzf
-    bootstrapper is the wrong ownership boundary here.
-  - General preview frameworks, `tmux-fzf`, fzf-tab's `ftb-tmux-popup` and global `--tmux` — two
-    short preview commands do not justify another framework, and `APP_TMUX` is optional while this
-    component's baseline is an inline SSH-friendly UI.
-  - fzf themes — none is shipped. The Wiki's One Dark table is an unmaintained 2019 community
-    snippet rather than an official theme artifact; Catppuccin is actively maintained but is a
-    different palette. Without a maintained One Dark source, inheriting fzf's defaults is preferable
-    to owning copied colour literals.
-  - `zsh-autocomplete` — 6.7k★, but its live completion menu conflicts head-on with fzf-tab and
-    zsh-autosuggestions.
-  - `fast-syntax-highlighting` — more accurate and faster, but its maintenance is less stable than
-    zsh-syntax-highlighting's; not worth the swap.
-
-  Two installed plugins need no additional generated shell configuration, checked so nobody goes
-  looking for it: the `git` plugin's source has no tunable variable, and the Oh My Zsh `zoxide`
-  wrapper's only variable is `ZOXIDE_CMD_OVERRIDE`, whose default `z` is exactly what is wanted.
-  The executable's `_ZO_*` choices and their vetted rejections are recorded with the component
-  above.
-- **omz plugin selection (macos tree)** — vetted rejections, recorded so they don't get
-  re-proposed:
-  - `ssh-agent` — `_start_agent()` reuses an agent only when `~/.ssh/environment-$SHORT_HOST`
-    already exists; otherwise it unconditionally runs `ssh-agent -s` and overwrites
-    `SSH_AUTH_SOCK`, bypassing the launchd-managed agent and its Keychain integration, so
-    passphrases saved via `UseKeychain yes` stop working. Use `AddKeysToAgent` / `UseKeychain`
-    in `~/.ssh/config` instead.
-  - `rsync` — since macOS 15.4 `/usr/bin/rsync` is openrsync, which accepts only a subset of
-    GNU rsync's options; the plugin's `-avz --progress -h` aliases are not guaranteed to work.
-  - `git` — the tree is a terminal client, not a dev machine; 197 aliases of dead weight.
-  - `alias-finder` — superseded by `you-should-use`, which *is* installed (`brew` alone defines 36
-    aliases and `macos` 19, and y-s-u's three `preexec` + one `precmd` hooks are pure-zsh
-    assoc-array lookups that fork nothing). `alias-finder`'s manual mode is what y-s-u does
-    automatically, and its `autoload` mode forks ~15 processes per command.
-  - `copybuffer` — would take `^O` away from zsh's native `accept-line-and-down-history`.
-    `copypath` / `copyfile` bind no keys and are kept.
+The root `main.sh` understands only `--branch` and `--setup`. It installs the selected platform's minimum Git prerequisite, derives a
+`/tmp/setup_env.*` clone path with `mktemp -du`, shallow-clones the requested branch there, dispatches to `<setup>/main.sh`, and forwards every other
+argument unchanged. It does not remove the clone afterwards. It is the one script with no `BASH_SOURCE` footer guard: a piped entry point must execute
+unconditionally.
+
+The setup trees are independent:
+
+- `macos/` provisions a terminal client / jump box: Homebrew, Oh My Zsh, SSH support, and optional VS Code. It is deliberately not a development-machine
+  profile and omits the Git plugin.
+- `debian/` provisions the main development environment. Zsh and Oh My Zsh are unconditional; command, language, tool, and app components are optional.
+- `container/` dispatches to `dev-container`, `copilot-api`, or the one-shot `copilot-api-config` task.
+
+`debian/vscode/` is reference data only. No dispatcher installs those files; `--app-vscode` enables the OMZ plugin, while `README.md` documents manual
+extension installation. Its editor branch exists only with modern CLI and selects `code --wait` only when `TERM_PROGRAM=vscode`; otherwise the managed
+editor remains micro. Invoke scripts through `bash` rather than executable bits.
+
+## Checks and safe validation
+
+Run the non-destructive checks from the repository root:
+
+```bash
+find . \( -path './.git' -o -path './.claude/worktrees' \) -prune -o \
+    -type f -name '*.sh' -exec bash -n {} \;
+find . \( -path './.git' -o -path './.claude/worktrees' \) -prune -o -type f -name '*.sh' \
+    -exec shellcheck -x --rcfile './.shellcheckrc' {} +
+find . \( -path './.git' -o -path './.claude/worktrees' \) -prune -o -type f -name '*.sh' \
+    -exec shfmt -d -i 4 -bn -ci -s -sr {} +
+git diff --check
+git diff --cached --check
+```
+
+ShellCheck uses `-x` because `debian/app/docker.sh` dynamically sources `/etc/os-release`. `.shellcheckrc` disables `SC2016`; single-quoted `jq`, `sed`, and
+generated-shell programs contain dollar signs that must not expand in the provisioning shell.
+
+A direct dispatcher run performs real installation and configuration. For example, `bash debian/main.sh --app-tmux` runs `apt`, installs Oh My Zsh, and
+modifies the current home. Do not use a normal account as a smoke-test sandbox.
+
+Generated Zsh is embedded in Bash `echo` blocks and is invisible to ShellCheck. Render `pre_plugin.sh`, `custom_env.sh`, and `first_run.sh` in a clean
+environment with `HOME` and `ZSH_CUSTOM` explicitly pointing into one throwaway tree and a controlled `PATH`; changing `HOME` alone is insufficient because
+the writers honor inherited `ZSH_CUSTOM`. Then run `zsh -n` on their outputs. Seed `$HOME/.zshrc` from the Oh My Zsh template and put a stub `git` on
+`PATH`. On Linux when testing macOS, also provide a BSD-`sed` shim and a stub `brew`, because the theme installer invokes both. Set component variables
+inside the same harness; for a broad Debian render, use `COMMAND_MODERN_CLI=1 CODE_PYTHON=1 APP_GIT=1 bash debian/command/omz_custom/main.sh`.
+
+For fzf changes, run `FZF_DEFAULT_OPTS_FILE=debian/command/modern_cli/fzf/fzfrc FZF_DEFAULT_OPTS= fzf --version`.
+Then inspect `${(z)FZF_CTRL_T_OPTS}` and `${(z)FZF_ALT_C_OPTS}` in `zsh -f`. Plugin-order changes require a real ZLE / PTY smoke test:
+ordinary Tab and `**<Tab>` must each open fzf once; `fzf_default_completion` must be `fzf-tab-complete`; Ctrl-T and Alt-C must remain single calls.
+
+## Dispatcher contract
+
+Platform roots and true nested dispatchers follow this data flow:
+
+1. Initialize every owned flag with an override-friendly default. Export only values read by descendant scripts, such as
+   `export APP_GIT="${APP_GIT:-0}"`.
+2. `parse_args()` consumes flags it owns and appends unknown arguments to `POSITIONAL`.
+3. Boolean flags shift once. Value flags use the `numOfArgs` guard so a missing value cannot read an unset `$2` under `set -u`.
+4. Restore the forwarded arguments and call `main()`.
+5. Run components in `--command-*`, `--code-*`, `--tools-*`, then `--app-*` order, alphabetically inside each group.
+
+For a normal runnable component, the export block, parser cases, `main()` gates, and corresponding `README.md` table are four ordered views of the same
+interface. Debian `APP_VSCODE` is the explicit integration-only exception: it has an export, parser case, and README flag but no Debian leaf or `main()`
+gate. OMZ uses it for the plugin and, only inside the modern-CLI editor block with runtime `TERM_PROGRAM=vscode`, for `code --wait`. Do not invent an empty
+gate to force symmetry.
+
+A multi-part runnable concern owns a directory. `app/claude/main.sh` is a nested dispatcher because it owns child arguments; `command/modern_cli/main.sh` is
+an aggregate leaf with no parser.
+
+Flags intentionally cascade through exported variables and forwarded arguments. The Claude app reads `CODE_GO`, `CODE_PYTHON`, `CODE_RUST`, and `APP_GIT`
+from Debian; tmux reads `APP_CLAUDE`. OMZ writers read component flags because they physically own shared shell landing points. Cross-component reads are
+valid when they add integration only if both concerns are enabled.
+
+An argument-owning dispatcher or leaf uses the full sourceable footer:
+
+```bash
+if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
+    cd "$(dirname "${BASH_SOURCE[0]}")"
+    parse_args "$@"
+    set -- "${POSITIONAL[@]}"
+    main "$@"
+fi
+```
+
+A leaf with no arguments has no parser or `POSITIONAL` layer:
+
+```bash
+if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
+    cd "$(dirname "${BASH_SOURCE[0]}")"
+    main "$@"
+fi
+```
+
+The piped root entry point and macOS retain the Bash 3.2-safe empty-array restoration form:
+
+```bash
+set -- "${POSITIONAL[@]+"${POSITIONAL[@]}"}"
+```
+
+Do not normalize it to Debian's `"${POSITIONAL[@]}"`; Bash 3.2 plus `set -u` can reject an empty array expansion. Match the owning dispatcher's existing
+idiom.
+
+When adding a component, synchronize every applicable export, parser, gate, and README entry; list all readers for an integration-only flag and choose the
+matching footer. The component owns installation and non-shell config, while shared shell output goes through the appropriate OMZ writer. Never append
+directly to a shared generated shell file.
+
+## Configuration ownership and landing points
+
+Each shared configuration fragment has one logical owner, but `.zshrc` has coordinated writers. Each setup tree's `command/omz.sh` installs Oh My Zsh and
+prepares its template; Debian's also activates the template's user-bin PATH. `command/omz_custom/main.sh` owns the plugin array, clones, and theme. After
+writing a non-empty `setup-env` plugin, `pre_plugin.sh` prepends the coupled array entry only afterwards, avoiding an enabled-but-missing warning at shell
+startup.
+
+| Configuration needed by | Owned destination |
+| --- | --- |
+| `compinit`, Oh My Zsh libraries, plugin list, theme | `.zshrc` |
+| another plugin while it is being sourced | `$ZSH_CUSTOM/plugins/setup-env/setup-env.plugin.zsh` |
+| aliases, functions, `compdef`, runtime variables | `$ZSH_CUSTOM/00-setup_env.zsh` |
+| a deferred interactive login or wizard | `$ZSH_CUSTOM/01-first_run.zsh` |
+| non-interactive shell commands | `.zshenv` |
+
+The decision is based on when a value is read, not whether it looks like an environment variable. The `setup-env` plugin carries eza load-time zstyles, fzf
+bootstrap variables, and `PYTHON_AUTO_VRUN`; moving those to `00-setup_env.zsh` is silently too late. Conversely, `ZSH_HIGHLIGHT_HIGHLIGHTERS+=(brackets)`
+must remain after the syntax-highlighting plugin; moving it early prevents that plugin from installing its `main` highlighter.
+
+Provisioning-managed runtime tool configuration is shipped as an artifact and installed with `install -Dm 644`, not generated with `echo`. This includes
+Atuin, bat, fzf, micro, lazygit, and the three Yazi files; repo-local lint config and undeployed VS Code reference data are outside this rule. The
+copilot-api settings template is a shipped JSON artifact completed by `jq`, written directly with directory mode 700 and file mode 600. The external
+exception is the Ruff baseline downloaded from BesLogic's `main` branch by `code/python.sh`. `echo` is reserved for files invented here and appends to
+upstream-owned files; global Git configuration uses `git config`.
+
+A rerun overwrites managed static configs. Yazi's `package.toml` is different: `ya pkg add` owns that mutable runtime manifest, so the repository never
+ships or overwrites it. Only configure values that materially differ from packaged defaults.
+
+### Empty renders do not retract prior output
+
+`pre_plugin.sh` and `first_run.sh` capture `render_blocks()` before touching a target. An empty render returns successfully without writing or deleting. On
+a fresh home this creates no artifact; on a repeated setup it leaves an earlier artifact byte-for-byte unchanged. This is an intentional provisioning
+contract: disabling a flag is not uninstall or garbage collection.
+
+A stale `setup-env.plugin.zsh` is inert after `install_plugin()` rebuilds the array from `plugins=(aliases)` without adding `setup-env`. A stale
+`01-first_run.zsh` is not inert: it remains matched by Oh My Zsh's custom `*.zsh` glob. Because `custom_env.sh` rebuilds `00-setup_env.zsh`, the previous
+sentinel disappears and the old first-run file can execute again. Its GitHub block still checks for `gh` and existing authentication, but turning off
+`APP_GIT` does not remove the file. Delete `$ZSH_CUSTOM/01-first_run.zsh` explicitly when retiring that step. Do not add automatic deletion unless the
+non-retraction contract is deliberately changed.
+
+`custom_env.sh` always has an unconditional section and rebuilds `00-setup_env.zsh`. `first_run.sh` appends its sentinel there before launching interactive
+work, so a canceled prompt is not retried in every new shell. A later setup with a non-empty first-run render rewrites both files and permits the new
+sequence once again.
+
+## Oh My Zsh load and plugin order
+
+Oh My Zsh initializes completion and libraries before plugins, sources plugins in `plugins=()` order, then sources `$ZSH_CUSTOM/*.zsh` alphabetically, and
+loads the theme last. Preserve these constraints:
+
+- When generated, `setup-env` is prepended and remains the first plugin.
+- `zsh-syntax-highlighting` remains last.
+- `fzf-tab` precedes wrappers such as `zsh-autosuggestions` and syntax highlighting.
+- In this repository, `fzf-tab` also precedes `fzf`. fzf captures the current Tab binding as `fzf_default_completion`; reversing them nests two fzf
+  completion interfaces.
+- Third-party cloned plugins load after `ohmyzsh-full-autoupdate`, whose update is synchronous.
+- On macOS, `brew` precedes `command-not-found`, whose Homebrew handler expects `brew` on `PATH`.
+
+Atuin is a deliberate post-plugin exception. It initializes from `00-setup_env.zsh` so it can take Ctrl-R and Up after fzf loads; the packaged Zsh and
+syntax-highlighting combination still highlights widgets added at that point. Do not move it early to follow a generic ordering rule.
+
+Optional plugins are gated on the component providing their command. With modern CLI enabled, use Oh My Zsh's `zoxide` plugin and omit `z`; without it, use
+`z` and emit zsh-z settings. Prefer Debian vendor completions over plugins that regenerate completion on every shell start.
+
+Do not remove a plugin name with `\<z\>`. A hyphen is not a word character, so that pattern can match the tail of `fancy-ctrl-z`, consume a separator, and
+fuse two names. If removal is required, delimit with spaces and parentheses. Use BSD `sed -i ''` on macOS and GNU `sed -i` on Debian.
+
+## Bash and generated-content conventions
+
+Every script starts with `#!/usr/bin/env bash` and `set -euo pipefail`.
+
+Use single quotes for literals and double quotes only when the shell must expand a dollar sign, command substitution, or escape. Defaults inside
+`${VAR:-default}` are bare because the enclosing double quotes already protect the expansion:
+
+```bash
+BRANCH="${BRANCH:-master}"       # correct
+# BRANCH="${BRANCH:-'master'}"   # expands to the literal quotes
+```
+
+Generated shell content follows a second quoting layer: the provisioning Bash `echo` is single-quoted, while quotes needed by generated Zsh are double
+quotes inside that literal. This prevents setup-time expansion of `$PATH`, `$HOME`, `$EDITOR`, and fzf placeholders.
+
+```bash
+echo 'export PATH="$PATH:/usr/local/go/bin"'
+echo 'alias tree="eza --tree"'
+```
+
+Do not flip the outer quotes to double quotes. fzf preview strings intentionally contain escaped inner quotes; flattening either layer changes option
+tokenization. Preserve `-- {}` so a candidate beginning with `-` is not parsed as an option. `echo "$blocks"` only replays captured text; parameter
+expansion does not rescan dollar signs inside the value.
+
+Use arrays for constructed argument lists and quote `"$@"`. Paths, URLs, and filenames are quoted; command names and the repository's established bare
+option values remain bare.
+
+A false `[[ ... ]] && command` used as a function's final statement makes the function return 1. Under `set -e`, a normal call then aborts the script. Any
+function that could end in an optional AND-list must use an `if` block or explicit `return 0`; never make success depend on whichever call currently happens
+to be last.
+
+In-place `sed` edits target known upstream markers. `sed` exits successfully when no line matches, so an upstream template change can turn the edit into a
+silent no-op. Verify the marker before editing and inspect or assert the resulting file. Likewise, guard a symlink source before `ln -sf`: a missing source
+still produces a successful command and a dangling link.
+
+GitHub release assets use `releases/latest/download/<asset>`. An unversioned asset uses one literal URL; a versioned filename resolves `releases/latest`
+only to construct that name, rejects an empty result, and still downloads through `latest/download`. `latest` is not a pin and its two-request form can race
+to a loud 404. copilot-api is the exception because the version is a Git ref and image tag rather than an asset URL.
+
+Use `command -v` guards before optional tools. A network failure is fatal unless the operation is explicitly a cache warm-up; `tldr --update || true` is
+intentionally non-fatal.
+
+## Completion and configuration traps
+
+`compinit` discovers files named `_*`, then registers the command declared by the file's first `#compdef`; the executable name and symlink filename do not
+change that declaration.
+
+| Command | Packaged completion | Required action |
+| --- | --- | --- |
+| `bat` | `_batcat` declares `batcat` | link the binary; run `compdef bat=batcat` after `compinit` |
+| `fd` | `_fd` declares `fd` | link `fd` to `fdfind`; no `compdef` |
+| `tldr` | `tldr.zsh` declares `tldr` | link it as `$ZSH_CUSTOM/completions/_tldr` |
+| `yazi`, `ya` | release zip provides `_yazi`, `_ya` | install under custom completions unchanged |
+
+Prefer executable symlinks over aliases for renamed binaries; child shells, fzf previews, `command -v`, and Zsh's `$commands` see `PATH`, not aliases. Oh My
+Zsh's template adds `~/.local/bin` in `.zshrc`, which is sufficient for interactive plugin probes but not non-interactive `zsh -c`; language components
+needing non-interactive paths write `.zshenv`.
+
+Validate config semantics against the packaged tool, not current upstream master. Lazygit and micro silently ignore unknown keys, so syntax validation
+cannot detect dead configuration. Before adding a lazygit key, inspect that packaged version's migration list: a migratable key makes lazygit rewrite the
+managed file. Keep `gui.nerdFontsVersion: "3"` as a string, lazygit's pager at `delta --paging=never`, and `MICRO_TRUECOLOR=1` in shell configuration rather
+than inventing a micro setting. Unknown bat or fzf options instead make every invocation fail; parse those configs with installed binaries. `BAT_THEME`
+would override the managed bat config, so do not set both.
+
+Plugin or theme additions need an official or actively maintained source, and defaults should come from official setup or usage guidance. Do not infer that
+every tool needs a One Dark override from the tools that have one.
+
+## Debian modern CLI
+
+`command/modern_cli/main.sh` bulk-installs shared tools, then runs the fixed children: Atuin, bat, choose, fd, fzf, micro, tldr, and Yazi. Children own
+packages, binary links, completions, and static config; none has an independent flag.
+
+Atuin uses Debian's package/completion and a two-setting config. Setup does not import history or configure account/sync. Its late init takes Ctrl-R and Up
+while fzf retains Ctrl-T, Alt-C, and `**` completion.
+
+fzf bootstrap and runtime settings stay split. Before plugin load, `pre_plugin.sh` exports the opts-file path plus `FZF_DEFAULT_COMMAND`,
+`FZF_CTRL_T_COMMAND`, and `FZF_ALT_C_COMMAND` separately: fzf does not reuse the default for widgets, and its generated Zsh uses empty values to decide
+whether Ctrl-T / Alt-C exist. `custom_env.sh` later adds bat/eza previews. `fzfrc` contains only reverse layout, border, and cycle because fzf-tab can still
+see it—do not add global preview, popup/tmux mode, or fixed height. The fzf-tab block uses the five-field `:completion:*:*:*:*:*` pattern to outrank Oh My
+Zsh's menu default, restore colors, preserve Git checkout ordering, and bind group navigation. bat/fd own their links, eza aliases come from early zstyles,
+and zoxide initializes exactly once through its OMZ plugin.
+
+Yazi uses the unversioned GNU release zip, installs its binaries/completions, and adds its official plugins before deploying `yazi.toml`, `init.lua`, and
+`keymap.toml`; partial plugin failure therefore cannot install config that references missing plugins. Those files own previews, Git integration, and smart
+bindings, but no theme. The `y()` wrapper remains in `custom_env.sh`, the sole writer of `00-setup_env.zsh`.
+
+Micro true color remains `MICRO_TRUECOLOR=1`; tealdeer owns the guarded completion symlink and a non-fatal cache warm-up; choose installs the unversioned
+latest asset. Glow has no managed config, and zoxide owns no static config or second init.
+
+## Git application
+
+`--app-git` owns the complete Git concern: GitHub CLI repository setup, `gh`, delta, lazygit, global Git settings, lazygit config, the `lg()` cwd-following
+function, and deferred `gh auth login`. Physical writers still follow the shared ownership rules: the Git leaf writes tool and Git config, `custom_env.sh`
+writes `lg()`, and `first_run.sh` writes the login block. Do not split delta or lazygit into modern CLI.
+
+The lazygit config targets the packaged schema. It keeps Nerd Fonts version `"3"` and narrows the side panel for side-by-side delta. It explicitly uses
+`delta --paging=never`; global `core.pager=delta` is not inherited by lazygit. The `lg()` function uses `LAZYGIT_NEW_DIR_FILE` to move the parent shell
+to lazygit's exit directory.
+
+GitHub login is deferred because unattended container builds have no interactive Zsh startup. The block checks both command availability and current auth
+status before invoking `gh auth login`.
+
+## Claude Code and copilot-api
+
+`debian/app/claude/main.sh` installs Claude Code from the official installer. If `--app-claude-copilot-api` is enabled, it runs that child first because the
+child replaces `~/.claude/settings.json`; common plugin installation happens afterwards so `enabledPlugins` is not erased.
+
+The common official plugins are `claude-code-setup`, `claude-md-management`, `claude-security`, and `hookify`; `APP_GIT` adds `commit-commands`. Language
+integrations stay paired with their servers: Go installs latest `gopls` plus `gopls-lsp`, Python installs isolated `pyright[nodejs]` plus `pyright-lsp`, and
+Rust installs rust-analyzer plus `rust-analyzer-lsp`. Language components run earlier and own their toolchains.
+
+The script explicitly adds the official marketplace before first interactive launch. Afterwards, `jq` removes only
+`extraKnownMarketplaces["claude-plugins-official"]` and removes the parent object only if empty. Preserve `enabledPlugins`, custom/copilot marketplaces, and
+separate registry state. Never replace this cleanup with `claude plugin marketplace remove`, which uninstalls plugins.
+
+The copilot-api child requires all three model values. For each, `check_model()` fetches `$APP_CLAUDE_BASE_URL/v1/models`, extracts only
+`.data[].claude_model_id`, and performs an exact line match. Empty or absent values fail; there is no family inference, fallback, or automatic selection.
+`check_model()` sends no auth header, so `/v1/models` must be reachable without `APP_CLAUDE_AUTH_TOKEN`; that token is only written into settings. The
+defaults are base URL `http://localhost:4141` and the intentionally non-secret token `dummy`.
+
+`install_settings()` merges the final `ANTHROPIC_*` values into the shipped template and writes `~/.claude/settings.json` with directory mode 700 and file
+mode 600. Treat that template as the source of truth for sandbox, permission, language, notification, and workflow preferences rather than copying each
+value here. For model IDs carrying the `[1m]` suffix, keep `CLAUDE_CODE_AUTO_COMPACT_WINDOW` unset: the suffix selects extended context, while Claude Code
+retains control of its output and compaction reserves.
+
+The copilot marketplace installs `agent-inject` and `tool-search`. Keep native `ENABLE_TOOL_SEARCH` unset because withholding full tool definitions breaks
+the gateway's deferred tool bridge. Both plugins need Node/npm/npx. Bootstrap NodeSource LTS only when `node` is absent; an existing incompatible runtime is
+left for plugin installation to report. Node is private to this integration, not a standalone Debian component.
+
+## Container flows
+
+`container/dev-container/main.sh` NUL-encodes forwarded Debian flags, base64-encodes that byte stream, and passes it as `setup_args_b64`. The Dockerfile
+read-only bind-mounts the Debian build context, decodes the array with `mapfile -d ''`, and runs:
+
+```bash
+bash /mnt/setup/main.sh --unattended "${setup_args[@]}"
+```
+
+The build context is `debian/`, so image setup cannot consume files hoisted outside that tree. Unattended mode installs Oh My Zsh without launching it and
+changes the login shell; the launcher mounts host `~/Projects` into a privileged persistent container.
+
+`container/copilot-api/main.sh` resolves the latest release to obtain a Git ref and image tag, builds from that ref, optionally runs interactive
+authentication through `/dev/tty`, then replaces the named service container, publishes port 4141, and mounts host `~/.copilot-api` as service state.
+
+`container/copilot-api-config` is a one-shot image containing `jq` and `openssl`. It mounts the same host directory at `/root/.copilot-api`, so it mutates
+the service's persistent `config.json` despite the different in-container path. `--reset-api-key` clears `auth.apiKeys` first; `--api-keys <N>` then appends
+N independently generated 32-byte hex keys. The task assumes the service has already produced a valid `config.json`.
+
+## macOS-specific constraints
+
+The macOS tree has no `pre_plugin.sh` or `first_run.sh`; it has no load-time settings or deferred interactive component. Its `custom_env.sh` contains the
+same unconditional block as Debian with all flags off. Keep those blocks byte-equivalent, but do not hoist them outside each tree because the Debian-only
+Docker build context cannot see a shared root file.
+
+`macos/main.sh` evaluates `/opt/homebrew/bin/brew shellenv` in the provisioning Bash process so child installers can find Homebrew; interactive discovery
+later comes from the Oh My Zsh `brew` plugin. The absolute prefix is a current hard requirement—strict mode aborts before child installers if Homebrew is
+elsewhere, so any prefix generalization must update this call explicitly.
+
+## Change checklist
+
+Before finishing a change:
+
+- Confirm the correct dispatcher owns every new flag; distinguish runnable components from integration-only flags and keep applicable interface lists
+  ordered.
+- Confirm each configuration fragment has one logical owner and place shell settings by read time.
+- Check behavior on a fresh home and a repeated home with relevant flags disabled.
+- Preserve first-run non-retraction unless changing it intentionally and documenting cleanup.
+- Validate shipped config against the packaged tool, including keys parsers may silently ignore.
+- Run Bash syntax, ShellCheck, shfmt, and staged/unstaged whitespace checks.
+- Render generated Zsh and run `zsh -n`; use a real ZLE smoke test for plugin-order or fzf changes.
+- Do not run an installer smoke test on the host merely to prove dispatch; these scripts perform real package installation and modify the home directory.
