@@ -41,6 +41,8 @@ main() {
         bash './command/ssh.sh' "$@"
     fi
 
+    bash './app/terminal.sh' "$@"
+
     if [[ $APP_VSCODE == '1' ]]; then
         bash './app/vscode.sh' "$@"
     fi
