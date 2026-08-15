@@ -1,6 +1,6 @@
 [[plugin.prepend_previewers]]
 url = "*.md"
-run = 'piper -- CLICOLOR_FORCE=1 glow -w=$w "$1"'
+run = 'piper -- CLICOLOR_FORCE=1 glow -w=$w -s=$t "$1"'
 
 [[plugin.prepend_previewers]]
 mime = "text/*"
