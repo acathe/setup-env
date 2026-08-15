@@ -356,8 +356,8 @@ Three independent setup trees, selected by `--setup`:
   packaged file that apt will upgrade in place; the `[[ -f $completion ]]` guard ahead of it is
   there because `ln -sf` against a missing source does not fail, it leaves a dangling link — the
   exact silent-no-op failure mode the symlink exists to undo.
-- `container/` — builds and runs a Docker dev container (`dev-container`) or the
-  `copilot-api` image.
+- `container/` — builds and runs a Docker dev container (`dev-container`), the
+  `copilot-api` image, or a one-shot `copilot-api-config` task.
 
 `windows-wip/` is **not** a setup tree — it is a staging area for scripts awaiting Windows
 adaptation. No `--setup` value reaches it and nothing runs it; `windows-wip/code/{csharp,powershell}.sh`

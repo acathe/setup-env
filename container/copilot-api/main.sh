@@ -55,7 +55,7 @@ main() {
             -it \
             -v "$HOME/.copilot-api:/root/.local/share/copilot-api" \
             "copilot-api:$version" \
-            --auth
+            --auth < /dev/tty
     fi
 
     if docker container inspect 'copilot-api' > /dev/null 2>&1; then
