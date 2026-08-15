@@ -66,8 +66,6 @@ install_plugin() {
     [[ $COMMAND_MODERN_CLI == '1' ]] && append_plugin 'fzf'
     append_plugin 'zsh-autosuggestions'
     append_plugin 'zsh-syntax-highlighting'
-
-    return 0
 }
 
 install_theme() {

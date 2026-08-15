@@ -32,6 +32,9 @@ render_blocks() {
 
     if [[ $COMMAND_MODERN_CLI == '1' ]]; then
         echo
+        echo '# Atuin'
+        echo 'eval "$(atuin init zsh)"'
+        echo
         echo '# eza'
         echo 'alias tree="eza --tree"'
         echo
