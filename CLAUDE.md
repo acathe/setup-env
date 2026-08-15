@@ -53,11 +53,11 @@ Three independent setup trees, selected by `--setup`:
   ssh-to-remote workflow (connect, manage keys, move files) and deliberately omits `git`.
 - `debian/` — the richest tree; installs zsh + oh-my-zsh unconditionally, then a
   matrix of optional components. `--command-modern-cli` is a nested dispatcher, the same shape as
-  `--app-claude`: `command/modern_cli/main.sh` installs the bulk of the CLI tools itself, then runs
-  the eight components under it — `modern_cli/bat/`, `modern_cli/eza.sh`, `modern_cli/fdfind.sh`,
-  `modern_cli/fzf.sh`, `modern_cli/micro/`, `modern_cli/tldr.sh`, `modern_cli/yazi.sh` and
-  `modern_cli/zoxide.sh` — each still installing its own packages and owning whatever non-shell
-  config that tool needs, none of them carrying a flag of its own. One component is shaped
+  `--app-claude`: `command/modern_cli/main.sh` installs the bulk of the CLI tools itself — including
+  zoxide — then runs the seven components under it: `modern_cli/bat/`, `modern_cli/eza.sh`,
+  `modern_cli/fdfind.sh`, `modern_cli/fzf.sh`, `modern_cli/micro/`, `modern_cli/tldr.sh` and
+  `modern_cli/yazi.sh`. Each still installs its own packages and owns whatever non-shell config that
+  tool needs; none carries a flag of its own. One component is shaped
   unusually: `--app-git`
   deliberately spans all three layers of a single concern instead of being split by kind: it
   installs the tooling (`gh` from the official apt repo, `git-delta`, `lazygit`), writes the global
@@ -152,11 +152,39 @@ Three independent setup trees, selected by `--setup`:
   `compdef` line, because Debian's `_fd` declares `#compdef fd` and the symlinked name is therefore
   already registered.
 
-  `modern_cli/eza.sh`, `modern_cli/fzf.sh` and `modern_cli/zoxide.sh` are flat, apt-only components:
-  none owns a static tool config artifact. Their current and planned shell integration stays
-  centralized by landing point — plugin selection and ordering in `omz_custom/main.sh`, load-time
-  eza settings in `omz_custom/pre_plugin.sh`, and runtime settings in `omz_custom/custom_env.sh` —
-  rather than being appended by the installing component.
+  `modern_cli/eza.sh` and `modern_cli/fzf.sh` are flat, apt-only components; neither owns a static
+  tool config artifact. Zoxide owns no install-time config at all, so its package stays in
+  `modern_cli/main.sh`'s bulk apt list rather than getting a leaf script. Their shell integration
+  stays centralized by landing point — plugin selection and ordering in `omz_custom/main.sh`,
+  load-time eza settings in `omz_custom/pre_plugin.sh`, and runtime settings in
+  `omz_custom/custom_env.sh` — rather than being appended by an installing component.
+
+  Trixie ships zoxide 0.9.7. It has no static config file, theme or plugin API: configuration is
+  `zoxide init` plus the `_ZO_*` environment variables. Oh My Zsh's `zoxide` plugin already owns
+  initialization and does exactly one
+  `eval "$(zoxide init --cmd ${ZOXIDE_CMD_OVERRIDE:-z} zsh)"`; that output supplies `z` / `zi`,
+  the `chpwd` hook and completion. When `COMMAND_MODERN_CLI=1`, `install_plugin()` therefore omits
+  zsh-z's `z` plugin and includes `zoxide`; with the flag off it does the reverse, and
+  `custom_env.sh` emits `ZSHZ_CASE` / `ZSHZ_TILDE` only for that zsh-z path. A second init or a
+  third-party zsh wrapper would duplicate functions, completion and the scoring hook. This
+  component targets a fresh, empty Debian container, so setup deliberately does not inspect or
+  import `~/.z` or any other legacy navigation database.
+
+  Vetted configuration rejections for zoxide 0.9.7:
+  - `ZOXIDE_CMD_OVERRIDE` / `--cmd` — the default `z` is the wanted command. `--hook pwd` is already
+    the default and matches this tree's directory-change workflow.
+  - `_ZO_DATA_DIR`, `_ZO_EXCLUDE_DIRS` and `_ZO_MAXAGE` — their defaults already select the XDG
+    data location, exclude `$HOME` and use the upstream ageing threshold. `_ZO_ECHO` and
+    `_ZO_RESOLVE_SYMLINKS` change visible or path-identity semantics rather than improving every
+    environment. `_ZO_DOCTOR=0` only suppresses the generated missing-hook diagnostic, hiding the
+    exact ordering regression it exists to report.
+  - `_ZO_FZF_OPTS` — `zi` already feeds fzf NUL-delimited score-and-path rows, fixes the path to
+    field 2, and supplies its own height / layout / border plus an `ls` preview. Setting the variable
+    replaces that complete default rather than appending one option; swapping in eza would require
+    copying the whole upstream option string and tracking it across upgrades.
+  - Extra shell plugins, a theme, or Yazi / powerlevel10k glue — zoxide has no such extension or
+    visual layer. Yazi's default `Z` binding already invokes zoxide, and powerlevel10k renders the
+    resulting working directory without knowing which command changed it.
 
   `glow` deliberately stays in `modern_cli/main.sh`'s bulk apt list rather than becoming a directory
   component: setup-env owns no Glow config. Trixie ships Glow 2.0.0 with Glamour 0.8.0; the generated
@@ -462,8 +490,10 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
   each optional one gated on its component's exported flag: `docker`/`docker-compose` on
   `APP_DOCKER`, `python`/`uv` on `CODE_PYTHON`, `eza`/`zoxide`/`fzf`/`fzf-tab` on
   `COMMAND_MODERN_CLI`, and so on; on macos `ssh` on `COMMAND_SSH`, whose `~/.ssh/config` is
-  written later by `command/ssh.sh`. Leaving an optional plugin ungated hides that dependency and
-  leaves a silently no-op plugin behind whenever the component is off.
+  written later by `command/ssh.sh`. Debian's `z` entry is the inverse gate on
+  `COMMAND_MODERN_CLI`, because zoxide takes over that command when the component is enabled.
+  Leaving an optional plugin ungated hides that dependency and leaves a silently no-op plugin
+  behind whenever the component is off.
 
   The installing component (`code/go.sh`, `app/docker.sh`, `command/modern_cli/eza.sh`, …) keeps its
   installs and its non-zsh config but must not touch `plugins=()` — nor `00-setup_env.zsh` or
@@ -510,10 +540,9 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
      uses. Unrelated and still required: `macos/main.sh`'s own `eval` line, which runs in the
      setup-time *bash* process so child scripts can find brew — no zsh plugin can reach that.
 
-  **The debian tree violates 1–3 whenever `--command-modern-cli` is on**, and appends `z` (zsh-z)
-  unconditionally even though `zoxide` then takes over the same command name. macos satisfies all
-  six today. Both are pending the `--command-modern-cli` rework — `debian/todo.md` §1 and §2 hold
-  the analysis, the fix and the target array.
+  **The debian tree still violates 1–3 whenever `--command-modern-cli` is on**; macos satisfies all
+  six today. That ordering rework remains pending — `debian/todo.md` §1 holds the analysis, the fix
+  and the target array.
 
   Should *removing* a name from the array ever be needed again: delimit on spaces and parens
   (`s/(z /(/; s/ z / /; s/ z)/)/`), never `\<z\>`. `-` is not a word constituent, so `\<z\>` also
@@ -647,15 +676,18 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
 
   **`00-setup_env.zsh`** is `custom_env.sh`'s `render_blocks()` redirected into place by its
   `main()` — the only write to that file anywhere in the tree, so a re-run rebuilds it instead of
-  accumulating duplicate blocks, and no component can append behind its back. The unconditional
-  section comes first, then one gated block per component, each headed by a `#` title, in the
+  accumulating duplicate blocks, and no component can append behind its back. The shared section
+  comes first. On Debian its trailing `# z` subsection is reverse-gated on
+  `COMMAND_MODERN_CLI != '1'`; because the flag defaults to 0, an all-flags-off render still matches
+  macos byte-for-byte. Positively gated component blocks follow, each headed by a `#` title, in the
   order those components run in `debian/main.sh`: `COMMAND_MODERN_CLI` — one gate holding five
-  `#` sections, since the shell config contributed by the eight `modern_cli/` install components
-  lands here rather than in per-tool files (`# Modern CLI tools`, including eza's `tree` alias;
+  `#` sections, since the shell config for modern CLI tools lands here rather than in per-tool files
+  (`# Modern CLI tools`, including eza's `tree` alias;
   `# bat`, only `compdef bat=batcat` because everything else bat needs lives in
   `~/.config/bat/config`; `# Editor` then `# Micro`, with the `EDITOR="code --wait"` branch nested
   one level deeper on `APP_VSCODE`; `# yazi`, the `y()` wrapper that cd's to wherever yazi was left
-  — `fdfind.sh`, `fzf.sh`, `tldr.sh` and `zoxide.sh` currently contribute nothing) — then
+  — `fdfind.sh`, `fzf.sh`, `tldr.sh` and the bulk-installed zoxide need no runtime shell lines here)
+  — then
   `APP_DOCKER` (`# Docker`, the
   `lzd` alias), `APP_GIT` (`# Git`, the `lg()` wrapper) and `APP_TMUX` (`# tmux mouse scroll`).
   Block titles name the *component*, not the tool, wherever the two differ — `# Git` rather than
@@ -821,9 +853,11 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
   - `fast-syntax-highlighting` — more accurate and faster, but its maintenance is less stable than
     zsh-syntax-highlighting's; not worth the swap.
 
-  Two installed plugins need no configuration at all, checked so nobody goes looking for it: the
-  `git` plugin's source has no tunable variable, and `zoxide`'s only one is `ZOXIDE_CMD_OVERRIDE`,
-  whose default `z` is exactly what is wanted.
+  Two installed plugins need no additional generated shell configuration, checked so nobody goes
+  looking for it: the `git` plugin's source has no tunable variable, and the Oh My Zsh `zoxide`
+  wrapper's only variable is `ZOXIDE_CMD_OVERRIDE`, whose default `z` is exactly what is wanted.
+  The executable's `_ZO_*` choices and their vetted rejections are recorded with the component
+  above.
 - **omz plugin selection (macos tree)** — vetted rejections, recorded so they don't get
   re-proposed:
   - `ssh-agent` — `_start_agent()` reuses an agent only when `~/.ssh/environment-$SHORT_HOST`

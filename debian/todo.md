@@ -8,16 +8,15 @@
 ## 总览
 
 - [ ] 1 修 `--command-modern-cli` 下的三处插件顺序回退
-- [ ] 2 `z` 与 `zoxide` 互斥
 - [ ] 3 eza 的 zstyle 落 `setup-env` 插件
 - [ ] 4 fzf / fzf-tab / magic-enter 的配置落 `00-setup_env.zsh`
 - [ ] 5 atuin 的 zsh 补全落 fpath
 - [ ] 6 引入 atuin 接管 `^R` 与 `↑`
-- [ ] 7 CLAUDE.md 同步（随 1–4 落地）
+- [ ] 7 CLAUDE.md 同步（随 1、3、4 落地）
 - [ ] 8 yazi 的推荐配置、插件与 One Dark flavor
 
-1–6 里 1–4 只动 `command/omz_custom/`，5–6 只动 `command/modern_cli/main.sh`，互不冲突，且全部
-gate 在 `--command-modern-cli`，默认安装路径不受影响。7 是随 1–4 一起改的文档债。8 独立收拢
+1、3、4 只动 `command/omz_custom/`，5、6 只动 `command/modern_cli/main.sh`，互不冲突，且全部
+gate 在 `--command-modern-cli`，默认安装路径不受影响。7 是随 1、3、4 一起改的文档债。8 独立收拢
 `command/modern_cli/yazi/`，只额外改它在 `modern_cli/main.sh` 的调用路径和落地后的 `CLAUDE.md` 说明。
 
 ### Modern CLI 工具配置
@@ -27,7 +26,7 @@ gate 在 `--command-modern-cli`，默认安装路径不受影响。7 是随 1–
 - [x] `glow`
 - [ ] `eza`
 - [x] `ripgrep`
-- [ ] `zoxide`
+- [x] `zoxide`
 - [ ] `fzf`
 - [x] `hyperfine`
 - [x] `sd`
@@ -88,31 +87,8 @@ plugins=(setup-env aliases colored-man-pages dirhistory extract fancy-ctrl-z mag
          zsh-syntax-highlighting)
 ```
 
-（实际是一行；`z` 已被第 2 节移除。中段工具插件的相对顺序无约束。）
-
----
-
-## 2 · `z` 与 `zoxide` 互斥
-
-**文件**：`main.sh` 的 `install_plugin()`、`custom_env.sh` 的 `render_blocks()`
-
-**现状** `main.sh:47` 无条件 `append_plugin 'z'`，`custom_env.sh` 的 `# z` 块（`ZSHZ_CASE` /
-`ZSHZ_TILDE`）同样无条件。而 `zoxide` 插件跑的是 `zoxide init --cmd z`，开
-`--command-modern-cli` 时它接管同一个命令名，zsh-z 的 1108 行代码和它的 `chpwd` / `precmd` hook
-纯属白跑。
-
-**改法** 两处一起条件化：
-
-```bash
-[[ $COMMAND_MODERN_CLI != '1' ]] && append_plugin 'z'
-```
-
-`custom_env.sh` 里把 `# z` 整块（含前导空行）包进 `if [[ $COMMAND_MODERN_CLI != '1' ]]; then … fi`
-—— 用 `if` 不用 `[[ ]] &&`，理由见 `CLAUDE.md` 的 `set -e` 一节。
-
-**不影响两树一致性**：`CLAUDE.md` 要求「debian 全 flag 关闭时两边生成的 `00-setup_env.zsh` 应
-`cmp` 相等」。`COMMAND_MODERN_CLI` 默认为 0，`# z` 块照常输出，该不变式仍成立。只是 debian 的
-「无条件段」从此有一条是反向 gate 的，需要在 `CLAUDE.md` 补一句（见第 7 节）。
+（实际是一行；启用 modern CLI 时 `z` 已由 `omz_custom/main.sh` 反向 gate 掉。中段工具插件的
+相对顺序无约束。）
 
 ---
 
@@ -287,11 +263,9 @@ eval "$(atuin init zsh --disable-ai)"
 
 不是独立工作，是上面几节落地后必须一起改的文档债，列出来免得漏：
 
-- **随第 1、2 节**：删掉「omz plugin ordering」里
-  「The debian tree violates 1–3 whenever `--command-modern-cli` is on」那句现状陈述，连同它指向
-  本文 §1、§2 的那半句。
-- **随第 2 节**：在 `00-setup_env.zsh` 一节补一句 —— debian 的「无条件段」有一条 `# z` 是反向
-  gate 的，`cmp` 不变式仍成立（`COMMAND_MODERN_CLI` 默认 0）。
+- **随第 1 节**：删掉「omz plugin ordering」里
+  「The debian tree still violates 1–3 whenever `--command-modern-cli` is on」那句现状陈述及其
+  `debian/todo.md` §1 指针。
 - **随第 3 节**：更新「Only `PYTHON_AUTO_VRUN` is in the first row today」及其后指向本文 §3 的
   eza 那句。
 - **随第 4 节**：新记两条 —— zstyle 按具体度决胜、覆盖 omz 的 `menu select` 必须同为五级 pattern；

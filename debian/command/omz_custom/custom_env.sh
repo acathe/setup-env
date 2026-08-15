@@ -22,10 +22,13 @@ render_blocks() {
     echo
     echo '# you-should-use'
     echo 'export YSU_MESSAGE_POSITION="after"'
-    echo
-    echo '# z'
-    echo 'ZSHZ_CASE=smart'
-    echo 'ZSHZ_TILDE=1'
+
+    if [[ $COMMAND_MODERN_CLI != '1' ]]; then
+        echo
+        echo '# z'
+        echo 'ZSHZ_CASE=smart'
+        echo 'ZSHZ_TILDE=1'
+    fi
 
     if [[ $COMMAND_MODERN_CLI == '1' ]]; then
         echo

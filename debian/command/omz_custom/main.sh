@@ -44,7 +44,7 @@ install_plugin() {
     append_plugin 'safe-paste'
     append_plugin 'sudo'
     append_plugin 'universalarchive'
-    append_plugin 'z'
+    [[ $COMMAND_MODERN_CLI != '1' ]] && append_plugin 'z'
 
     [[ $COMMAND_MODERN_CLI == '1' ]] && append_plugin 'eza'
     [[ $COMMAND_MODERN_CLI == '1' ]] && append_plugin 'fzf'
