@@ -54,9 +54,10 @@ Three independent setup trees, selected by `--setup`:
 - `debian/` — the richest tree; installs zsh + oh-my-zsh unconditionally, then a
   matrix of optional components. `--command-modern-cli` is a nested dispatcher, the same shape as
   `--app-claude`: `command/modern_cli/main.sh` installs the bulk of the CLI tools itself, then runs
-  the five sub-scripts under it — `modern_cli/bat/`, `modern_cli/fdfind.sh`, `modern_cli/micro/`,
-  `modern_cli/tldr.sh` and `modern_cli/yazi.sh` — each still installing its own packages and owning
-  whatever config that tool needs, none of them carrying a flag of its own. One component is shaped
+  the eight components under it — `modern_cli/bat/`, `modern_cli/eza.sh`, `modern_cli/fdfind.sh`,
+  `modern_cli/fzf.sh`, `modern_cli/micro/`, `modern_cli/tldr.sh`, `modern_cli/yazi.sh` and
+  `modern_cli/zoxide.sh` — each still installing its own packages and owning whatever non-shell
+  config that tool needs, none of them carrying a flag of its own. One component is shaped
   unusually: `--app-git`
   deliberately spans all three layers of a single concern instead of being split by kind: it
   installs the tooling (`gh` from the official apt repo, `git-delta`, `lazygit`), writes the global
@@ -150,6 +151,12 @@ Three independent setup trees, selected by `--setup`:
   what removed `link_binaries()` from `main.sh` — `fd` was its only entry. Unlike bat it needs no
   `compdef` line, because Debian's `_fd` declares `#compdef fd` and the symlinked name is therefore
   already registered.
+
+  `modern_cli/eza.sh`, `modern_cli/fzf.sh` and `modern_cli/zoxide.sh` are flat, apt-only components:
+  none owns a static tool config artifact. Their current and planned shell integration stays
+  centralized by landing point — plugin selection and ordering in `omz_custom/main.sh`, load-time
+  eza settings in `omz_custom/pre_plugin.sh`, and runtime settings in `omz_custom/custom_env.sh` —
+  rather than being appended by the installing component.
 
   `glow` deliberately stays in `modern_cli/main.sh`'s bulk apt list rather than becoming a directory
   component: setup-env owns no Glow config. Trixie ships Glow 2.0.0 with Glamour 0.8.0; the generated
@@ -458,7 +465,7 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
   written later by `command/ssh.sh`. Leaving an optional plugin ungated hides that dependency and
   leaves a silently no-op plugin behind whenever the component is off.
 
-  The installing component (`code/go.sh`, `app/docker.sh`, `command/modern_cli/main.sh`, …) keeps its
+  The installing component (`code/go.sh`, `app/docker.sh`, `command/modern_cli/eza.sh`, …) keeps its
   installs and its non-zsh config but must not touch `plugins=()` — nor `00-setup_env.zsh` or
   `01-first_run.zsh`, which follow the same rule for the same reason. `omz_custom` runs second in
   the tree, so a plugin name reaches `.zshrc` *before* its tool is installed — harmless, since
@@ -643,11 +650,13 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
   accumulating duplicate blocks, and no component can append behind its back. The unconditional
   section comes first, then one gated block per component, each headed by a `#` title, in the
   order those components run in `debian/main.sh`: `COMMAND_MODERN_CLI` — one gate holding five
-  `#` sections, since everything the five `modern_cli/` sub-scripts need here lands in one place
-  (`# Modern CLI tools`; `# bat`, only `compdef bat=batcat` because everything else bat needs lives
-  in `~/.config/bat/config`; `# Editor` then `# Micro`, with the `EDITOR="code --wait"` branch
-  nested one level deeper on `APP_VSCODE`; `# yazi`, the `y()` wrapper that cd's to wherever yazi
-  was left — `fdfind.sh` and `tldr.sh` contribute nothing) — then `APP_DOCKER` (`# Docker`, the
+  `#` sections, since the shell config contributed by the eight `modern_cli/` install components
+  lands here rather than in per-tool files (`# Modern CLI tools`, including eza's `tree` alias;
+  `# bat`, only `compdef bat=batcat` because everything else bat needs lives in
+  `~/.config/bat/config`; `# Editor` then `# Micro`, with the `EDITOR="code --wait"` branch nested
+  one level deeper on `APP_VSCODE`; `# yazi`, the `y()` wrapper that cd's to wherever yazi was left
+  — `fdfind.sh`, `fzf.sh`, `tldr.sh` and `zoxide.sh` currently contribute nothing) — then
+  `APP_DOCKER` (`# Docker`, the
   `lzd` alias), `APP_GIT` (`# Git`, the `lg()` wrapper) and `APP_TMUX` (`# tmux mouse scroll`).
   Block titles name the *component*, not the tool, wherever the two differ — `# Git` rather than
   `# lazygit` — matching `# Editor` / `# Micro` above them. Intra-file order is cosmetic — the
