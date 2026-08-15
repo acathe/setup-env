@@ -8,10 +8,7 @@ install_packages() {
         jq \
         unzip \
         glow \
-        eza \
         ripgrep \
-        zoxide \
-        fzf \
         hyperfine \
         sd \
         btop \
@@ -34,10 +31,13 @@ main() {
     install_binaries
 
     bash './bat/main.sh' "$@"
+    bash './eza.sh' "$@"
     bash './fdfind.sh' "$@"
+    bash './fzf.sh' "$@"
     bash './micro/main.sh' "$@"
     bash './tldr.sh' "$@"
     bash './yazi.sh' "$@"
+    bash './zoxide.sh' "$@"
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
