@@ -62,7 +62,7 @@ Three independent setup trees, selected by `--setup`:
   `--app-claude`: `command/modern_cli/main.sh` installs the bulk of the CLI tools itself — including
   eza and zoxide — then runs the eight components under it: `modern_cli/atuin/`, `modern_cli/bat/`,
   `modern_cli/choose.sh`, `modern_cli/fdfind.sh`, `modern_cli/fzf/`, `modern_cli/micro/`,
-  `modern_cli/tldr.sh` and `modern_cli/yazi.sh`. Each still installs its own
+  `modern_cli/tldr.sh` and `modern_cli/yazi/main.sh`. Each still installs its own
   packages and owns whatever non-shell config that tool needs; none carries a flag of its own. One
   component is shaped unusually: `--app-git`
   deliberately spans all three layers of a single concern instead of being split by kind: it
@@ -175,15 +175,16 @@ Three independent setup trees, selected by `--setup`:
   `git/config.yml`'s. Where micro and lazygit silently ignore an unknown key, bat **hard-errors**
   on one — the file's words are prepended to argv, so clap rejects it and *every* `bat` run fails
   until it is removed. And it must be the **only** place bat's theme is set: `BAT_THEME` in the
-  environment outranks the config file (verified in both directions). delta is unaffected either
-  way — its theme comes from gitconfig (`delta.syntax-theme`), not from `BAT_THEME`.
+  environment outranks the config file (verified in both directions). Yazi's Piper code preview
+  invokes bat without `--theme`, so it inherits the same file. delta is unaffected either way — its
+  theme comes from gitconfig (`delta.syntax-theme`), not from `BAT_THEME`.
 
   With `bat/config` the rule is uniform across the repo: **a tool's own config file is always a
   shipped artifact, never an `echo` block.** `micro/settings.json`, `git/config.yml`, `bat/config`,
-  `fzf/fzfrc` and `atuin/config.toml` all land through `install -Dm 644`, and
-  `copilot_api/settings.json` is that plus `jq` interpolation; what is left to `echo` is only the
-  files this repo invented
-  (`00-setup_env.zsh`, `01-first_run.zsh`, `setup-env.plugin.zsh`) and the appends into files an
+  `fzf/fzfrc`, `atuin/config.toml`, `yazi/yazi.toml`, `yazi/init.lua` and `yazi/keymap.toml` all
+  land through `install -Dm 644`, and `copilot_api/settings.json` is that plus `jq` interpolation.
+  What is left to `echo` is only the files this repo invented (`00-setup_env.zsh`,
+  `01-first_run.zsh`, `setup-env.plugin.zsh`) and the appends into files an
   upstream installer or the shell already made (`tmux.conf.local`, `.zshenv`, the ssh config) —
   plus the git config, which goes through `git config --global` and has no file to ship.
 
@@ -307,12 +308,13 @@ Three independent setup trees, selected by `--setup`:
   no reason for a Glow alias, helper function, completion artifact or global `GLOW_*` /
   `GLAMOUR_*` setting; the later omz-plugin rejection remains the shell-side half of this choice.
 
-  The one planned integration is yazi's official `piper` recipe:
-  `CLICOLOR_FORCE=1 glow -w=$w -s=dark "$1"`. `dark` there is Glow's built-in style, not yazi's One
-  Dark flavor. Non-TTY output on Glow 2.x quantises the RGB colours used by parts of that style —
-  chiefly Chroma code highlighting — to ANSI/256 colours even with `CLICOLOR_FORCE=1`; layout,
-  emphasis and syntax categories are unchanged. Do not promise TrueColor parity until a released
-  Glow contains the still-open `--color=always` work, and do not fake a TTY or `TERM` meanwhile.
+  Glow's one Yazi integration is an adaptation of the official `piper` recipe shipped in
+  `modern_cli/yazi/yazi.toml`: `CLICOLOR_FORCE=1 glow -w=$w "$1"`. Omitting the recipe's
+  `-s=dark` leaves style selection at Glow's `auto` baseline rather than coupling it to a Yazi
+  flavor. Non-TTY output on Glow 2.x can quantise the selected style's RGB colours — chiefly
+  Chroma code highlighting — to ANSI/256 colours even with `CLICOLOR_FORCE=1`; layout, emphasis
+  and syntax categories are unchanged. Do not promise TrueColor parity until a released Glow
+  contains the still-open `--color=always` work, and do not fake a TTY or `TERM` meanwhile.
 
   Paging stays opt-in too. `glow -p` sends the rendered document to `$PAGER`, falling back to
   `less -r`; `PAGER='less -R' glow -p FILE.md` is the safer one-shot form because `-R` passes ANSI
@@ -325,26 +327,52 @@ Three independent setup trees, selected by `--setup`:
   installs it as `~/.local/bin/choose`; it has no package, completion or config of its own, and the
   user-level drop point is why this component needs no `sudo`.
 
-  `modern_cli/yazi.sh` fetches the latest release zip, installs the `yazi` / `ya` binaries into
-  `~/.local/bin`, installs the `_yazi` / `_ya` completions the zip already ships into
-  `$ZSH_CUSTOM/completions/`, brings its own `file` (yazi needs it for mime detection and the
-  Debian docker base image has none) and `unzip`, and owns the `y()` cwd-following wrapper in
-  `00-setup_env.zsh` — all of that in its own script rather than in the `modern_cli/main.sh` that
-  runs it. Both drop points are under `$HOME` and already on `PATH` / `fpath` (see the
-  `~/.local/bin` note under Conventions and `oh-my-zsh.sh:76`'s unconditional
-  `fpath=(… $ZSH_CUSTOM/{functions,completions} …)`), so apart
-  from that one `apt-get` the component needs no `sudo`. Writing a per-component `_foo` there is
-  not the ownership violation that touching `00-setup_env.zsh` would be — no other component writes
-  that filename, so none of the duplicate-append hazards the `omz_custom` rule exists to prevent
-  apply. Its install channel is settled, the two obvious alternatives vetted and rejected.
-  **cargo** is out: yazi's MSRV is `1.95.0` against trixie's apt `cargo` 1.85.0 and backports'
-  1.94.1, so it would mean a ≥1.95 toolchain (117 MB) plus a 5–15 minute build to reproduce what
-  upstream CI already publishes — and `cargo install --force yazi-build`, the only command that
-  works, does its real work in a `build.rs` that `git clone`s and builds under `env::temp_dir()`
-  without ever cleaning up. The **official `.deb`** is out too: ffmpeg, imagemagick, poppler-utils,
-  7zip and `xsel|xclip|wl-clipboard` are hard `Depends:` — 200 new packages on a
-  `--no-install-recommends` dry run — and its assets carry only the bash completions. The zip is
-  the most complete artifact of the three: `scripts/build.sh` sets `YAZI_GEN_COMPLETIONS=1`, so its
+  `modern_cli/yazi/` is a directory component because it owns three static config artifacts alongside
+  `main.sh`. The script keeps the old flat component's direct flow: download the unversioned x86_64
+  GNU zip from `releases/latest/download` to `/tmp/yazi.zip`, unpack it under `/tmp`, then install
+  `yazi` / `ya` into `~/.local/bin` and the zip's `_yazi` / `_ya` completions into
+  `$ZSH_CUSTOM/completions/`. It installs its direct `file` and `unzip` dependencies and deliberately
+  does not resolve, pin or validate the release version; a rerun picks up whatever `latest` supplies.
+
+  After installing the binaries, `install_plugins()` prepends `~/.local/bin` to `PATH` and passes all
+  six official plugins to one `ya pkg add`: `piper`, `git`, `toggle-pane`, `smart-enter`,
+  `smart-filter` and `smart-paste`. This component targets a clean Debian first install, so it does
+  not inspect or reconcile pre-existing package state. With neither `YAZI_CONFIG_HOME` nor
+  `XDG_CONFIG_HOME` set in that environment, Ya uses its default `~/.config/yazi/` and maintains the
+  runtime `package.toml` there; that mutable manifest is not a shipped artifact.
+
+  Only after all plugins succeed does `install -Dm 644` deploy `yazi.toml`, `init.lua` and
+  `keymap.toml`. `yazi.toml` sends Markdown through Piper and Glow first, then replaces Yazi's two
+  built-in `code` MIME scopes (`text/*` and `application/{mbox,javascript,wine-extension-ini}`) with
+  `piper -- bat -p --color=always`; its Git fetchers still cover both files and directories.
+  `init.lua` fixes Git status-sign order at 1500. `keymap.toml` binds `T` to
+  maximize or restore the preview pane, replaces `l` with smart-enter, adds smart-filter on `F`, and
+  replaces `p` with smart-paste; smart-enter keeps its default single-hovered-item behavior rather
+  than enabling `open_multi`.
+
+  Those `$HOME` drop points are already on `PATH` / `fpath` (see the `~/.local/bin` note under
+  Conventions and `oh-my-zsh.sh:76`'s unconditional
+  `fpath=(… $ZSH_CUSTOM/{functions,completions} …)`). The `y()` cwd-following wrapper remains owned
+  by `command/omz_custom/custom_env.sh`, the only writer of `00-setup_env.zsh`; the component never
+  appends shell config behind that landing point.
+
+  There is deliberately no `theme.toml`. Built-in `z` / `Z` still cover fzf and zoxide, and the
+  default opener still reads `$EDITOR`. The selected official plugins add repository state and
+  keyboard-only file-management improvements without desktop dependencies; jump-to-char, chmod and
+  further visual changes remain opt-in. The official flavor collection contains no One Dark flavor,
+  so a small community package is not a reason to override Yazi's maintained defaults. Mount,
+  clipboard and media extensions also stay out of the headless SSH baseline, as do their desktop or
+  image-stack dependencies.
+
+  The install channel itself is settled, with the two obvious alternatives rejected. **cargo** is
+  out: yazi's MSRV is `1.95.0` against trixie's apt `cargo` 1.85.0 and backports' 1.94.1, so it would
+  mean a ≥1.95 toolchain (117 MB) plus a 5–15 minute build to reproduce what upstream CI already
+  publishes — and `cargo install --force yazi-build`, the only command that works, does its real
+  work in a `build.rs` that `git clone`s and builds under `env::temp_dir()` without ever cleaning
+  up. The **official `.deb`** is out too: ffmpeg, imagemagick, poppler-utils, 7zip and
+  `xsel|xclip|wl-clipboard` are hard `Depends:` — 200 new packages on a
+  `--no-install-recommends` dry run — and its assets carry only the bash completions. The zip is the
+  most complete artifact of the three: `scripts/build.sh` sets `YAZI_GEN_COMPLETIONS=1`, so its
   `completions/` holds every shell, zsh included.
 
   `modern_cli/tldr.sh` is the smallest: it installs `tealdeer` (leaving
@@ -541,8 +569,8 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
 - **Every GitHub release download goes through `releases/latest/download/<asset>`.** A tag never
   appears in a URL. What decides whether any version resolution happens at all is the *asset
   filename*. `choose-x86_64-unknown-linux-gnu` and `yazi-x86_64-unknown-linux-gnu.zip` carry no
-  version, so `command/modern_cli/choose.sh` and `command/modern_cli/yazi.sh` download in one line
-  from a pure literal URL — single-quoted, per the quoting rule — with no helper at all.
+  version, so `command/modern_cli/choose.sh` and `command/modern_cli/yazi/main.sh` download in one
+  line from pure literal URLs — single-quoted, per the quoting rule — with no helper at all.
   `protoc-35.1-linux-x86_64.zip` embeds one, so `tools/protobuf.sh` still resolves it, but only to
   build the *filename*, never a `/releases/download/v<tag>/` path. `get_protoc_latest()` is that
   resolver: `curl -fsSIL -o /dev/null -w '%{url_effective}'` on `/releases/latest` piped through one
@@ -550,12 +578,12 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
   followed at the call site by an `if [[ -z $version ]]` guard, since a network failure yields an
   empty string rather than a non-zero exit and `set -e` cannot catch it. **Resolving a version only
   to write it straight back into the URL path is the tell that the step is dead weight** — that was
-  `command/modern_cli/yazi.sh` before, with the bare number never used for anything.
+  Yazi's old resolver, with the bare number never used for anything.
 
-  Two things this does *not* buy. It does not pin a version — `latest` is `latest` either way, so a
-  re-run picks up whatever shipped since. And `latest` plus an explicit version in the asset name
-  has a race: if upstream publishes between the resolve and the download the old filename 404s —
-  loud, not silent, since `curl -f` exits non-zero and `set -e` aborts before anything is installed.
+  This does not pin a version — `latest` is `latest` either way, so a re-run of choose or Yazi picks
+  up whatever shipped since. `latest` plus an explicit version in an asset filename still has a
+  race: if upstream publishes between resolution and download the old filename 404s — loud, not
+  silent, since `curl -f` exits non-zero and `set -e` aborts before anything is installed.
 
   `container/copilot-api/main.sh`'s `get_copilot_api_latest()` is the same helper but sits outside
   this rule: it has no asset URL to write. `$version` is a git ref for `docker build`
@@ -726,7 +754,7 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
   uncomments omz's own template line (`export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH`,
   `.zshrc` l.2), and `omz.sh` runs first in the tree — so any later component can drop a binary
   there and have it resolve. `modern_cli/fdfind.sh`'s `fd` symlink, `modern_cli/bat/main.sh`'s `bat`
-  symlink, `modern_cli/choose.sh`'s `choose`, `modern_cli/yazi.sh`'s `yazi` / `ya` and
+  symlink, `modern_cli/choose.sh`'s `choose`, `modern_cli/yazi/main.sh`'s `yazi` / `ya` and
   `tools/protobuf.sh`'s `protoc` all rely on this, and it is why none of those placements needs
   `sudo`. Being in `.zshrc` it is
   interactive-only — enough for the `(( $+commands[fd] ))` probes plugins do while `.zshrc` is
@@ -975,7 +1003,7 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
     `--app-claude-copilot-api` installs runs on node); npm is never driven by hand.
   - `lazygit` `lazydocker` `btop` `duf`, and yazi's TUI half — pure TUI or single-shot display;
     type the name, press enter. Completion buys nothing. (yazi's own `_yazi` / `_ya` are a separate
-    matter, covering the `ya` package manager and yazi's flags; `modern_cli/yazi.sh` installs them
+    matter, covering the `ya` package manager and yazi's flags; `modern_cli/yazi/main.sh` installs them
     from the release zip, so no plugin is needed there either.)
   - `jq` `sd` `hyperfine` `choose` `glow` — no omz plugin exists; `jsontools`' functionality is
     fully covered by jq. `choose` ships no completion upstream, and `glow` has one usage worth

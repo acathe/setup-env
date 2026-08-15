@@ -70,11 +70,11 @@ install_plugin() {
     fi
 
     local tmp
-    tmp="$(mktemp "$HOME/.claude/settings.json.XXXXXX")"
+    tmp="$(mktemp)"
     jq 'del(.extraKnownMarketplaces["claude-plugins-official"])
         | if .extraKnownMarketplaces == {} then del(.extraKnownMarketplaces) else . end' \
         "$HOME/.claude/settings.json" > "$tmp"
-    mv "$tmp" "$HOME/.claude/settings.json"
+    cp "$tmp" "$HOME/.claude/settings.json"
 }
 
 main() {

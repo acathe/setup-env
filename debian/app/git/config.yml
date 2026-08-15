@@ -3,4 +3,4 @@ gui:
   sidePanelWidth: 0.2
 git:
   paging:
-    pager: delta --dark --paging=never
+    pager: delta --paging=never
