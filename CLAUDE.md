@@ -297,10 +297,8 @@ The script explicitly adds the official marketplace before first interactive lau
 `extraKnownMarketplaces["claude-plugins-official"]` and removes the parent object only if empty. Preserve `enabledPlugins`, custom/copilot marketplaces, and
 separate registry state. Never replace this cleanup with `claude plugin marketplace remove`, which uninstalls plugins.
 
-The copilot-api child requires all three model values. For each, `check_model()` fetches `$APP_CLAUDE_BASE_URL/v1/models`, extracts only
-`.data[].claude_model_id`, and performs an exact line match. Empty or absent values fail; there is no family inference, fallback, or automatic selection.
-`check_model()` sends no auth header, so `/v1/models` must be reachable without `APP_CLAUDE_AUTH_TOKEN`; that token is only written into settings. The
-defaults are base URL `http://localhost:4141` and the intentionally non-secret token `dummy`.
+The copilot-api child writes the three model values into settings as supplied without querying `/v1/models` or validating availability. The model values
+default to empty; the base URL defaults to `http://localhost:4141`, and the intentionally non-secret token defaults to `dummy`.
 
 `install_settings()` merges the final `ANTHROPIC_*` values into the shipped template and writes `~/.claude/settings.json` with directory mode 700 and file
 mode 600. Treat that template as the source of truth for sandbox, permission, language, notification, and workflow preferences rather than copying each
