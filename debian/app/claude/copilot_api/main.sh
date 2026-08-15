@@ -65,19 +65,6 @@ parse_args() {
     done
 }
 
-check_model() {
-    local model_id="$1"
-
-    if [[ -z $model_id ]]; then
-        return 1
-    fi
-
-    local body ids
-    body="$(curl -fsS "$APP_CLAUDE_BASE_URL/v1/models")"
-    ids="$(jq -r '.data[].claude_model_id' <<< "$body")"
-    grep -Fxq -- "$model_id" <<< "$ids"
-}
-
 install_settings() {
     mkdir -p "$HOME/.claude"
     chmod 700 "$HOME/.claude"
@@ -110,14 +97,6 @@ main() {
     if ! command -v jq > /dev/null 2>&1; then
         sudo apt-get update
         sudo apt-get install -y jq
-    fi
-
-    if ! check_model "$APP_CLAUDE_DEFAULT_OPUS_MODEL" \
-        || ! check_model "$APP_CLAUDE_DEFAULT_SONNET_MODEL" \
-        || ! check_model "$APP_CLAUDE_DEFAULT_HAIKU_MODEL"; then
-
-        echo "Models not found in copilot-api /v1/models response." >&2
-        return 1
     fi
 
     install_settings
