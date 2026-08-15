@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-install_packages() {
+main() {
     sudo apt-get update
     sudo apt-get install -y \
         jq \
@@ -16,22 +16,9 @@ install_packages() {
         du-dust \
         duf \
         procs
-}
-
-install_binaries() {
-    local tmp
-    tmp="$(mktemp -d)"
-
-    curl -fsSL -o "$tmp/choose" \
-        'https://github.com/theryangeary/choose/releases/latest/download/choose-x86_64-unknown-linux-gnu'
-    sudo install -m 755 "$tmp/choose" '/usr/local/bin/choose'
-}
-
-main() {
-    install_packages
-    install_binaries
 
     bash './bat/main.sh' "$@"
+    bash './choose.sh' "$@"
     bash './eza.sh' "$@"
     bash './fdfind.sh' "$@"
     bash './fzf.sh' "$@"
