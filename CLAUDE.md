@@ -60,9 +60,9 @@ Three independent setup trees, selected by `--setup`:
 - `debian/` — the richest tree; installs zsh + oh-my-zsh unconditionally, then a
   matrix of optional components. `--command-modern-cli` is a nested dispatcher, the same shape as
   `--app-claude`: `command/modern_cli/main.sh` installs the bulk of the CLI tools itself — including
-  zoxide — then runs the nine components under it: `modern_cli/atuin/`, `modern_cli/bat/`,
-  `modern_cli/choose.sh`, `modern_cli/eza.sh`, `modern_cli/fdfind.sh`, `modern_cli/fzf/`,
-  `modern_cli/micro/`, `modern_cli/tldr.sh` and `modern_cli/yazi.sh`. Each still installs its own
+  eza and zoxide — then runs the eight components under it: `modern_cli/atuin/`, `modern_cli/bat/`,
+  `modern_cli/choose.sh`, `modern_cli/fdfind.sh`, `modern_cli/fzf/`, `modern_cli/micro/`,
+  `modern_cli/tldr.sh` and `modern_cli/yazi.sh`. Each still installs its own
   packages and owns whatever non-shell config that tool needs; none carries a flag of its own. One
   component is shaped unusually: `--app-git`
   deliberately spans all three layers of a single concern instead of being split by kind: it
@@ -193,7 +193,7 @@ Three independent setup trees, selected by `--setup`:
   `compdef` line, because Debian's `_fd` declares `#compdef fd` and the symlinked name is therefore
   already registered.
 
-  `modern_cli/eza.sh` is a flat, apt-only component with no static tool config artifact. This is
+  `eza` stays in `modern_cli/main.sh`'s bulk apt list and has no static tool config artifact. This is
   deliberate: trixie's 0.21.0 reads `theme.yml` / `theme.yaml`,
   but those files configure only colours, style attributes, glyphs and filename / extension
   mappings — eza has no `config.yaml` / `config.toml` for general display flags. The official eza
@@ -604,7 +604,7 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
   Leaving an optional plugin ungated hides that dependency and leaves a silently no-op plugin
   behind whenever the component is off.
 
-  The installing component (`code/go.sh`, `app/docker.sh`, `command/modern_cli/eza.sh`, …) keeps its
+  The installing component (`code/go.sh`, `app/docker.sh`, `command/modern_cli/fzf/main.sh`, …) keeps its
   installs and its non-zsh config but must not touch `plugins=()` — nor `00-setup_env.zsh` or
   `01-first_run.zsh`, which follow the same rule for the same reason. `omz_custom` runs second in
   the tree, so a plugin name reaches `.zshrc` *before* its tool is installed — harmless, since

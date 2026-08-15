@@ -8,6 +8,7 @@ main() {
         jq \
         unzip \
         glow \
+        eza \
         ripgrep \
         zoxide \
         hyperfine \
@@ -20,7 +21,6 @@ main() {
     bash './atuin/main.sh' "$@"
     bash './bat/main.sh' "$@"
     bash './choose.sh' "$@"
-    bash './eza.sh' "$@"
     bash './fdfind.sh' "$@"
     bash './fzf/main.sh' "$@"
     bash './micro/main.sh' "$@"
