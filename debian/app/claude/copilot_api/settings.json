@@ -12,10 +12,7 @@
     "enabled": true
   },
   "permissions": {
-    "defaultMode": "auto",
-    "allow": [
-      "mcp__plugin_tool-search_tool_search__search"
-    ]
+    "defaultMode": "auto"
   },
   "language": "Chinese",
   "preferredNotifChannel": "terminal_bell",
