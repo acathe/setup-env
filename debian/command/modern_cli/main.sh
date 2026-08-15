@@ -17,6 +17,7 @@ main() {
         duf \
         procs
 
+    bash './atuin/main.sh' "$@"
     bash './bat/main.sh' "$@"
     bash './choose.sh' "$@"
     bash './eza.sh' "$@"

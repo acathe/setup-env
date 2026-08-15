@@ -8,14 +8,12 @@
 ## 总览
 
 - [ ] 4 magic-enter 的运行期命令落 `00-setup_env.zsh`
-- [ ] 5 atuin 的 zsh 补全落 fpath
-- [ ] 6 引入 atuin 接管 `^R` 与 `↑`
-- [ ] 7 CLAUDE.md 同步（随 4 落地）
-- [ ] 8 yazi 的推荐配置、插件与 One Dark flavor
+- [ ] 5 CLAUDE.md 同步（随 4 落地）
+- [ ] 6 yazi 的推荐配置、插件与 One Dark flavor
 
-4 只动 `command/omz_custom/`，5、6 只动 `command/modern_cli/main.sh`，互不冲突，且全部
-gate 在 `--command-modern-cli`，默认安装路径不受影响。7 是随 4 一起改的文档债。8 独立收拢
-`command/modern_cli/yazi/`，只额外改它在 `modern_cli/main.sh` 的调用路径和落地后的 `CLAUDE.md` 说明。
+4 只动 `command/omz_custom/`，gate 在 `--command-modern-cli`，默认安装路径不受影响。
+5 是随 4 一起改的文档债。6 独立收拢 `command/modern_cli/yazi/`，只额外改它在
+`modern_cli/main.sh` 的调用路径和落地后的 `CLAUDE.md` 说明。
 
 ### Modern CLI 工具配置
 
@@ -64,87 +62,7 @@ gate 在 `--command-modern-cli`，默认安装路径不受影响。7 是随 4 �
 
 ---
 
-## 5 · 手装二进制的补全落 fpath
-
-**文件**：`debian/command/modern_cli/main.sh` 的 `install_atuin()`（随第 6 节新增）
-
-`/usr/local/share/zsh/site-functions/` 是 Debian 默认 fpath 的**第一位**
-（`zsh -f -c 'print -l $fpath'` 实测），专门留给本地安装的软件。omz 用的是**不带 `-C`** 的
-`compinit -i -d "$ZSH_COMPDUMP"`（`oh-my-zsh.sh:127`），每次启动都重扫 fpath，所以文件落盘后
-**下次开 shell 自动生效**：不用删 `.zcompdump`，`.zshrc` 一个字不改。
-
-之所以在安装期写文件、而不是像 omz 插件那样每次启动生成：我们是 setup 脚本，能在安装时介入 ——
-shell 启动零开销，也省掉 `autoload -Uz _xxx; _comps[xxx]=_xxx` 那段（插件必须写那段，是因为它
-加载时 `compinit` 已经跑完了）。代价是工具升级后补全不会自动更新，重跑 setup 即可，而这些补全
-一年也变不了几次。
-
-atuin 的二进制装在 `/usr/local/bin`，补全就走这里（yazi / tldr 那两半装在 `$HOME`，补全走
-`$ZSH_CUSTOM/completions/`，已落地）：
-
-- **atuin** —— tarball 里只有二进制 + README/CHANGELOG/LICENSE，装完自己生成（依赖第 6 节）：
-
-  ```bash
-  atuin gen-completions --shell zsh | sudo tee '/usr/local/share/zsh/site-functions/_atuin' > /dev/null
-  ```
-
-其余工具**不做**（含 apt 装的那批为什么无需处理）见 `CLAUDE.md` 的 debian 否决清单。
-
----
-
-## 6 · 引入 atuin 接管 `^R` 与 `↑`
-
-**文件**：`debian/command/modern_cli/main.sh` 的 `install_atuin()`（安装）+ `custom_env.sh` 的
-`COMMAND_MODERN_CLI` 块（集成）
-
-Debian 13 无 atuin 包（`apt-cache policy atuin` 为空）。下载方式沿用
-`debian/command/modern_cli/choose.sh` 的纯字面量 `releases/latest/download/<固定资产名>` URL；
-不同的是 atuin 还要解压 tarball，并通过 `sudo` 安装到 `/usr/local/bin`：
-
-```
-https://github.com/atuinsh/atuin/releases/latest/download/atuin-x86_64-unknown-linux-gnu.tar.gz
-```
-
-（解压后的子目录名落地时确认，参照 `debian/command/modern_cli/yazi.sh` 的写法。）
-
-集成只有一行，追加在 `custom_env.sh` 的 `COMMAND_MODERN_CLI` 块里：
-
-```zsh
-eval "$(atuin init zsh --disable-ai)"
-```
-
-### 要点
-
-- **接管 `^R` 与 `↑`**：源码 `crates/atuin/src/command/client/init/zsh.rs` 默认绑 `^r`
-  （emacs/viins）、`/`（vicmd）、`^[[A` / `^[OA`（↑）、`k`（vicmd）。因为 eval 在 l.209、晚于
-  l.203 的插件循环，天然覆盖 fzf 的 `^R` 与 omz 的 `up-line-or-beginning-search`。
-  **fzf 插件保留**，仍提供 `^T` 文件、`Alt-C` 目录、`**` 触发补全、`FZF_DEFAULT_COMMAND`。
-- **`--disable-ai` 必加**：官方构建默认把空行开头的 `?` 绑给 Atuin AI（`atuin ai inline`，需要
-  Atuin 账号 + 联网）。
-- **一处非显然的顺序依赖**：`atuin.zsh` 会把 `atuin` **前置**进 `ZSH_AUTOSUGGEST_STRATEGY`，而
-  该变量由 `custom_env.sh` 的无条件段设为 `(history completion)`。无条件段在文件里排在
-  `COMMAND_MODERN_CLI` 块之前，方向正好是「先赋值、后前置」。**反过来就会被覆盖** —— 这条 eval
-  不能挪到无条件段之前。
-  > ⚠️ 上游 [zsh-autosuggestions#797](https://github.com/zsh-users/zsh-autosuggestions/issues/797)
-  > 「Conflict with atuin and completion strategies」未关闭。落地时先验证两者共存是否正常，
-  > 必要时把 `completion` 从策略数组里去掉。
-- **默认纯本地**：不 `atuin register` 就不同步。写 `~/.config/atuin/config.toml`：
-
-  ```toml
-  update_check = false
-  ```
-
-  （源码里默认值是 `cfg!(feature = "check-update")`，官方构建为 true，会在启动后台联网查版本。）
-  落地时决定是整文件 `>` 还是仅在缺失时创建 —— 该文件用户可能自己改过。
-- **`enter_accept` 默认 false**（已核对 `settings.rs:1434`）：TUI 里回车只回填命令行、不直接执行。
-  保持默认。
-- 装完跑 `atuin import auto || true`，从既有 `~/.zsh_history` 导入；全新环境里没历史也无害。
-- **已知短板**：atuin 不接管 `~/.zsh_history`，它另存 SQLite
-  （`~/.local/share/atuin/history.db`）；dev-container 每次重建库为空（除非挂卷或开 sync）。
-  每条命令有 preexec / precmd 两次子进程开销。
-
----
-
-## 7 · CLAUDE.md 同步
+## 5 · CLAUDE.md 同步
 
 不是独立工作，是上面几节落地后必须一起改的文档债，列出来免得漏：
 
@@ -153,7 +71,7 @@ eval "$(atuin init zsh --disable-ai)"
 
 ---
 
-## 8 · yazi 的推荐配置、插件与 One Dark flavor
+## 6 · yazi 的推荐配置、插件与 One Dark flavor
 
 **文件**：把 `debian/command/modern_cli/yazi.sh` 收成 `debian/command/modern_cli/yazi/main.sh`，同目录新增
 `yazi.toml`、`keymap.toml`、`theme.toml`、`init.lua`、`package.toml`；同步
@@ -401,9 +319,7 @@ zsh -n "$T/.oh-my-zsh/custom/plugins/setup-env/setup-env.plugin.zsh"
 ### 实机
 
 ```zsh
-bindkey '^R'                # → atuin-search
-bindkey '^[[A'              # → atuin-up-search
-bindkey '^T'                # → fzf-file-widget（fzf 仍在）
+bindkey '^T'                # → fzf-file-widget
 echo $FZF_DEFAULT_COMMAND   # → fd --type f --strip-cwd-prefix --hidden --follow --exclude .git
 ls -l ~/.local/bin/{fd,bat} # → fdfind / batcat
 yazi --version              # → 本次 package.toml 验证过的稳定版
@@ -411,13 +327,11 @@ ya pkg list                 # → 4 plugins + onedark flavor，revision 均被�
 ```
 
 - 启动无 stderr（重点看 uv / rust / docker 的异步补全生成）。
-- `^T` 的 bat 预览在 atuin 接管 `^R` 后仍正常，且在带 `.gitignore` 的仓库里不列 `node_modules`。
+- `^T` 有 bat 预览，且在带 `.gitignore` 的仓库里不列 `node_modules`。
 - `ll` 有表头、git 状态列、图标、相对时间；目录排在前。
 - 空命令行回车：git 仓库出 `git status -u .`，其他目录出 `eza -lah --git --icons`。
-- `fd <TAB>` / `bat <TAB>` / `atuin <TAB>` 均有补全（`yazi <TAB>` / `ya <TAB>` 由
+- `fd <TAB>` / `bat <TAB>` 均有补全（`yazi <TAB>` / `ya <TAB>` 由
   `command/modern_cli/yazi/main.sh` 装的 `_yazi` / `_ya` 提供）。
 - yazi 同时显示 size 与 Git 状态，`l` / `T` 和 glow Markdown 预览生效；无 `chafa` 时普通文件浏览、
   One Dark flavor 与 `y()` cwd-following 仍正常，启动日志没有插件 API 错误。
-- `atuin stats` 有数据（跑过几条命令后）；空命令行敲 `?` 不触发 AI，就是一个普通字符。
-- `^R` 打开 atuin TUI；tmux 里应为 popup 形式（tmux ≥ 3.2，Debian 13 是 3.5a）。
-- 未开 `--command-modern-cli` 时：`z` 仍在数组里，无 fzf-tab / atuin 相关报错。
+- 未开 `--command-modern-cli` 时：`z` 仍在数组里，无 fzf-tab 相关报错。

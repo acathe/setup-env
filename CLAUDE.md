@@ -60,11 +60,11 @@ Three independent setup trees, selected by `--setup`:
 - `debian/` — the richest tree; installs zsh + oh-my-zsh unconditionally, then a
   matrix of optional components. `--command-modern-cli` is a nested dispatcher, the same shape as
   `--app-claude`: `command/modern_cli/main.sh` installs the bulk of the CLI tools itself — including
-  zoxide — then runs the eight components under it: `modern_cli/bat/`, `modern_cli/choose.sh`,
-  `modern_cli/eza.sh`, `modern_cli/fdfind.sh`, `modern_cli/fzf/`, `modern_cli/micro/`,
-  `modern_cli/tldr.sh` and `modern_cli/yazi.sh`. Each still installs its own packages and owns
-  whatever non-shell config that tool needs; none carries a flag of its own. One component is shaped
-  unusually: `--app-git`
+  zoxide — then runs the nine components under it: `modern_cli/atuin/`, `modern_cli/bat/`,
+  `modern_cli/choose.sh`, `modern_cli/eza.sh`, `modern_cli/fdfind.sh`, `modern_cli/fzf/`,
+  `modern_cli/micro/`, `modern_cli/tldr.sh` and `modern_cli/yazi.sh`. Each still installs its own
+  packages and owns whatever non-shell config that tool needs; none carries a flag of its own. One
+  component is shaped unusually: `--app-git`
   deliberately spans all three layers of a single concern instead of being split by kind: it
   installs the tooling (`gh` from the official apt repo, `git-delta`, `lazygit`), writes the global
   git config, owns the `gh auth login` block in `01-first_run.zsh`, and owns
@@ -129,6 +129,40 @@ Three independent setup trees, selected by `--setup`:
     `~/.p10k.zsh` declaring `POWERLEVEL9K_MODE=nerdfont-v3` is the signal that the v3 font is the
     one installed — also the prerequisite for the eza plugin's `icons` zstyle.
 
+  `modern_cli/atuin/` installs trixie's `atuin` package (18.6.1-1), whose `/usr/bin/atuin` and
+  `/usr/share/zsh/vendor-completions/_atuin` already cover the binary and completion halves. It also
+  owns `~/.config/atuin/config.toml`, installed from `modern_cli/atuin/config.toml` with the same
+  overwrite-on-rerun policy as the other managed tool configs. The file contains only two material
+  deviations: `enter_accept = false`, because 18.6.1's generated config explicitly writes `true`
+  even though the Rust fallback is false, and `filter_mode_shell_up_key_binding = "session"`, so Up
+  stays within the current shell session while Ctrl-R keeps the global/fuzzy defaults.
+
+  No `update_check` key or generated completion belongs in that component. Debian removes Atuin's
+  `check-update` default feature at build time, and the package already owns `_atuin`; copying the
+  official-binary instructions for either would duplicate dead work. The remaining popular config
+  lines are defaults (`show_preview = true`, `secrets_filter = true`) or subjective UI choices
+  (`inline_height`, the `autumn` / `marine` themes), so they stay opt-in.
+
+  Atuin's zsh half lands through the one runtime drop point: the `COMMAND_MODERN_CLI` block in
+  `custom_env.sh` emits `eval "$(atuin init zsh)"`. It loads after omz's plugins, so Atuin takes
+  Ctrl-R and Up from fzf / omz while fzf keeps Ctrl-T, Alt-C and `**` completion. The shared section
+  has already set `ZSH_AUTOSUGGEST_STRATEGY=(history completion)` by then, so 18.6.1's init prepends
+  its optional strategy and the final array is `(atuin history completion)`. Its preexec / precmd
+  history hooks and ZLE search widgets come from the same init output. Loading those widgets after
+  `zsh-syntax-highlighting` is a deliberate, version-bound exception to the usual ordering rule:
+  on trixie's zsh 5.9, zsh-syntax-highlighting 0.8 uses the `zle-line-pre-redraw` hook rather than
+  wrapping the widgets that existed at source time, so later Atuin widgets remain highlighted.
+  Do not add `--disable-ai`: 18.6.1 accepts only `--disable-ctrl-r` / `--disable-up-arrow` and
+  predates the `?` AI binding entirely.
+
+  Installation remains local-first. The setup never imports old shell history: Atuin's bulk import
+  path bypasses the live `secrets_filter`, `history_filter`, `cwd_filter` and leading-space checks,
+  and repeated-import idempotency is not promised. It likewise never runs `register`, `login`,
+  `sync`, the packaged server service or an external plugin; account creation and E2EE sync are
+  explicit user choices. The built-in themes are only `default`, `autumn` and `marine`, and no
+  official or organised, maintained One Dark port exists, so the ANSI-based `default` theme is the
+  portable choice and naturally follows a One Dark terminal palette.
+
   `modern_cli/bat/` installs the `bat` package, makes the `~/.local/bin/bat` symlink over Debian's
   `batcat`, and ships `~/.config/bat/config`. The symlinked name needs one `compdef bat=batcat`
   line, which `custom_env.sh` writes — see the `compinit` discussion under Conventions for why that
@@ -145,9 +179,10 @@ Three independent setup trees, selected by `--setup`:
   way — its theme comes from gitconfig (`delta.syntax-theme`), not from `BAT_THEME`.
 
   With `bat/config` the rule is uniform across the repo: **a tool's own config file is always a
-  shipped artifact, never an `echo` block.** `micro/settings.json`, `git/config.yml`, `bat/config`
-  and `fzf/fzfrc` land through the same `install -Dm 644`, and `copilot_api/settings.json` is that
-  plus `jq` interpolation; what is left to `echo` is only the files this repo invented
+  shipped artifact, never an `echo` block.** `micro/settings.json`, `git/config.yml`, `bat/config`,
+  `fzf/fzfrc` and `atuin/config.toml` all land through `install -Dm 644`, and
+  `copilot_api/settings.json` is that plus `jq` interpolation; what is left to `echo` is only the
+  files this repo invented
   (`00-setup_env.zsh`, `01-first_run.zsh`, `setup-env.plugin.zsh`) and the appends into files an
   upstream installer or the shell already made (`tmux.conf.local`, `.zshenv`, the ssh config) —
   plus the git config, which goes through `git config --global` and has no file to ship.
@@ -609,8 +644,11 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
      pulled code on the *same* shell start; ones before it load stale code and only see the update
      next time.
   5. Anything that replaces or binds a ZLE widget (`safe-paste` → `bracketed-paste`,
-     `magic-enter` → `accept-line`, `fancy-ctrl-z` → `^Z`, `dirhistory` → Alt-arrows) must load
-     before `zsh-syntax-highlighting`. In practice they all sit near the front already.
+     `magic-enter` → `accept-line`, `fancy-ctrl-z` → `^Z`, `dirhistory` → Alt-arrows) must normally
+     load before `zsh-syntax-highlighting`. In practice they all sit near the front already. Atuin
+     is the one version-bound exception: it loads from `00-setup_env.zsh` so it can take Ctrl-R from
+     fzf, and trixie's zsh 5.9 puts zsh-syntax-highlighting 0.8 on its hook-based path, which also
+     highlights widgets registered later (see the Atuin paragraph above).
   6. macos only: `brew` must stay ahead of `command-not-found` — the Homebrew handler the latter
      sources bails on `command -v brew`. That carries more weight than it looks: `homebrew.sh`
      deliberately does **not** write `eval "$(brew shellenv)"` into `.zprofile` (upstream's
@@ -764,9 +802,9 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
   comes first. On Debian its trailing `# z` subsection is reverse-gated on
   `COMMAND_MODERN_CLI != '1'`; because the flag defaults to 0, an all-flags-off render still matches
   macos byte-for-byte. Positively gated component blocks follow, each headed by a `#` title, in the
-  order those components run in `debian/main.sh`: `COMMAND_MODERN_CLI` — one gate holding seven
+  order those components run in `debian/main.sh`: `COMMAND_MODERN_CLI` — one gate holding eight
   `#` sections, since the shell config for modern CLI tools lands here rather than in per-tool files
-  (`# eza`, containing the `tree` alias;
+  (`# Atuin`, containing the official zsh init; `# eza`, containing the `tree` alias;
   `# bat`, only `compdef bat=batcat` because everything else bat needs lives in
   `~/.config/bat/config`; `# fzf`, the two runtime preview option strings (its four load-time
   exports live in `setup-env`); `# fzf-tab`, five completion zstyles; `# Editor` then `# Micro`, with
@@ -896,11 +934,15 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
   `_<tool>` into `/usr/share/zsh/vendor-completions/` gets no omz plugin.** That directory is on
   the default `fpath`, so the completion is already live; the omz plugins for these tools exist to
   cover tarball / `go install` / conda installs that no packager touched, and they pay for it by
-  running a generator on every shell start. Verified present on Debian 13 trixie: `_batcat`
-  `_delta` `_dust` `_eza` `_fd` `_gh` `_procs` `_rg`. Whether a packager bothered is the only
-  variable — it does not follow from how the tool was installed. The `_` in that criterion is
+  running a generator on every shell start. Verified present on Debian 13 trixie: `_atuin`
+  `_batcat` `_delta` `_dust` `_eza` `_fd` `_gh` `_procs` `_rg`. Whether a packager bothered is the
+  only variable — it does not follow from how the tool was installed. The `_` in that criterion is
   load-bearing: tealdeer's `tldr.zsh` is in the same directory and is perfectly valid, yet never
   loads (see the `compinit` discussion above).
+  - `atuin` — the package's `_atuin` is already complete. Oh My Zsh has no built-in Atuin plugin,
+    and Atuin's own `atuin.plugin.zsh` is only a conditional wrapper around `atuin init zsh`; the
+    equivalent `eval` in `custom_env.sh` supplies history hooks and ZLE bindings without cloning a
+    plugin solely to source that line.
   - `gh` — `dpkg -S` confirms `_gh` comes from the `gh` package itself, and `app/git/main.sh`
     installs from the official apt repo. The plugin would regenerate the same thing asynchronously
     on every start.
