@@ -54,10 +54,10 @@ Three independent setup trees, selected by `--setup`:
 - `debian/` — the richest tree; installs zsh + oh-my-zsh unconditionally, then a
   matrix of optional components. `--command-modern-cli` is a nested dispatcher, the same shape as
   `--app-claude`: `command/modern_cli/main.sh` installs the bulk of the CLI tools itself — including
-  zoxide — then runs the seven components under it: `modern_cli/bat/`, `modern_cli/eza.sh`,
-  `modern_cli/fdfind.sh`, `modern_cli/fzf.sh`, `modern_cli/micro/`, `modern_cli/tldr.sh` and
-  `modern_cli/yazi.sh`. Each still installs its own packages and owns whatever non-shell config that
-  tool needs; none carries a flag of its own. One component is shaped
+  zoxide — then runs the eight components under it: `modern_cli/bat/`, `modern_cli/choose.sh`,
+  `modern_cli/eza.sh`, `modern_cli/fdfind.sh`, `modern_cli/fzf.sh`, `modern_cli/micro/`,
+  `modern_cli/tldr.sh` and `modern_cli/yazi.sh`. Each still installs its own packages and owns
+  whatever non-shell config that tool needs; none carries a flag of its own. One component is shaped
   unusually: `--app-git`
   deliberately spans all three layers of a single concern instead of being split by kind: it
   installs the tooling (`gh` from the official apt repo, `git-delta`, `lazygit`), writes the global
@@ -216,14 +216,18 @@ Three independent setup trees, selected by `--setup`:
   a global `$PAGER` changes unrelated programs. Glow parses Markdown, not roff or Git patches, so it
   is not a `MANPAGER`, Git pager or replacement for delta either.
 
+  `modern_cli/choose.sh` downloads the latest release's unversioned x86_64 GNU asset directly and
+  installs it as `~/.local/bin/choose`; it has no package, completion or config of its own, and the
+  user-level drop point is why this component needs no `sudo`.
+
   `modern_cli/yazi.sh` fetches the latest release zip, installs the `yazi` / `ya` binaries into
   `~/.local/bin`, installs the `_yazi` / `_ya` completions the zip already ships into
   `$ZSH_CUSTOM/completions/`, brings its own `file` (yazi needs it for mime detection and the
   Debian docker base image has none) and `unzip`, and owns the `y()` cwd-following wrapper in
   `00-setup_env.zsh` — all of that in its own script rather than in the `modern_cli/main.sh` that
-  runs it, so that script's own `install_binaries()` covers only `choose`. Both drop points are
-  under `$HOME` and already on `PATH` / `fpath` (see the `~/.local/bin` note under Conventions and
-  `oh-my-zsh.sh:76`'s unconditional `fpath=(… $ZSH_CUSTOM/{functions,completions} …)`), so apart
+  runs it. Both drop points are under `$HOME` and already on `PATH` / `fpath` (see the
+  `~/.local/bin` note under Conventions and `oh-my-zsh.sh:76`'s unconditional
+  `fpath=(… $ZSH_CUSTOM/{functions,completions} …)`), so apart
   from that one `apt-get` the component needs no `sudo`. Writing a per-component `_foo` there is
   not the ownership violation that touching `00-setup_env.zsh` would be — no other component writes
   that filename, so none of the duplicate-append hazards the `omz_custom` rule exists to prevent
@@ -432,7 +436,7 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
 - **Every GitHub release download goes through `releases/latest/download/<asset>`.** A tag never
   appears in a URL. What decides whether any version resolution happens at all is the *asset
   filename*. `choose-x86_64-unknown-linux-gnu` and `yazi-x86_64-unknown-linux-gnu.zip` carry no
-  version, so `command/modern_cli/main.sh` and `command/modern_cli/yazi.sh` download in one line
+  version, so `command/modern_cli/choose.sh` and `command/modern_cli/yazi.sh` download in one line
   from a pure literal URL — single-quoted, per the quoting rule — with no helper at all.
   `protoc-35.1-linux-x86_64.zip` embeds one, so `tools/protobuf.sh` still resolves it, but only to
   build the *filename*, never a `/releases/download/v<tag>/` path. `get_protoc_latest()` is that
@@ -608,8 +612,9 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
   uncomments omz's own template line (`export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH`,
   `.zshrc` l.2), and `omz.sh` runs first in the tree — so any later component can drop a binary
   there and have it resolve. `modern_cli/fdfind.sh`'s `fd` symlink, `modern_cli/bat/main.sh`'s `bat`
-  symlink, `modern_cli/yazi.sh`'s `yazi` / `ya` and `tools/protobuf.sh`'s `protoc` all rely on this,
-  and it is why none of those placements needs `sudo`. Being in `.zshrc` it is
+  symlink, `modern_cli/choose.sh`'s `choose`, `modern_cli/yazi.sh`'s `yazi` / `ya` and
+  `tools/protobuf.sh`'s `protoc` all rely on this, and it is why none of those placements needs
+  `sudo`. Being in `.zshrc` it is
   interactive-only — enough for the `(( $+commands[fd] ))` probes plugins do while `.zshrc` is
   still being sourced (l.2 precedes the `source $ZSH/oh-my-zsh.sh` at l.75), but a non-interactive
   `zsh -c` will not see it.
@@ -686,10 +691,9 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
   `# bat`, only `compdef bat=batcat` because everything else bat needs lives in
   `~/.config/bat/config`; `# Editor` then `# Micro`, with the `EDITOR="code --wait"` branch nested
   one level deeper on `APP_VSCODE`; `# yazi`, the `y()` wrapper that cd's to wherever yazi was left
-  — `fdfind.sh`, `fzf.sh`, `tldr.sh` and the bulk-installed zoxide need no runtime shell lines here)
-  — then
-  `APP_DOCKER` (`# Docker`, the
-  `lzd` alias), `APP_GIT` (`# Git`, the `lg()` wrapper) and `APP_TMUX` (`# tmux mouse scroll`).
+  — `choose.sh`, `fdfind.sh`, `fzf.sh`, `tldr.sh` and the bulk-installed zoxide need no runtime shell
+  lines here) — then `APP_DOCKER` (`# Docker`, the `lzd` alias), `APP_GIT` (`# Git`, the `lg()` wrapper)
+  and `APP_TMUX` (`# tmux mouse scroll`).
   Block titles name the *component*, not the tool, wherever the two differ — `# Git` rather than
   `# lazygit` — matching `# Editor` / `# Micro` above them. Intra-file order is cosmetic — the
   whole file lands at l.209, after every plugin, which is exactly what lets a value here override

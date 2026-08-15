@@ -182,7 +182,7 @@ MAGIC_ENTER_OTHER_COMMAND="eza -lah --git --icons"
 
 ## 5 · 手装二进制的补全落 fpath
 
-**文件**：`debian/command/modern_cli/main.sh` 的 `install_binaries()`
+**文件**：`debian/command/modern_cli/main.sh` 的 `install_atuin()`（随第 6 节新增）
 
 `/usr/local/share/zsh/site-functions/` 是 Debian 默认 fpath 的**第一位**
 （`zsh -f -c 'print -l $fpath'` 实测），专门留给本地安装的软件。omz 用的是**不带 `-C`** 的
@@ -209,11 +209,12 @@ atuin 的二进制装在 `/usr/local/bin`，补全就走这里（yazi / tldr 那
 
 ## 6 · 引入 atuin 接管 `^R` 与 `↑`
 
-**文件**：`debian/command/modern_cli/main.sh`（安装）+ `custom_env.sh` 的 `COMMAND_MODERN_CLI` 块
-（集成）
+**文件**：`debian/command/modern_cli/main.sh` 的 `install_atuin()`（安装）+ `custom_env.sh` 的
+`COMMAND_MODERN_CLI` 块（集成）
 
-Debian 13 无 atuin 包（`apt-cache policy atuin` 为空），取 release tarball 装到 `/usr/local/bin`，
-与现有 choose 同套路：
+Debian 13 无 atuin 包（`apt-cache policy atuin` 为空）。下载方式沿用
+`debian/command/modern_cli/choose.sh` 的纯字面量 `releases/latest/download/<固定资产名>` URL；
+不同的是 atuin 还要解压 tarball，并通过 `sudo` 安装到 `/usr/local/bin`：
 
 ```
 https://github.com/atuinsh/atuin/releases/latest/download/atuin-x86_64-unknown-linux-gnu.tar.gz
