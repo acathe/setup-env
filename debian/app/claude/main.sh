@@ -34,9 +34,13 @@ install_claude_code() {
     curl -fsSL 'https://claude.ai/install.sh' | bash
 }
 
-install_lsp() {
+install_plugin() {
     export PATH="$HOME/.local/bin:$PATH"
     claude plugin marketplace add 'anthropics/claude-plugins-official'
+    claude plugin install 'claude-code-setup@claude-plugins-official'
+    claude plugin install 'claude-md-management@claude-plugins-official'
+    claude plugin install 'claude-security@claude-plugins-official'
+    claude plugin install 'hookify@claude-plugins-official'
 
     if [[ $APP_GIT == '1' ]]; then
         claude plugin install 'commit-commands@claude-plugins-official'
@@ -80,7 +84,7 @@ main() {
         bash './copilot_api/main.sh' "$@"
     fi
 
-    install_lsp
+    install_plugin
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
