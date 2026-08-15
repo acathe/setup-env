@@ -2,12 +2,24 @@
 
 set -euo pipefail
 
+COMMAND_MODERN_CLI="${COMMAND_MODERN_CLI:-0}"
+
 CODE_PYTHON="${CODE_PYTHON:-0}"
 
 ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
 
 render_blocks() {
+    if [[ $COMMAND_MODERN_CLI == '1' ]]; then
+        echo '# eza'
+        echo 'zstyle ":omz:plugins:eza" "dirs-first" yes'
+        echo 'zstyle ":omz:plugins:eza" "git-status" yes'
+        echo 'zstyle ":omz:plugins:eza" "header" yes'
+        echo 'zstyle ":omz:plugins:eza" "icons" yes'
+        echo 'zstyle ":omz:plugins:eza" "time-style" "relative"'
+    fi
+
     if [[ $CODE_PYTHON == '1' ]]; then
+        echo
         echo '# Python'
         echo 'PYTHON_AUTO_VRUN=true'
     fi

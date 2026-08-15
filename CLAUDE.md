@@ -121,7 +121,7 @@ Three independent setup trees, selected by `--setup`:
     p10k-media's bundled `MesloLGS NF` is Nerd Fonts **v2.3.3** (not rebuilt since 2023-04-03) and
     covers 270/324 of lazygit's icons, against 321/328 for Nerd Fonts v3.4.0's own `Meslo.zip`.
     `~/.p10k.zsh` declaring `POWERLEVEL9K_MODE=nerdfont-v3` is the signal that the v3 font is the
-    one installed — also the prerequisite behind `debian/todo.md`'s eza `icons` item.
+    one installed — also the prerequisite for the eza plugin's `icons` zstyle.
 
   `modern_cli/bat/` installs the `bat` package, makes the `~/.local/bin/bat` symlink over Debian's
   `batcat`, and ships `~/.config/bat/config`. The symlinked name needs one `compdef bat=batcat`
@@ -152,16 +152,37 @@ Three independent setup trees, selected by `--setup`:
   `compdef` line, because Debian's `_fd` declares `#compdef fd` and the symlinked name is therefore
   already registered.
 
-  `modern_cli/eza.sh` and `modern_cli/fzf.sh` are flat, apt-only components; neither owns a static
-  tool config artifact. Zoxide owns no install-time config at all, so its package stays in
-  `modern_cli/main.sh`'s bulk apt list rather than getting a leaf script. Their shell integration
-  stays centralized by landing point — plugin selection and ordering in `omz_custom/main.sh`,
-  load-time eza settings in `omz_custom/pre_plugin.sh`, and runtime settings in
-  `omz_custom/custom_env.sh` — rather than being appended by an installing component.
+  `modern_cli/eza.sh` and `modern_cli/fzf.sh` are flat, apt-only components with no static tool
+  config artifact. For eza this is deliberate: trixie's 0.21.0 reads `theme.yml` / `theme.yaml`,
+  but those files configure only colours, style attributes, glyphs and filename / extension
+  mappings — eza has no `config.yaml` / `config.toml` for general display flags. The official eza
+  repository links to the same-organisation `eza-themes` community collection, but its One Dark
+  entry is not built in, release-coupled or compatibility-tested; it has not changed since
+  2024-09-18 and its `security_context` shape is already stale for 0.21.0. This tree therefore ships
+  no eza theme.
 
-  Trixie ships zoxide 0.9.7. It has no static config file, theme or plugin API: configuration is
-  `zoxide init` plus the `_ZO_*` environment variables. Oh My Zsh's `zoxide` plugin already owns
-  initialization and does exactly one
+  eza has no plugin system. Debian already ships `_eza` in zsh's vendor completions, while the OMZ
+  `eza` plugin owns the aliases and is enabled by `omz_custom/main.sh`. Before that plugin loads,
+  `pre_plugin.sh` writes five settings under the same `COMMAND_MODERN_CLI` gate: directories first,
+  Git status, headers, icons and relative times. All five materially differ from both the OMZ and
+  eza defaults: the first four are off by default, and eza's default time style is not `relative`.
+  They become `--group-directories-first`, `--git`, `-h`, `--icons=auto` and
+  `--time-style='relative'`; auto icons do not pollute redirected output but still need a Nerd Font
+  v3, while Git status adds work in large repositories. The plugin has no `tree` alias, so the
+  runtime `alias tree="eza --tree"` remains in `custom_env.sh`.
+
+  The remaining OMZ settings stay absent rather than restating defaults or turning preferences into
+  policy. Unset `show-group` adds no `-g` despite its README incorrectly claiming a default of yes;
+  unset `size-prefix` keeps eza's SI behavior; colour scale is off, its `gradient` mode is merely the
+  inactive default, and hyperlinks remain opt-in. eza's shell integration stays centralized by
+  landing point — plugin selection in `omz_custom/main.sh`, load-time zstyles in
+  `omz_custom/pre_plugin.sh`, and the runtime tree alias in `omz_custom/custom_env.sh` — rather than
+  being appended by the installing component.
+
+  Zoxide owns no install-time config at all, so its package stays in `modern_cli/main.sh`'s bulk apt
+  list rather than getting a leaf script. Trixie ships zoxide 0.9.7. It has no static config file,
+  theme or plugin API: configuration is `zoxide init` plus the `_ZO_*` environment variables. Oh My
+  Zsh's `zoxide` plugin already owns initialization and does exactly one
   `eval "$(zoxide init --cmd ${ZOXIDE_CMD_OVERRIDE:-z} zsh)"`; that output supplies `z` / `zi`,
   the `chpwd` hook and completion. When `COMMAND_MODERN_CLI=1`, `install_plugin()` therefore omits
   zsh-z's `z` plugin and includes `zoxide`; with the flag off it does the reverse, and
@@ -511,7 +532,8 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
 
   **`setup-env` must be first** — the one constraint this repo imposes on itself rather than
   inheriting from upstream. It is the plugin `pre_plugin.sh` writes, and its entire job is to
-  set variables the *other* plugins read while they are being sourced (`PYTHON_AUTO_VRUN` today).
+  set values the *other* plugins read while they are being sourced (`PYTHON_AUTO_VRUN` and the eza
+  zstyles today).
   `oh-my-zsh.sh:203` is a plain `for plugin ($plugins)`, so first-in-the-array means
   first-sourced. Demote it and whatever it sets silently stops taking effect for every plugin
   ahead of it. What pins it is `pre_plugin.sh`'s own `sed` — a *prepend* into the array
@@ -619,10 +641,11 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
   still being sourced (l.2 precedes the `source $ZSH/oh-my-zsh.sh` at l.75), but a non-interactive
   `zsh -c` will not see it.
 
-  Only `PYTHON_AUTO_VRUN` is in the first row today — `python.plugin.zsh:103` decides at load
-  time whether to register the `chpwd` hook, and the plugin's own README says to set it "before
-  sourcing oh-my-zsh". `zstyle ':omz:plugins:eza' …` belongs there too (`eza.plugin.zsh:9-54`
-  builds its aliases at load time) and is pending — `debian/todo.md` §3.
+  Two kinds of settings are in the first row today. `PYTHON_AUTO_VRUN` is there because
+  `python.plugin.zsh:103` decides at load time whether to register the `chpwd` hook, and the plugin's
+  own README says to set it "before sourcing oh-my-zsh". The five `zstyle ':omz:plugins:eza' …`
+  entries are there because `eza.plugin.zsh:9-60` reads them into `_EZA_HEAD` / `_EZA_TAIL` and
+  immediately builds its aliases; assigning either kind of value in `00-setup_env.zsh` is too late.
 
   Row four earns its second clause from where the first row sits. `setup-env` is sourced at l.203
   — **after** `compinit` (l.127) and **after** `lib/*.zsh` (l.197) — so anything those two read is
@@ -687,7 +710,7 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
   macos byte-for-byte. Positively gated component blocks follow, each headed by a `#` title, in the
   order those components run in `debian/main.sh`: `COMMAND_MODERN_CLI` — one gate holding five
   `#` sections, since the shell config for modern CLI tools lands here rather than in per-tool files
-  (`# Modern CLI tools`, including eza's `tree` alias;
+  (`# eza`, containing the `tree` alias;
   `# bat`, only `compdef bat=batcat` because everything else bat needs lives in
   `~/.config/bat/config`; `# Editor` then `# Micro`, with the `EDITOR="code --wait"` branch nested
   one level deeper on `APP_VSCODE`; `# yazi`, the `y()` wrapper that cd's to wherever yazi was left

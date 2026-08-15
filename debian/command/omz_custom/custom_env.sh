@@ -32,8 +32,7 @@ render_blocks() {
 
     if [[ $COMMAND_MODERN_CLI == '1' ]]; then
         echo
-        echo '# Modern CLI tools'
-        # eza 插件不提供 tree 别名，手写补上（ls/ll/la 等由插件承担）
+        echo '# eza'
         echo 'alias tree="eza --tree"'
         echo
         echo '# bat'
