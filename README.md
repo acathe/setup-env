@@ -62,9 +62,10 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
         [--flag]
 ```
 
-| main args               | script args          |
-| ----------------------- | -------------------- |
-| `--image dev-container` | `--container <v>`    |
-|                         | `--image-tag <v>`    |
-|                         | `(debian-flag)`      |
-| `--image copilot-api`   | `--copilot-api-auth` |
+| main args                     | script args          |
+| ----------------------------- | -------------------- |
+| `--image dev-container`       | `--container <v>`    |
+|                               | `--image-tag <v>`    |
+|                               | `(debian-flag)`      |
+| `--image copilot-api`         | `--copilot-api-auth` |
+| `--image copilot-api-config`  |                      |
