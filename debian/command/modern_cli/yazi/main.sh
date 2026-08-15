@@ -20,6 +20,24 @@ set_completion() {
     install -Dm 644 '/tmp/yazi-x86_64-unknown-linux-gnu/completions/_ya' "$ZSH_CUSTOM/completions/_ya"
 }
 
+install_plugins() {
+    export PATH="$HOME/.local/bin:$PATH"
+
+    ya pkg add \
+        'yazi-rs/plugins:piper' \
+        'yazi-rs/plugins:git' \
+        'yazi-rs/plugins:toggle-pane' \
+        'yazi-rs/plugins:smart-enter' \
+        'yazi-rs/plugins:smart-filter' \
+        'yazi-rs/plugins:smart-paste'
+}
+
+install_config() {
+    install -Dm 644 './yazi.toml' "$HOME/.config/yazi/yazi.toml"
+    install -Dm 644 './init.lua' "$HOME/.config/yazi/init.lua"
+    install -Dm 644 './keymap.toml' "$HOME/.config/yazi/keymap.toml"
+}
+
 main() {
     sudo apt-get update
     sudo apt-get install -y file unzip
@@ -27,6 +45,8 @@ main() {
     fetch_yazi
     install_yazi
     set_completion
+    install_plugins
+    install_config
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
