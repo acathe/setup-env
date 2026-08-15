@@ -7,7 +7,6 @@ main() {
     sudo apt-get install -y micro
 
     micro -plugin install detectindent
-    micro -plugin install filemanager
 
     install -Dm 644 './settings.json' "$HOME/.config/micro/settings.json"
 }
