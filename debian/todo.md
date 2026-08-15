@@ -8,15 +8,14 @@
 ## 总览
 
 - [ ] 1 修 `--command-modern-cli` 下的三处插件顺序回退
-- [ ] 3 eza 的 zstyle 落 `setup-env` 插件
 - [ ] 4 fzf / fzf-tab / magic-enter 的配置落 `00-setup_env.zsh`
 - [ ] 5 atuin 的 zsh 补全落 fpath
 - [ ] 6 引入 atuin 接管 `^R` 与 `↑`
-- [ ] 7 CLAUDE.md 同步（随 1、3、4 落地）
+- [ ] 7 CLAUDE.md 同步（随 1、4 落地）
 - [ ] 8 yazi 的推荐配置、插件与 One Dark flavor
 
-1、3、4 只动 `command/omz_custom/`，5、6 只动 `command/modern_cli/main.sh`，互不冲突，且全部
-gate 在 `--command-modern-cli`，默认安装路径不受影响。7 是随 1、3、4 一起改的文档债。8 独立收拢
+1、4 只动 `command/omz_custom/`，5、6 只动 `command/modern_cli/main.sh`，互不冲突，且全部
+gate 在 `--command-modern-cli`，默认安装路径不受影响。7 是随 1、4 一起改的文档债。8 独立收拢
 `command/modern_cli/yazi/`，只额外改它在 `modern_cli/main.sh` 的调用路径和落地后的 `CLAUDE.md` 说明。
 
 ### Modern CLI 工具配置
@@ -24,7 +23,7 @@ gate 在 `--command-modern-cli`，默认安装路径不受影响。7 是随 1、
 - [x] `jq`
 - [x] `unzip`
 - [x] `glow`
-- [ ] `eza`
+- [x] `eza`
 - [x] `ripgrep`
 - [x] `zoxide`
 - [ ] `fzf`
@@ -92,40 +91,9 @@ plugins=(setup-env aliases colored-man-pages dirhistory extract fancy-ctrl-z mag
 
 ---
 
-## 3 · eza 的 zstyle → `setup-env` 插件
-
-**文件**：`pre_plugin.sh` 的 `render_blocks()`
-
-**现状** 只有 `CODE_PYTHON` 一块，eza 一条 zstyle 也没设，`ll` 只是裸 `eza -l`。
-
-**改法** 照现有 `CODE_PYTHON` 段的写法加一个 gate 块：
-
-```bash
-        if [[ $COMMAND_MODERN_CLI == '1' ]]; then
-            echo '# eza'
-            echo 'zstyle ":omz:plugins:eza" "dirs-first" yes'
-            echo 'zstyle ":omz:plugins:eza" "git-status" yes'
-            echo 'zstyle ":omz:plugins:eza" "header" yes'
-            echo 'zstyle ":omz:plugins:eza" "icons" yes'
-            echo 'zstyle ":omz:plugins:eza" "time-style" "relative"'
-        fi
-```
-
-**为什么是 `setup-env` 而不是 `00-setup_env.zsh`** `eza.plugin.zsh` 顶层直接调 `_configure_eza`，
-zstyle 在**加载期**就被读走拼成 `_EZA_HEAD` / `_EZA_TAIL` 再生成别名；`00-setup_env.zsh` 在
-`oh-my-zsh.sh` l.209 加载，晚于 l.203 的插件循环，写那里就晚了。这正是 `setup-env` 插件
-（`plugins=()` 首位）存在的理由。
-
-**生成侧引号** 按约定「`echo` 单引号、内容双引号」写。zsh 在这里对 `"…"` 与 `'…'` 等价（内容
-无可展开成分），所以不必把外层翻成双引号，也就用不上 `'\''`。
-
-**备注** `git-status` 会让大仓库里的 `ll` 变慢，`icons` 需要 Nerd Font —— 两条都可按需去掉。
-
----
-
 ## 4 · fzf / fzf-tab / magic-enter 的配置 → `00-setup_env.zsh`
 
-**文件**：`custom_env.sh` 已有的 `COMMAND_MODERN_CLI`（`# Modern CLI tools`）块
+**文件**：`custom_env.sh` 已有的 `COMMAND_MODERN_CLI` 块
 
 三者的变量都是**运行期**读，落 `00-setup_env.zsh`（l.209，在全部插件之后）正合适 —— 这也正是
 这个文件能覆盖插件已设值的原因。追加在现有 `compdef bat=batcat` / `alias tree` / `function y()`
@@ -222,7 +190,7 @@ https://github.com/atuinsh/atuin/releases/latest/download/atuin-x86_64-unknown-l
 
 （解压后的子目录名落地时确认，参照 `debian/command/modern_cli/yazi.sh` 的写法。）
 
-集成只有一行，追加在 `custom_env.sh` 的 `# Modern CLI tools` 块里：
+集成只有一行，追加在 `custom_env.sh` 的 `COMMAND_MODERN_CLI` 块里：
 
 ```zsh
 eval "$(atuin init zsh --disable-ai)"
@@ -267,8 +235,6 @@ eval "$(atuin init zsh --disable-ai)"
 - **随第 1 节**：删掉「omz plugin ordering」里
   「The debian tree still violates 1–3 whenever `--command-modern-cli` is on」那句现状陈述及其
   `debian/todo.md` §1 指针。
-- **随第 3 节**：更新「Only `PYTHON_AUTO_VRUN` is in the first row today」及其后指向本文 §3 的
-  eza 那句。
 - **随第 4 节**：新记两条 —— zstyle 按具体度决胜、覆盖 omz 的 `menu select` 必须同为五级 pattern；
   `FZF_*_OPTS` 那种两层引号的生成写法（`echo '… "… \"…\" …"'`）。
 
