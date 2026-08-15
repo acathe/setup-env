@@ -24,7 +24,18 @@ add_api_keys() {
     cp "$tmp" "$HOME/.copilot-api/config.json"
 }
 
+disable_responses_api_websocket() {
+    local tmp
+    tmp="$(mktemp)"
+
+    jq '.useResponsesApiWebSocket = false' \
+        "$HOME/.copilot-api/config.json" > "$tmp"
+    cp "$tmp" "$HOME/.copilot-api/config.json"
+}
+
 main() {
+    disable_responses_api_websocket
+
     if [[ $RESET_API_KEY == '1' ]]; then
         reset_api_key
     fi
