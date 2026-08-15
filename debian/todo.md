@@ -24,7 +24,7 @@ gate 在 `--command-modern-cli`，默认安装路径不受影响。7 是随 1–
 
 - [ ] `jq`
 - [ ] `unzip`
-- [x] `glow`
+- [ ] `glow`
 - [ ] `eza`
 - [ ] `ripgrep`
 - [ ] `zoxide`
