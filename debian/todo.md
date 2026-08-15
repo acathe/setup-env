@@ -22,20 +22,20 @@ gate 在 `--command-modern-cli`，默认安装路径不受影响。7 是随 1–
 
 ### Modern CLI 工具配置
 
-- [ ] `jq`
-- [ ] `unzip`
-- [ ] `glow`
+- [x] `jq`
+- [x] `unzip`
+- [x] `glow`
 - [ ] `eza`
-- [ ] `ripgrep`
+- [x] `ripgrep`
 - [ ] `zoxide`
 - [ ] `fzf`
-- [ ] `hyperfine`
-- [ ] `sd`
-- [ ] `btop`
-- [ ] `dust`
-- [ ] `duf`
-- [ ] `procs`
-- [ ] `choose`
+- [x] `hyperfine`
+- [x] `sd`
+- [x] `btop`
+- [x] `dust`
+- [x] `duf`
+- [x] `procs`
+- [x] `choose`
 - [x] `bat`
 - [x] `fd`
 - [x] `micro`
