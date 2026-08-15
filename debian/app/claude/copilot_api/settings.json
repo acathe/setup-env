@@ -15,6 +15,7 @@
     "defaultMode": "auto"
   },
   "language": "Chinese",
+  "tui": "fullscreen",
   "preferredNotifChannel": "terminal_bell",
   "workflowSizeGuideline": "unrestricted"
 }
