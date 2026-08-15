@@ -16,6 +16,12 @@ render_blocks() {
         echo 'zstyle ":omz:plugins:eza" "header" yes'
         echo 'zstyle ":omz:plugins:eza" "icons" yes'
         echo 'zstyle ":omz:plugins:eza" "time-style" "relative"'
+        echo
+        echo '# fzf'
+        echo 'export FZF_DEFAULT_OPTS_FILE="$HOME/.config/fzf/fzfrc"'
+        echo 'export FZF_DEFAULT_COMMAND="fd --type f --strip-cwd-prefix --hidden --follow --exclude .git"'
+        echo 'export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"'
+        echo 'export FZF_ALT_C_COMMAND="fd --type d --strip-cwd-prefix --hidden --follow --exclude .git"'
     fi
 
     if [[ $CODE_PYTHON == '1' ]]; then

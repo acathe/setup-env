@@ -47,7 +47,6 @@ install_plugin() {
     [[ $COMMAND_MODERN_CLI != '1' ]] && append_plugin 'z'
 
     [[ $COMMAND_MODERN_CLI == '1' ]] && append_plugin 'eza'
-    [[ $COMMAND_MODERN_CLI == '1' ]] && append_plugin 'fzf'
     [[ $COMMAND_MODERN_CLI == '1' ]] && append_plugin 'zoxide'
 
     [[ $APP_DOCKER == '1' ]] && append_plugin 'docker'
@@ -63,10 +62,10 @@ install_plugin() {
 
     append_plugin 'ohmyzsh-full-autoupdate'
     append_plugin 'you-should-use'
+    [[ $COMMAND_MODERN_CLI == '1' ]] && append_plugin 'fzf-tab'
+    [[ $COMMAND_MODERN_CLI == '1' ]] && append_plugin 'fzf'
     append_plugin 'zsh-autosuggestions'
     append_plugin 'zsh-syntax-highlighting'
-
-    [[ $COMMAND_MODERN_CLI == '1' ]] && append_plugin 'fzf-tab'
 
     return 0
 }

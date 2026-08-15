@@ -27,6 +27,12 @@ flags — the top-level `main.sh` itself understands only `--branch` and `--setu
 - No test suite. To exercise a change without the full remote install, run a dispatcher
   directly, e.g. `bash debian/main.sh --app-tmux` — note it still does real `apt` installs
   and always runs `command/omz.sh` then `command/omz_custom/main.sh` first.
+- For fzf, parse `debian/command/modern_cli/fzf/fzfrc` with the trixie binary under
+  `FZF_DEFAULT_OPTS_FILE=debian/command/modern_cli/fzf/fzfrc FZF_DEFAULT_OPTS= fzf --version`, then
+  render `00-setup_env.zsh` and
+  inspect `${(z)FZF_CTRL_T_OPTS}` / `${(z)FZF_ALT_C_OPTS}` under `zsh -f`. Plugin-order changes
+  need a real ZLE smoke test, not only `bindkey`: ordinary Tab and `**<Tab>` must each invoke fzf
+  once, with `fzf_default_completion=fzf-tab-complete`; `^T` and Alt-C must remain single calls.
 - To check a `plugins=()` change, or anything `pre_plugin.sh` / `custom_env.sh` / `first_run.sh`
   generates, without installing anything: run `command/omz_custom/main.sh` against a throwaway
   `HOME` with a stub `git` (and, for macos, a `sed` shim mapping BSD `-i ''` to GNU `-i`) on
@@ -55,7 +61,7 @@ Three independent setup trees, selected by `--setup`:
   matrix of optional components. `--command-modern-cli` is a nested dispatcher, the same shape as
   `--app-claude`: `command/modern_cli/main.sh` installs the bulk of the CLI tools itself — including
   zoxide — then runs the eight components under it: `modern_cli/bat/`, `modern_cli/choose.sh`,
-  `modern_cli/eza.sh`, `modern_cli/fdfind.sh`, `modern_cli/fzf.sh`, `modern_cli/micro/`,
+  `modern_cli/eza.sh`, `modern_cli/fdfind.sh`, `modern_cli/fzf/`, `modern_cli/micro/`,
   `modern_cli/tldr.sh` and `modern_cli/yazi.sh`. Each still installs its own packages and owns
   whatever non-shell config that tool needs; none carries a flag of its own. One component is shaped
   unusually: `--app-git`
@@ -139,8 +145,8 @@ Three independent setup trees, selected by `--setup`:
   way — its theme comes from gitconfig (`delta.syntax-theme`), not from `BAT_THEME`.
 
   With `bat/config` the rule is uniform across the repo: **a tool's own config file is always a
-  shipped artifact, never an `echo` block.** `micro/settings.json`, `git/config.yml` and
-  `bat/config` land through the same `install -Dm 644`, and `copilot_api/settings.json` is that
+  shipped artifact, never an `echo` block.** `micro/settings.json`, `git/config.yml`, `bat/config`
+  and `fzf/fzfrc` land through the same `install -Dm 644`, and `copilot_api/settings.json` is that
   plus `jq` interpolation; what is left to `echo` is only the files this repo invented
   (`00-setup_env.zsh`, `01-first_run.zsh`, `setup-env.plugin.zsh`) and the appends into files an
   upstream installer or the shell already made (`tmux.conf.local`, `.zshenv`, the ssh config) —
@@ -152,8 +158,8 @@ Three independent setup trees, selected by `--setup`:
   `compdef` line, because Debian's `_fd` declares `#compdef fd` and the symlinked name is therefore
   already registered.
 
-  `modern_cli/eza.sh` and `modern_cli/fzf.sh` are flat, apt-only components with no static tool
-  config artifact. For eza this is deliberate: trixie's 0.21.0 reads `theme.yml` / `theme.yaml`,
+  `modern_cli/eza.sh` is a flat, apt-only component with no static tool config artifact. This is
+  deliberate: trixie's 0.21.0 reads `theme.yml` / `theme.yaml`,
   but those files configure only colours, style attributes, glyphs and filename / extension
   mappings — eza has no `config.yaml` / `config.toml` for general display flags. The official eza
   repository links to the same-organisation `eza-themes` community collection, but its One Dark
@@ -178,6 +184,49 @@ Three independent setup trees, selected by `--setup`:
   landing point — plugin selection in `omz_custom/main.sh`, load-time zstyles in
   `omz_custom/pre_plugin.sh`, and the runtime tree alias in `omz_custom/custom_env.sh` — rather than
   being appended by the installing component.
+
+  `modern_cli/fzf/` installs the `fzf` package and ships `~/.config/fzf/fzfrc`. Trixie currently
+  supplies `0.60.3-1+b2`; its binary identifies itself only as `0.60 (devel)`, so use `dpkg-query`
+  rather than `fzf --version` when the Debian patch version matters. `pre_plugin.sh` exports
+  `FZF_DEFAULT_OPTS_FILE` from the first-loaded `setup-env` plugin — fzf does not discover that XDG
+  path on its own. Version
+  0.60.3 parses the file first, then `FZF_DEFAULT_OPTS`, then argv, so a user's environment or a
+  caller's command-line flags can still override the shipped baseline. The file uses the same
+  shell-word parser as the environment variable: blank lines and `#` comments work, while an
+  unknown option hard-errors every invocation. Standalone fzf reports the config path; Debian's
+  zsh widgets first concatenate the file into `FZF_DEFAULT_OPTS`, so their error names that
+  variable instead.
+
+  `fzfrc` deliberately contains only `--layout=reverse`, `--border` and `--cycle`; it ships no
+  colour scheme. The One Dark snippet in fzf's Wiki is a static community contribution last changed
+  in 2019, not a release-maintained official theme or an actively maintained theme project, so
+  vendoring its colour literals would make this tree their maintainer. fzf instead keeps its own
+  terminal-derived default palette. The file also has no height, global preview, popup, padding or
+  icon glyphs. The packaged zsh key bindings already prepend a 40% height to `^T` / Alt-C, fzf-tab
+  calculates a dynamic height and supplies reverse/cycle itself, and standalone fzf is more useful
+  full-screen. Current fzf-tab clears `FZF_DEFAULT_OPTS` when `use-fzf-default-opts` is off but
+  leaves `FZF_DEFAULT_OPTS_FILE` visible (Aloxaf/fzf-tab#537), so every option in this file must stay
+  safe for completion too; layout/border/cycle are, whereas a global preview or `--tmux` would not be.
+
+  The shell half stays centralized under `omz_custom/` but is split by read time. `pre_plugin.sh`
+  writes the opts-file path plus `FZF_DEFAULT_COMMAND`, `FZF_CTRL_T_COMMAND` and
+  `FZF_ALT_C_COMMAND` into the first-loaded `setup-env` plugin. This is correctness, not merely
+  early tidiness: omz initializes fzf with `fzf --zsh`, which parses the inherited opts-file path,
+  and the generated key-binding script decides at load time whether empty Ctrl-T / Alt-C commands
+  disable their widgets. Setting these four values first repairs stale inherited values before
+  either decision. `FZF_DEFAULT_COMMAND` is only the TTY-input default — fzf explicitly does not
+  reuse it for shell widgets — so all three commands remain necessary. They use fd's official
+  `.gitignore` recipe (`--strip-cwd-prefix --hidden --follow --exclude .git`); the first two select
+  files only so bat can preview every `^T` candidate, while Alt-C selects directories only.
+
+  `custom_env.sh` supplies the two preview option strings after plugin loading because widgets read
+  them at invocation time: bat for files, a two-level icon-free eza tree for directories, `--`
+  before `{}`, and Ctrl-/ to cycle right/down/hidden layouts. The adjacent fzf-tab block uses a
+  five-field `menu no` pattern to outrank omz's equally specific `menu select`, restores
+  `list-colors`, keeps Git checkout's ordering and binds `<` / `>` for group switching. It
+  deliberately has no `cd` preview: `$realpath` is empty in fzf-tab v1.3.0/current master (open
+  issue #575; PR #577 is still unmerged), and this tree neither pins nor patches a plugin managed
+  by `ohmyzsh-full-autoupdate`.
 
   Zoxide owns no install-time config at all, so its package stays in `modern_cli/main.sh`'s bulk apt
   list rather than getting a leaf script. Trixie ships zoxide 0.9.7. It has no static config file,
@@ -532,8 +581,8 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
 
   **`setup-env` must be first** — the one constraint this repo imposes on itself rather than
   inheriting from upstream. It is the plugin `pre_plugin.sh` writes, and its entire job is to
-  set values the *other* plugins read while they are being sourced (`PYTHON_AUTO_VRUN` and the eza
-  zstyles today).
+  set values the *other* plugins read while they are being sourced (the eza zstyles, fzf's
+  bootstrap variables and `PYTHON_AUTO_VRUN` today).
   `oh-my-zsh.sh:203` is a plain `for plugin ($plugins)`, so first-in-the-array means
   first-sourced. Demote it and whatever it sets silently stops taking effect for every plugin
   ahead of it. What pins it is `pre_plugin.sh`'s own `sed` — a *prepend* into the array
@@ -541,7 +590,8 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
   call in `install_plugin()` could not do this: the name has to be able to stay out of the array
   entirely, and only the script that decides whether the plugin exists knows that.
 
-  The remaining constraints all come from upstream, not from this repo:
+  The remaining constraints come from upstream except item 3, which is this repo's deliberate
+  composition of two upstream widgets:
 
   1. `zsh-syntax-highlighting` must be **last** (upstream INSTALL.md).
   2. `fzf-tab` must load **before** anything that wraps ZLE widgets — i.e. before
@@ -549,7 +599,10 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
   3. `fzf` must load **after** `fzf-tab`. fzf's `completion.zsh` saves whatever `^I` is bound to
      at that moment as `fzf_default_completion` and calls it when the `**` trigger is absent.
      Reversed, fzf-tab becomes the outer widget and its "call the original to get the completion
-     list" step runs the interactive `fzf-completion`, nesting two fzf UIs.
+     list" step runs the interactive `fzf-completion`, nesting two fzf UIs. This ordering is an
+     intentional exception to fzf-tab's general advice to load after other `^I` binders; a real
+     tmux PTY test confirmed ordinary Tab and `**<Tab>` each invoke fzf exactly once, with
+     `^I=fzf-completion`, `fzf_default_completion=fzf-tab-complete` and no second UI on cancel.
   4. Cloned (third-party) plugins must load **after** `ohmyzsh-full-autoupdate`. It runs
      `git -C "$packageDir" pull` **synchronously** (`ohmyzsh-full-autoupdate.plugin.zsh:170` — no
      `&` / `&|`) while omz is sourcing the array in order, so plugins after it pick up the freshly
@@ -566,9 +619,9 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
      uses. Unrelated and still required: `macos/main.sh`'s own `eval` line, which runs in the
      setup-time *bash* process so child scripts can find brew — no zsh plugin can reach that.
 
-  **The debian tree still violates 1–3 whenever `--command-modern-cli` is on**; macos satisfies all
-  six today. That ordering rework remains pending — `debian/todo.md` §1 holds the analysis, the fix
-  and the target array.
+  The debian tree now satisfies 1–5: its relevant tail is `ohmyzsh-full-autoupdate` →
+  `you-should-use` → `fzf-tab` → `fzf` → `zsh-autosuggestions` →
+  `zsh-syntax-highlighting`. macos satisfies all six.
 
   Should *removing* a name from the array ever be needed again: delimit on spaces and parens
   (`s/(z /(/; s/ z / /; s/ z)/)/`), never `\<z\>`. `-` is not a word constituent, so `\<z\>` also
@@ -626,9 +679,10 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
   completion dispatch, so `alias bat=batcat` inherits `_batcat` for free — and by the same
   mechanism `alias fd=fdfind` **destroys** the `_fd` completion it would otherwise get. The symlink
   wins on the other axis: an alias is shell-local state, so `(( $+commands[fd] ))` (which
-  `fzf.plugin.zsh:267` uses to pick `FZF_DEFAULT_COMMAND`) is false under it and no `$SHELL -c`
-  child — fzf's `--preview` above all — can see it, while `PATH` is exported and inherited by
-  every child.
+  `fzf.plugin.zsh:267` uses to pick its initial `FZF_DEFAULT_COMMAND`) is false under it and no
+  `$SHELL -c` child — fzf's `--preview` above all — can see it, while `PATH` is exported and
+  inherited by every child. `00-setup_env.zsh` later replaces that initial command with the
+  follow/strip-prefix variant, but the executable still has to be visible when the plugin loads.
 
   `~/.local/bin` is the one `PATH` entry the repo does *not* write itself: `command/omz.sh:44`
   uncomments omz's own template line (`export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH`,
@@ -641,11 +695,13 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
   still being sourced (l.2 precedes the `source $ZSH/oh-my-zsh.sh` at l.75), but a non-interactive
   `zsh -c` will not see it.
 
-  Two kinds of settings are in the first row today. `PYTHON_AUTO_VRUN` is there because
-  `python.plugin.zsh:103` decides at load time whether to register the `chpwd` hook, and the plugin's
-  own README says to set it "before sourcing oh-my-zsh". The five `zstyle ':omz:plugins:eza' …`
+  Three kinds of settings are in the first row today. The five `zstyle ':omz:plugins:eza' …`
   entries are there because `eza.plugin.zsh:9-60` reads them into `_EZA_HEAD` / `_EZA_TAIL` and
-  immediately builds its aliases; assigning either kind of value in `00-setup_env.zsh` is too late.
+  immediately builds its aliases. The fzf block replaces inherited opts-file/default/empty
+  widget-command values before omz runs `fzf --zsh` and sources the generated registration gates.
+  `PYTHON_AUTO_VRUN` is there because `python.plugin.zsh:103` decides at load time whether to
+  register the `chpwd` hook, and the plugin's own README says to set it "before sourcing
+  oh-my-zsh". Assigning any of these values in `00-setup_env.zsh` is too late.
 
   Row four earns its second clause from where the first row sits. `setup-env` is sourced at l.203
   — **after** `compinit` (l.127) and **after** `lib/*.zsh` (l.197) — so anything those two read is
@@ -708,21 +764,37 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
   comes first. On Debian its trailing `# z` subsection is reverse-gated on
   `COMMAND_MODERN_CLI != '1'`; because the flag defaults to 0, an all-flags-off render still matches
   macos byte-for-byte. Positively gated component blocks follow, each headed by a `#` title, in the
-  order those components run in `debian/main.sh`: `COMMAND_MODERN_CLI` — one gate holding five
+  order those components run in `debian/main.sh`: `COMMAND_MODERN_CLI` — one gate holding seven
   `#` sections, since the shell config for modern CLI tools lands here rather than in per-tool files
   (`# eza`, containing the `tree` alias;
   `# bat`, only `compdef bat=batcat` because everything else bat needs lives in
-  `~/.config/bat/config`; `# Editor` then `# Micro`, with the `EDITOR="code --wait"` branch nested
-  one level deeper on `APP_VSCODE`; `# yazi`, the `y()` wrapper that cd's to wherever yazi was left
-  — `choose.sh`, `fdfind.sh`, `fzf.sh`, `tldr.sh` and the bulk-installed zoxide need no runtime shell
-  lines here) — then `APP_DOCKER` (`# Docker`, the `lzd` alias), `APP_GIT` (`# Git`, the `lg()` wrapper)
-  and `APP_TMUX` (`# tmux mouse scroll`).
+  `~/.config/bat/config`; `# fzf`, the two runtime preview option strings (its four load-time
+  exports live in `setup-env`); `# fzf-tab`, five completion zstyles; `# Editor` then `# Micro`, with
+  the `EDITOR="code --wait"` branch nested one level deeper on `APP_VSCODE`; `# yazi`, the `y()`
+  wrapper that cd's to wherever yazi was left — `choose.sh`, `fdfind.sh`, `tldr.sh` and the
+  bulk-installed zoxide need no runtime shell lines here) — then `APP_DOCKER` (`# Docker`, the `lzd`
+  alias), `APP_GIT` (`# Git`, the `lg()` wrapper) and `APP_TMUX` (`# tmux mouse scroll`).
   Block titles name the *component*, not the tool, wherever the two differ — `# Git` rather than
   `# lazygit` — matching `# Editor` / `# Micro` above them. Intra-file order is cosmetic — the
   whole file lands at l.209, after every plugin, which is exactly what lets a value here override
   one a plugin set — but following the dispatcher keeps it predictable. The `00-` prefix is load
   order, not decoration: omz sources `$ZSH_CUSTOM/*.zsh` alphabetically, so a second file must
   pick its number the same way.
+
+  The `# fzf` option strings are the first generated lines here that need two quote layers:
+  `echo 'export FZF_CTRL_T_OPTS="--preview \"bat …\" …"'`. Bash's outer single quotes preserve
+  every backslash, zsh's generated outer double quotes turn `\"` into literal quote characters in
+  the variable, and fzf's shell-word parser then keeps the preview command and Ctrl-/ bind action
+  as one argument each. The preview command itself ends in `-- {}`; fzf shell-quotes the replacement
+  path, while `--` stops bat/eza from treating a leading `-` as an option. Do not flatten either
+  quote layer or move these previews into `fzfrc`, which is also consumed by history and fzf-tab.
+
+  The fzf-tab `menu no` must use `:completion:*:*:*:*:*`, not the README's broader
+  `:completion:*`: zstyle resolves the more specific pattern first, and omz's
+  `lib/completion.zsh` sets `menu select` with five fields. `list-colors` similarly replaces the
+  empty value omz installs. There are intentionally no fzf-tab layout/cycle/height flags — the
+  plugin already supplies all three — and no `use-fzf-default-opts yes`; only the conservative
+  opts file currently reaches it.
 
   `lg` and `lzd` are the short commands lazygit's and lazydocker's own READMEs suggest, and both
   names were checked clear before being taken — nothing this tree installs or enables defines
@@ -810,12 +882,12 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
 - **`set -e` and trailing `[[ … ]] && cmd`.** A function whose *last* statement is a false
   conditional AND-list returns 1, and at the call site `set -e` takes that as a failure and exits
   — the guard inside the list only protects the `[[ … ]]` itself, not the function's exit status.
-  `install_plugin()` ends on `[[ $COMMAND_MODERN_CLI == '1' ]] && append_plugin 'fzf-tab'`, so
-  without a trailing `return 0` the entire default install path (`COMMAND_MODERN_CLI=0`) dies
-  right there, taking `install_theme`, the three env scripts and `debian/main.sh` down with it.
-  Hence the explicit `return 0`. It hides nothing: any genuine failure inside the function already
-  exits the script at the failing command, never reaching the `return`. Prefer it to "make sure
-  the last line happens to be unconditional", which the next edit quietly breaks. The same
+  `install_plugin()` used to end on the optional `fzf-tab` gate, making the whole default install
+  path (`COMMAND_MODERN_CLI=0`) die before `install_theme` and the three env scripts. Its current
+  tail is unconditional after the fzf/fzf-tab reorder, but the explicit `return 0` remains as the
+  function's contract rather than relying on that accidental ordering. It hides nothing: any
+  genuine failure already exits at the failing command, never reaching the return. Prefer it to
+  "make sure the last line happens to be unconditional", which the next edit quietly breaks. The same
   reasoning is why the gated blocks in `custom_env.sh` / `pre_plugin.sh` / `first_run.sh` are `if`
   blocks — an `if` whose condition is false still returns 0, so a trailing gated block cannot make
   `render_blocks()` return 1.
@@ -875,6 +947,19 @@ dependency — there is no standalone `--tools-node` component or `debian/tools/
   - `zsh-autopair` — 626★, two years without a commit.
   - `forgit` — 5k★, but its `ga` / `gd` / `gco` aliases shadow the `git` plugin's, and it overlaps
     the already-installed lazygit.
+  - `fzf-git.sh` — maintained by fzf's author and less invasive than forgit, but its complete
+    Ctrl-G object-picker family still overlaps lazygit / the existing Git workflow and adds another
+    key-prefix surface for a feature unrelated to ordinary file completion.
+  - `fzf-zsh-plugin` — duplicates the apt-installed binary, omz's `fzf` integration, fzf-tab and the
+    fd/bat/eza previews, while adding unrelated Docker, tmux and Kubernetes helpers. A second fzf
+    bootstrapper is the wrong ownership boundary here.
+  - General preview frameworks, `tmux-fzf`, fzf-tab's `ftb-tmux-popup` and global `--tmux` — two
+    short preview commands do not justify another framework, and `APP_TMUX` is optional while this
+    component's baseline is an inline SSH-friendly UI.
+  - fzf themes — none is shipped. The Wiki's One Dark table is an unmaintained 2019 community
+    snippet rather than an official theme artifact; Catppuccin is actively maintained but is a
+    different palette. Without a maintained One Dark source, inheriting fzf's defaults is preferable
+    to owning copied colour literals.
   - `zsh-autocomplete` — 6.7k★, but its live completion menu conflicts head-on with fzf-tab and
     zsh-autosuggestions.
   - `fast-syntax-highlighting` — more accurate and faster, but its maintenance is less stable than
