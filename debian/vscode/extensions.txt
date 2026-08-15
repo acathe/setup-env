@@ -21,7 +21,6 @@ ms-vscode-remote.remote-ssh
 ms-vscode-remote.remote-ssh-edit
 ms-vscode.remote-explorer
 pkief.material-icon-theme
-redhat.vscode-xml
 redhat.vscode-yaml
 rust-lang.rust-analyzer
 shd101wyy.markdown-preview-enhanced
