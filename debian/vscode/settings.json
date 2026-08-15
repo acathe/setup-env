@@ -19,9 +19,6 @@
             80
         ]
     },
-    "[xml]": {
-        "editor.defaultFormatter": "redhat.vscode-xml"
-    },
     "bashIde.enableSourceErrorDiagnostics": true,
     "bashIde.shfmt.binaryNextLine": true,
     "bashIde.shfmt.caseIndent": true,
