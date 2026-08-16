@@ -27,7 +27,7 @@ install_plugins() {
     export PATH="$HOME/.local/bin:$PATH"
 
     if [[ $CODE_MARKDOWN == '1' ]]; then
-        ya pkg add 'acathe/faster-piper'
+        ya pkg add 'alberti42/faster-piper'
     fi
 
     if [[ $COMMAND_MODERN_CLI == '1' ]]; then
