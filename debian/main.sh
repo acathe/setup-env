@@ -7,10 +7,9 @@ export COMMAND_MODERN_CLI="${COMMAND_MODERN_CLI:-0}"
 export CODE_BASH="${CODE_BASH:-0}"
 export CODE_GO="${CODE_GO:-0}"
 export CODE_MARKDOWN="${CODE_MARKDOWN:-0}"
+export CODE_PROTOBUF="${CODE_PROTOBUF:-0}"
 export CODE_PYTHON="${CODE_PYTHON:-0}"
 export CODE_RUST="${CODE_RUST:-0}"
-
-export TOOLS_PROTOBUF="${TOOLS_PROTOBUF:-0}"
 
 export APP_CLAUDE="${APP_CLAUDE:-0}"
 export APP_DOCKER="${APP_DOCKER:-0}"
@@ -38,16 +37,16 @@ parse_args() {
                 CODE_MARKDOWN=1
                 shift
                 ;;
+            --code-protobuf)
+                CODE_PROTOBUF=1
+                shift
+                ;;
             --code-python)
                 CODE_PYTHON=1
                 shift
                 ;;
             --code-rust)
                 CODE_RUST=1
-                shift
-                ;;
-            --tools-protobuf)
-                TOOLS_PROTOBUF=1
                 shift
                 ;;
             --app-claude)
@@ -98,16 +97,16 @@ main() {
         bash './code/markdown.sh' "$@"
     fi
 
+    if [[ $CODE_PROTOBUF == '1' ]]; then
+        bash './code/protobuf.sh' "$@"
+    fi
+
     if [[ $CODE_PYTHON == '1' ]]; then
         bash './code/python.sh' "$@"
     fi
 
     if [[ $CODE_RUST == '1' ]]; then
         bash './code/rust.sh' "$@"
-    fi
-
-    if [[ $TOOLS_PROTOBUF == '1' ]]; then
-        bash './tools/protobuf.sh' "$@"
     fi
 
     if [[ $APP_CLAUDE == '1' ]]; then

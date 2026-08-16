@@ -22,7 +22,7 @@ The setup trees are independent:
 
 - `macos/` provisions a terminal client / jump box: Homebrew, Oh My Zsh, SSH support, and optional VS Code. It is deliberately not a development-machine
   profile and omits the Git plugin.
-- `debian/` provisions the main development environment. Zsh and Oh My Zsh are unconditional; command, language, tool, and app components are optional.
+- `debian/` provisions the main development environment. Zsh and Oh My Zsh are unconditional; command, code, and app components are optional.
 - `container/` dispatches to `dev-container`, `copilot-api`, or the one-shot `copilot-api-config` task.
 
 `debian/vscode/` is reference data only. No dispatcher installs those files; `--app-vscode` enables the OMZ plugin, while `README.md` documents manual
@@ -69,7 +69,7 @@ Platform roots and true nested dispatchers follow this data flow:
 2. `parse_args()` consumes flags it owns and appends unknown arguments to `POSITIONAL`.
 3. Boolean flags shift once. Value flags use the `numOfArgs` guard so a missing value cannot read an unset `$2` under `set -u`.
 4. Restore the forwarded arguments and call `main()`.
-5. Run components in `--command-*`, `--code-*`, `--tools-*`, then `--app-*` order, alphabetically inside each group.
+5. Run components in `--command-*`, `--code-*`, then `--app-*` order, alphabetically inside each group.
 
 For a normal runnable component, the export block, parser cases, `main()` gates, and corresponding `README.md` table are four ordered views of the same
 interface. Debian `APP_VSCODE` is the explicit integration-only exception: it has an export, parser case, and README flag but no Debian leaf or `main()`

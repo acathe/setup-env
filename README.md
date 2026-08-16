@@ -36,9 +36,9 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
 | `--code-bash`          |                                         |
 | `--code-go`            |                                         |
 | `--code-markdown`      |                                         |
+| `--code-protobuf`      |                                         |
 | `--code-python`        |                                         |
 | `--code-rust`          |                                         |
-| `--tools-protobuf`     |                                         |
 | `--app-claude`         | `--app-claude-copilot-api`              |
 |                        | `--app-claude-base-url <v>`             |
 |                        | `--app-claude-auth-token <v>`           |
