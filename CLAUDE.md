@@ -29,6 +29,9 @@ The setup trees are independent:
 extension installation. Its editor branch exists only with modern CLI and selects `code --wait` only when `TERM_PROGRAM=vscode`; otherwise the managed
 editor remains micro. Invoke scripts through `bash` rather than executable bits.
 
+Root `main.sh` and `macos/` must remain compatible with Apple's Bash 3.2; Debian and container code may use newer Bash. Debian components that download Go,
+protoc, choose, or Yazi assets currently select `amd64`/`x86_64`; do not claim arm64 support without updating all four.
+
 ## Checks and safe validation
 
 Run the non-destructive checks from the repository root:
@@ -44,13 +47,14 @@ git diff --check
 git diff --cached --check
 ```
 
-ShellCheck uses `-x` because `debian/app/docker.sh` dynamically sources `/etc/os-release`. `.shellcheckrc` disables `SC2016`; single-quoted `jq`, `sed`, and
-generated-shell programs contain dollar signs that must not expand in the provisioning shell.
+ShellCheck uses `-x` because `debian/app/docker.sh` dynamically sources `/etc/os-release`. `.shellcheckrc` disables `SC2016`; literal `jq`/`sed` programs
+and generated shell content intentionally preserve dollar signs for a later interpreter.
 
 A direct dispatcher run performs real installation and configuration. For example, `bash debian/main.sh --app-tmux` runs `apt`, installs Oh My Zsh, and
-modifies the current home. Do not use a normal account as a smoke-test sandbox.
+modifies the current home. Do not use a normal account as a smoke-test sandbox. Debian's OMZ installer also removes existing `.profile`, `.bashrc`, and
+`.bash_logout`. Generated-file repeated-home checks do not imply that full platform dispatchers are idempotent; OMZ customizers clone into fixed destinations.
 
-Generated Zsh is embedded in Bash `echo` blocks and is invisible to ShellCheck. Render `setup-env.plugin.zsh.sh`, `00-setup_env.zsh.sh`, and
+The managed OMZ Zsh files are emitted from quoted Bash heredocs and are invisible to ShellCheck. Render `setup-env.plugin.zsh.sh`, `00-setup_env.zsh.sh`, and
 `01-first_run.zsh.sh` in a clean environment with `HOME` and `ZSH_CUSTOM` explicitly pointing into one throwaway tree and a controlled `PATH`; changing
 `HOME` alone is insufficient because the writers honor inherited `ZSH_CUSTOM`. Then run `zsh -n` on their outputs. Seed `$HOME/.zshrc` from the Oh My Zsh
 template and put a stub `git` on
@@ -136,16 +140,19 @@ The decision is based on when a value is read, not whether it looks like an envi
 bootstrap variables, and `PYTHON_AUTO_VRUN`; moving those to `00-setup_env.zsh` is silently too late. Conversely, `ZSH_HIGHLIGHT_HIGHLIGHTERS+=(brackets)`
 must remain after the syntax-highlighting plugin; moving it early prevents that plugin from installing its `main` highlighter.
 
-Provisioning-managed runtime tool configuration is shipped as an artifact and installed with `install -Dm 644`, not generated with `echo`. This includes
-Atuin, bat, fzf, micro, lazygit, and Yazi's `init.lua` and `keymap.toml`; repo-local lint config and undeployed VS Code reference data are outside this rule.
+Provisioning-managed runtime tool configuration is shipped as an artifact and installed with `install -Dm 644`, rather than rendered by the
+provisioning shell. This includes bat, fzf, micro, lazygit, and Yazi's `init.lua` and `keymap.toml`; repo-local lint config and undeployed VS Code reference data are outside this rule.
 The copilot-api settings template is a shipped JSON artifact completed by `jq`, written directly with directory mode 700 and file mode 600. The external
 exception is the Ruff baseline downloaded from BesLogic's `main` branch by `code/python.sh`. Yazi's `yazi.toml` is the generated exception:
-`app/yazi/yazi.toml.sh` creates its target directory and redirects the complete `echo` render into the target because previewers depend on component flags.
-Otherwise, `echo` is reserved for files invented here and appends to upstream-owned files; global Git configuration uses `git config`.
+`app/yazi/yazi.toml.sh` creates its target directory and replaces the target from one complete render because previewers depend on component flags. Generated
+files invented here are complete renders; append only to upstream-owned files, while global Git configuration uses `git config`.
 
-A rerun overwrites managed static configs. When Yazi runs, it also fully rerenders `yazi.toml`, so disabling an integration flag retracts that previewer.
+A rerun overwrites managed static configs that still have writers. Removing a shipped artifact does not delete a copy installed by an earlier revision;
+cleanup must be explicit. When Yazi runs, it also fully rerenders `yazi.toml`, so disabling an integration flag retracts that previewer.
 Yazi's `package.toml` is different: `ya pkg add` owns that mutable runtime manifest, so the repository never ships, overwrites, or garbage-collects it. Only
-configure values that materially differ from packaged defaults.
+configure values that materially differ from packaged defaults. `ya pkg add` rejects an already-listed dependency. It identifies sources by full
+`owner/repository` but deploys by plugin name, so replacing an owner for the same plugin requires `ya pkg delete` for the old source before adding the new
+one; never edit `package.toml` directly.
 
 ### Empty renders do not retract prior output
 
@@ -197,17 +204,20 @@ BRANCH="${BRANCH:-master}"       # correct
 # BRANCH="${BRANCH:-'master'}"   # expands to the literal quotes
 ```
 
-Generated shell content follows a second quoting layer: the provisioning Bash `echo` is single-quoted, while quotes needed by generated Zsh are double
-quotes inside that literal. This prevents setup-time expansion of `$PATH`, `$HOME`, `$EDITOR`, and fzf placeholders.
+Shared generated shell files follow a second quoting layer: provisioning Bash uses a quoted heredoc delimiter (`cat << 'EOF'`), while quotes and escapes in
+the body belong to generated Zsh. The quoted delimiter prevents setup-time expansion of `$PATH`, `$HOME`, `$EDITOR`, and fzf placeholders.
 
 ```bash
-echo 'export PATH="$PATH:/usr/local/go/bin"'
-echo 'alias tree="eza --tree"'
+cat << 'EOF'
+export PATH="$PATH:/usr/local/go/bin"
+alias tree="eza --tree"
+EOF
 ```
 
-Do not flip the outer quotes to double quotes. fzf preview strings intentionally contain escaped inner quotes; flattening either layer changes option
-tokenization. Preserve `-- {}` so a candidate beginning with `-` is not parsed as an option. `echo "$blocks"` only replays captured text; parameter
-expansion does not rescan dollar signs inside the value.
+Do not unquote the heredoc delimiter. fzf preview strings intentionally contain escaped inner quotes; flattening either layer changes option tokenization.
+Preserve `-- {}` so a candidate beginning with `-` is not parsed as an option. Captured block output uses `printf '%s\n' "$blocks"`; parameter expansion
+does not rescan dollar signs inside the value. For literal lines appended to upstream-owned shell files such as `.zshenv`, a single-quoted `echo` argument
+remains correct; do not introduce setup-time expansion.
 
 Use arrays for constructed argument lists and quote `"$@"`. Paths, URLs, and filenames are quoted; command names and the repository's established bare
 option values remain bare.
@@ -254,11 +264,12 @@ every tool needs a One Dark override from the tools that have one.
 
 ## Debian modern CLI
 
-`command/modern_cli/main.sh` bulk-installs shared tools, then runs the fixed children: Atuin, bat, choose, fd, fzf, micro, and tldr. Children own packages,
-binary links, completions, and static config; none has an independent flag.
+`command/modern_cli/main.sh` bulk-installs shared tools, including Atuin, then runs the fixed children: bat, choose, fd, fzf, micro, and tldr. Children own
+packages, binary links, completions, and static config; none has an independent flag.
 
-Atuin uses Debian's package/completion and a two-setting config. Setup does not import history or configure account/sync. Its late init takes Ctrl-R and Up
-while fzf retains Ctrl-T, Alt-C, and `**` completion.
+Atuin is bulk-installed from Debian and has no repository-owned config. Fresh homes use packaged defaults, but a `~/.config/atuin/config.toml` installed by
+an older revision remains until explicitly deleted. Setup does not import history or configure account/sync. Its late init takes Ctrl-R and Up while fzf
+retains Ctrl-T, Alt-C, and `**` completion.
 
 fzf bootstrap and runtime settings stay split. Before plugin load, `setup-env.plugin.zsh.sh` exports the opts-file path plus `FZF_DEFAULT_COMMAND`,
 `FZF_CTRL_T_COMMAND`, and `FZF_ALT_C_COMMAND` separately: fzf does not reuse the default for widgets, and its generated Zsh uses empty values to decide
@@ -275,8 +286,9 @@ latest asset. Glow has no managed config and is installed by the Markdown code c
 
 `--app-yazi` uses the unversioned GNU release zip, installs `file` and `unzip`, then installs its binaries/completions. Git fetchers and the Git/keymap
 plugins are unconditional. With modern CLI enabled, the app adds the two Bat previewers and official `piper`; with Markdown enabled, it adds the Glow
-previewer and third-party `alberti42/faster-piper`. That plugin exposes `$w` and `$h` but not `$t`, so the runner uses its documented `dracula` style and
-preserves `-- "$1"`. Command and code components run first, so each conditional preview command is already available.
+previewer and third-party `alberti42/faster-piper`, which requires Yazi 26.8.15 or newer. It exposes `$w`, `$h`, and terminal-theme `$t`; Glow consumes
+`$t` as `dark` or `light`, and the runner preserves `-- "$1"`. Command and code components run first, so each conditional preview command is already
+available.
 
 After plugin installation, `main.sh` runs `yazi.toml.sh`; that script creates the Yazi config directory and directly writes the complete `yazi.toml` render.
 `init.lua` and `keymap.toml` remain shipped artifacts. Each plugin has its own `ya pkg add` invocation, so a partial failure cannot install config that
@@ -339,7 +351,8 @@ authentication through `/dev/tty`, then replaces the named service container, pu
 
 `container/copilot-api-config` is a one-shot image containing `jq` and `openssl`. It mounts the same host directory at `/root/.copilot-api`, so it mutates
 the service's persistent `config.json` despite the different in-container path. `--reset-api-key` clears `auth.apiKeys` first; `--api-keys <N>` then appends
-N independently generated 32-byte hex keys. The task assumes the service has already produced a valid `config.json`.
+N independently generated 32-byte hex keys. The task assumes the service has already produced a valid `config.json`. Before changing API keys,
+`copilot-api-config` also forces `useResponsesApiWebSocket=false` on every run.
 
 ## macOS-specific constraints
 
