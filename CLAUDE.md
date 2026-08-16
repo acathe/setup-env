@@ -61,9 +61,8 @@ template and put a stub `git` on
 `PATH`. On Linux when testing macOS, also provide a BSD-`sed` shim and a stub `brew`, because the theme installer invokes both. Set component variables
 inside the same harness; for a broad Debian render, use `COMMAND_MODERN_CLI=1 CODE_PYTHON=1 APP_GIT=1 APP_YAZI=1 bash debian/command/omz_custom/main.sh`.
 
-For fzf changes, run `FZF_DEFAULT_OPTS_FILE=debian/command/modern_cli/fzf/fzfrc FZF_DEFAULT_OPTS= fzf --version`.
-Then inspect `${(z)FZF_CTRL_T_OPTS}` and `${(z)FZF_ALT_C_OPTS}` in `zsh -f`. Plugin-order changes require a real ZLE / PTY smoke test:
-ordinary Tab and `**<Tab>` must each open fzf once; `fzf_default_completion` must be `fzf-tab-complete`; Ctrl-T and Alt-C must remain single calls.
+For fzf shell changes, inspect `${(z)FZF_CTRL_T_OPTS}` and `${(z)FZF_ALT_C_OPTS}` in `zsh -f`. Plugin-order changes require a real ZLE / PTY
+smoke test: ordinary Tab and `**<Tab>` must each open fzf once; `fzf_default_completion` must be `fzf-tab-complete`; Ctrl-T and Alt-C must remain single calls.
 
 ## Dispatcher contract
 
@@ -141,7 +140,7 @@ bootstrap variables, and `PYTHON_AUTO_VRUN`; moving those to `00-setup_env.zsh` 
 must remain after the syntax-highlighting plugin; moving it early prevents that plugin from installing its `main` highlighter.
 
 Provisioning-managed runtime tool configuration is shipped as an artifact and installed with `install -Dm 644`, rather than rendered by the
-provisioning shell. This includes bat, fzf, Glow, micro, lazygit, and Yazi's `init.lua` and `keymap.toml`; repo-local lint config and undeployed VS Code
+provisioning shell. This includes bat, Glow, micro, lazygit, and Yazi's `init.lua` and `keymap.toml`; repo-local lint config and undeployed VS Code
 reference data are outside this rule.
 The copilot-api settings template is a shipped JSON artifact completed by `jq`, written directly with directory mode 700 and file mode 600. The external
 exception is the Ruff baseline downloaded from BesLogic's `main` branch by `code/python.sh`. Yazi's `yazi.toml` is the generated exception:
@@ -265,20 +264,19 @@ every tool needs a One Dark override from the tools that have one.
 
 ## Debian modern CLI
 
-`command/modern_cli/main.sh` bulk-installs shared tools, including Atuin, then runs the fixed children: bat, choose, fd, fzf, micro, and tldr. Children own
+`command/modern_cli/main.sh` bulk-installs shared tools, including Atuin and fzf, then runs the fixed children: bat, choose, fd, micro, and tldr. Children own
 packages, binary links, completions, and static config; none has an independent flag.
 
 Atuin is bulk-installed from Debian and has no repository-owned config. Fresh homes use packaged defaults, but a `~/.config/atuin/config.toml` installed by
 an older revision remains until explicitly deleted. Setup does not import history or configure account/sync. Its late init takes Ctrl-R and Up while fzf
 retains Ctrl-T, Alt-C, and `**` completion.
 
-fzf bootstrap and runtime settings stay split. Before plugin load, `setup-env.plugin.zsh.sh` exports the opts-file path plus `FZF_DEFAULT_COMMAND`,
-`FZF_CTRL_T_COMMAND`, and `FZF_ALT_C_COMMAND` separately: fzf does not reuse the default for widgets, and its generated Zsh uses empty values to decide
-whether Ctrl-T / Alt-C exist. `00-setup_env.zsh.sh` later adds bat/eza previews. `fzfrc` contains only reverse layout, border, and cycle because fzf-tab can
-still see it—do not add global preview, popup/tmux mode, or fixed height. The fzf-tab block uses the five-field `:completion:*:*:*:*:*` pattern to outrank
-Oh My Zsh's menu default, restore colors, preserve Git checkout ordering, and bind group navigation. The Bat child owns its managed config and canonical
-link;
-fd owns its link, eza aliases come from early zstyles, and zoxide initializes exactly once through its OMZ plugin.
+fzf uses packaged default options and has no repository-owned static config. Bootstrap commands and runtime widget settings stay split. Before plugin load,
+`setup-env.plugin.zsh.sh` exports `FZF_DEFAULT_COMMAND`, `FZF_CTRL_T_COMMAND`, and `FZF_ALT_C_COMMAND` separately: fzf does not reuse the default for widgets,
+and its generated Zsh uses empty values to decide whether Ctrl-T / Alt-C exist. `00-setup_env.zsh.sh` later adds bat/eza previews. The fzf-tab block uses the
+five-field `:completion:*:*:*:*:*` pattern to outrank Oh My Zsh's menu default, restore colors, preserve Git checkout ordering, and bind group navigation.
+The Bat child owns its managed config and canonical link; fd owns its link, eza aliases come from early zstyles, and zoxide initializes exactly once
+through its OMZ plugin.
 
 Micro true color remains `MICRO_TRUECOLOR=1`; tealdeer owns the guarded completion symlink and a non-fatal cache warm-up; choose installs the unversioned
 latest asset. The Markdown code component owns Glow's managed config and enables TUI mouse support; zoxide owns no static config or second init.
