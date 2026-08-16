@@ -69,7 +69,7 @@ main() {
     install_plugin
     install_theme
 
-    bash './custom_env.sh' "$@"
+    bash './00-setup_env.zsh.sh' "$@"
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then

@@ -5,9 +5,9 @@ set -euo pipefail
 main() {
     sudo apt-get update
     sudo apt-get install -y \
+        man-db \
         jq \
         unzip \
-        glow \
         eza \
         ripgrep \
         zoxide \
@@ -25,7 +25,6 @@ main() {
     bash './fzf/main.sh' "$@"
     bash './micro/main.sh' "$@"
     bash './tldr.sh' "$@"
-    bash './yazi/main.sh' "$@"
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then

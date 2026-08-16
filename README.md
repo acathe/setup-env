@@ -35,9 +35,10 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
 | `--command-modern-cli` |                                         |
 | `--code-bash`          |                                         |
 | `--code-go`            |                                         |
+| `--code-markdown`      |                                         |
+| `--code-protobuf`      |                                         |
 | `--code-python`        |                                         |
 | `--code-rust`          |                                         |
-| `--tools-protobuf`     |                                         |
 | `--app-claude`         | `--app-claude-copilot-api`              |
 |                        | `--app-claude-base-url <v>`             |
 |                        | `--app-claude-auth-token <v>`           |
@@ -49,6 +50,7 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
 |                        | `--app-git-user-email <v>`              |
 | `--app-tmux`           |                                         |
 | `--app-vscode`         |                                         |
+| `--app-yazi`           |                                         |
 
 ```bash
 xargs -L1 code --install-extension < debian/vscode/extensions.txt

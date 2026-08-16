@@ -22,7 +22,7 @@ The setup trees are independent:
 
 - `macos/` provisions a terminal client / jump box: Homebrew, Oh My Zsh, SSH support, and optional VS Code. It is deliberately not a development-machine
   profile and omits the Git plugin.
-- `debian/` provisions the main development environment. Zsh and Oh My Zsh are unconditional; command, language, tool, and app components are optional.
+- `debian/` provisions the main development environment. Zsh and Oh My Zsh are unconditional; command, code, and app components are optional.
 - `container/` dispatches to `dev-container`, `copilot-api`, or the one-shot `copilot-api-config` task.
 
 `debian/vscode/` is reference data only. No dispatcher installs those files; `--app-vscode` enables the OMZ plugin, while `README.md` documents manual
@@ -50,11 +50,12 @@ generated-shell programs contain dollar signs that must not expand in the provis
 A direct dispatcher run performs real installation and configuration. For example, `bash debian/main.sh --app-tmux` runs `apt`, installs Oh My Zsh, and
 modifies the current home. Do not use a normal account as a smoke-test sandbox.
 
-Generated Zsh is embedded in Bash `echo` blocks and is invisible to ShellCheck. Render `pre_plugin.sh`, `custom_env.sh`, and `first_run.sh` in a clean
-environment with `HOME` and `ZSH_CUSTOM` explicitly pointing into one throwaway tree and a controlled `PATH`; changing `HOME` alone is insufficient because
-the writers honor inherited `ZSH_CUSTOM`. Then run `zsh -n` on their outputs. Seed `$HOME/.zshrc` from the Oh My Zsh template and put a stub `git` on
+Generated Zsh is embedded in Bash `echo` blocks and is invisible to ShellCheck. Render `setup-env.plugin.zsh.sh`, `00-setup_env.zsh.sh`, and
+`01-first_run.zsh.sh` in a clean environment with `HOME` and `ZSH_CUSTOM` explicitly pointing into one throwaway tree and a controlled `PATH`; changing
+`HOME` alone is insufficient because the writers honor inherited `ZSH_CUSTOM`. Then run `zsh -n` on their outputs. Seed `$HOME/.zshrc` from the Oh My Zsh
+template and put a stub `git` on
 `PATH`. On Linux when testing macOS, also provide a BSD-`sed` shim and a stub `brew`, because the theme installer invokes both. Set component variables
-inside the same harness; for a broad Debian render, use `COMMAND_MODERN_CLI=1 CODE_PYTHON=1 APP_GIT=1 bash debian/command/omz_custom/main.sh`.
+inside the same harness; for a broad Debian render, use `COMMAND_MODERN_CLI=1 CODE_PYTHON=1 APP_GIT=1 APP_YAZI=1 bash debian/command/omz_custom/main.sh`.
 
 For fzf changes, run `FZF_DEFAULT_OPTS_FILE=debian/command/modern_cli/fzf/fzfrc FZF_DEFAULT_OPTS= fzf --version`.
 Then inspect `${(z)FZF_CTRL_T_OPTS}` and `${(z)FZF_ALT_C_OPTS}` in `zsh -f`. Plugin-order changes require a real ZLE / PTY smoke test:
@@ -69,7 +70,7 @@ Platform roots and true nested dispatchers follow this data flow:
 2. `parse_args()` consumes flags it owns and appends unknown arguments to `POSITIONAL`.
 3. Boolean flags shift once. Value flags use the `numOfArgs` guard so a missing value cannot read an unset `$2` under `set -u`.
 4. Restore the forwarded arguments and call `main()`.
-5. Run components in `--command-*`, `--code-*`, `--tools-*`, then `--app-*` order, alphabetically inside each group.
+5. Run components in `--command-*`, `--code-*`, then `--app-*` order, alphabetically inside each group.
 
 For a normal runnable component, the export block, parser cases, `main()` gates, and corresponding `README.md` table are four ordered views of the same
 interface. Debian `APP_VSCODE` is the explicit integration-only exception: it has an export, parser case, and README flag but no Debian leaf or `main()`
@@ -80,8 +81,8 @@ A multi-part runnable concern owns a directory. `app/claude/main.sh` is a nested
 an aggregate leaf with no parser.
 
 Flags intentionally cascade through exported variables and forwarded arguments. The Claude app reads `CODE_GO`, `CODE_PYTHON`, `CODE_RUST`, and `APP_GIT`
-from Debian; tmux reads `APP_CLAUDE`. OMZ writers read component flags because they physically own shared shell landing points. Cross-component reads are
-valid when they add integration only if both concerns are enabled.
+from Debian; tmux reads `APP_CLAUDE`; Yazi reads `COMMAND_MODERN_CLI` and `CODE_MARKDOWN`. OMZ writers read component flags because they physically own
+shared shell landing points. Cross-component reads are valid when they add integration only if both concerns are enabled.
 
 An argument-owning dispatcher or leaf uses the full sourceable footer:
 
@@ -120,8 +121,8 @@ directly to a shared generated shell file.
 
 Each shared configuration fragment has one logical owner, but `.zshrc` has coordinated writers. Each setup tree's `command/omz.sh` installs Oh My Zsh and
 prepares its template; Debian's also activates the template's user-bin PATH. `command/omz_custom/main.sh` owns the plugin array, clones, and theme. After
-writing a non-empty `setup-env` plugin, `pre_plugin.sh` prepends the coupled array entry only afterwards, avoiding an enabled-but-missing warning at shell
-startup.
+writing a non-empty `setup-env` plugin, `setup-env.plugin.zsh.sh` prepends the coupled array entry only afterwards, avoiding an enabled-but-missing warning
+at shell startup.
 
 | Configuration needed by | Owned destination |
 | --- | --- |
@@ -136,29 +137,31 @@ bootstrap variables, and `PYTHON_AUTO_VRUN`; moving those to `00-setup_env.zsh` 
 must remain after the syntax-highlighting plugin; moving it early prevents that plugin from installing its `main` highlighter.
 
 Provisioning-managed runtime tool configuration is shipped as an artifact and installed with `install -Dm 644`, not generated with `echo`. This includes
-Atuin, bat, fzf, micro, lazygit, and the three Yazi files; repo-local lint config and undeployed VS Code reference data are outside this rule. The
-copilot-api settings template is a shipped JSON artifact completed by `jq`, written directly with directory mode 700 and file mode 600. The external
-exception is the Ruff baseline downloaded from BesLogic's `main` branch by `code/python.sh`. `echo` is reserved for files invented here and appends to
-upstream-owned files; global Git configuration uses `git config`.
+Atuin, bat, fzf, micro, lazygit, and Yazi's `init.lua` and `keymap.toml`; repo-local lint config and undeployed VS Code reference data are outside this rule.
+The copilot-api settings template is a shipped JSON artifact completed by `jq`, written directly with directory mode 700 and file mode 600. The external
+exception is the Ruff baseline downloaded from BesLogic's `main` branch by `code/python.sh`. Yazi's `yazi.toml` is the generated exception:
+`app/yazi/yazi.toml.sh` creates its target directory and redirects the complete `echo` render into the target because previewers depend on component flags.
+Otherwise, `echo` is reserved for files invented here and appends to upstream-owned files; global Git configuration uses `git config`.
 
-A rerun overwrites managed static configs. Yazi's `package.toml` is different: `ya pkg add` owns that mutable runtime manifest, so the repository never
-ships or overwrites it. Only configure values that materially differ from packaged defaults.
+A rerun overwrites managed static configs. When Yazi runs, it also fully rerenders `yazi.toml`, so disabling an integration flag retracts that previewer.
+Yazi's `package.toml` is different: `ya pkg add` owns that mutable runtime manifest, so the repository never ships, overwrites, or garbage-collects it. Only
+configure values that materially differ from packaged defaults.
 
 ### Empty renders do not retract prior output
 
-`pre_plugin.sh` and `first_run.sh` capture `render_blocks()` before touching a target. An empty render returns successfully without writing or deleting. On
-a fresh home this creates no artifact; on a repeated setup it leaves an earlier artifact byte-for-byte unchanged. This is an intentional provisioning
-contract: disabling a flag is not uninstall or garbage collection.
+`setup-env.plugin.zsh.sh` and `01-first_run.zsh.sh` capture `render_blocks()` before touching a target. An empty render returns successfully without
+writing or deleting. On a fresh home this creates no artifact; on a repeated setup it leaves an earlier artifact byte-for-byte unchanged. This is an
+intentional provisioning contract: disabling a flag is not uninstall or garbage collection.
 
 A stale `setup-env.plugin.zsh` is inert after `install_plugin()` rebuilds the array from `plugins=(aliases)` without adding `setup-env`. A stale
-`01-first_run.zsh` is not inert: it remains matched by Oh My Zsh's custom `*.zsh` glob. Because `custom_env.sh` rebuilds `00-setup_env.zsh`, the previous
-sentinel disappears and the old first-run file can execute again. Its GitHub block still checks for `gh` and existing authentication, but turning off
-`APP_GIT` does not remove the file. Delete `$ZSH_CUSTOM/01-first_run.zsh` explicitly when retiring that step. Do not add automatic deletion unless the
-non-retraction contract is deliberately changed.
+`01-first_run.zsh` is not inert: it remains matched by Oh My Zsh's custom `*.zsh` glob. Because `00-setup_env.zsh.sh` rebuilds `00-setup_env.zsh`, the
+previous sentinel disappears and the old first-run file can execute again. Its GitHub block still checks for `gh` and existing authentication, but
+turning off `APP_GIT` does not remove the file. Delete `$ZSH_CUSTOM/01-first_run.zsh` explicitly when retiring that step. Do not add automatic deletion
+unless the non-retraction contract is deliberately changed.
 
-`custom_env.sh` always has an unconditional section and rebuilds `00-setup_env.zsh`. `first_run.sh` appends its sentinel there before launching interactive
-work, so a canceled prompt is not retried in every new shell. A later setup with a non-empty first-run render rewrites both files and permits the new
-sequence once again.
+`00-setup_env.zsh.sh` always has an unconditional section and rebuilds `00-setup_env.zsh`. `01-first_run.zsh.sh` appends its sentinel there before
+launching interactive work, so a canceled prompt is not retried in every new shell. A later setup with a non-empty first-run render rewrites both files and
+permits the new sequence once again.
 
 ## Oh My Zsh load and plugin order
 
@@ -251,31 +254,41 @@ every tool needs a One Dark override from the tools that have one.
 
 ## Debian modern CLI
 
-`command/modern_cli/main.sh` bulk-installs shared tools, then runs the fixed children: Atuin, bat, choose, fd, fzf, micro, tldr, and Yazi. Children own
-packages, binary links, completions, and static config; none has an independent flag.
+`command/modern_cli/main.sh` bulk-installs shared tools, then runs the fixed children: Atuin, bat, choose, fd, fzf, micro, and tldr. Children own packages,
+binary links, completions, and static config; none has an independent flag.
 
 Atuin uses Debian's package/completion and a two-setting config. Setup does not import history or configure account/sync. Its late init takes Ctrl-R and Up
 while fzf retains Ctrl-T, Alt-C, and `**` completion.
 
-fzf bootstrap and runtime settings stay split. Before plugin load, `pre_plugin.sh` exports the opts-file path plus `FZF_DEFAULT_COMMAND`,
+fzf bootstrap and runtime settings stay split. Before plugin load, `setup-env.plugin.zsh.sh` exports the opts-file path plus `FZF_DEFAULT_COMMAND`,
 `FZF_CTRL_T_COMMAND`, and `FZF_ALT_C_COMMAND` separately: fzf does not reuse the default for widgets, and its generated Zsh uses empty values to decide
-whether Ctrl-T / Alt-C exist. `custom_env.sh` later adds bat/eza previews. `fzfrc` contains only reverse layout, border, and cycle because fzf-tab can still
-see it—do not add global preview, popup/tmux mode, or fixed height. The fzf-tab block uses the five-field `:completion:*:*:*:*:*` pattern to outrank Oh My
-Zsh's menu default, restore colors, preserve Git checkout ordering, and bind group navigation. bat/fd own their links, eza aliases come from early zstyles,
-and zoxide initializes exactly once through its OMZ plugin.
-
-Yazi uses the unversioned GNU release zip, installs its binaries/completions, and adds its official plugins before deploying `yazi.toml`, `init.lua`, and
-`keymap.toml`; partial plugin failure therefore cannot install config that references missing plugins. Those files own previews, Git integration, and smart
-bindings, but no theme. The `y()` wrapper remains in `custom_env.sh`, the sole writer of `00-setup_env.zsh`.
+whether Ctrl-T / Alt-C exist. `00-setup_env.zsh.sh` later adds bat/eza previews. `fzfrc` contains only reverse layout, border, and cycle because fzf-tab can
+still see it—do not add global preview, popup/tmux mode, or fixed height. The fzf-tab block uses the five-field `:completion:*:*:*:*:*` pattern to outrank
+Oh My Zsh's menu default, restore colors, preserve Git checkout ordering, and bind group navigation. The Bat child owns its managed config and canonical
+link;
+fd owns its link, eza aliases come from early zstyles, and zoxide initializes exactly once through its OMZ plugin.
 
 Micro true color remains `MICRO_TRUECOLOR=1`; tealdeer owns the guarded completion symlink and a non-fatal cache warm-up; choose installs the unversioned
-latest asset. Glow has no managed config, and zoxide owns no static config or second init.
+latest asset. Glow has no managed config and is installed by the Markdown code component; zoxide owns no static config or second init.
+
+## Yazi application
+
+`--app-yazi` uses the unversioned GNU release zip, installs `file` and `unzip`, then installs its binaries/completions. Git fetchers and the Git/keymap
+plugins are unconditional. With modern CLI enabled, the app adds the two Bat previewers and official `piper`; with Markdown enabled, it adds the Glow
+previewer and third-party `alberti42/faster-piper`. That plugin exposes `$w` and `$h` but not `$t`, so the runner uses its documented `dracula` style and
+preserves `-- "$1"`. Command and code components run first, so each conditional preview command is already available.
+
+After plugin installation, `main.sh` runs `yazi.toml.sh`; that script creates the Yazi config directory and directly writes the complete `yazi.toml` render.
+`init.lua` and `keymap.toml` remain shipped artifacts. Each plugin has its own `ya pkg add` invocation, so a partial failure cannot install config that
+references a missing plugin.
+A later run may leave disabled plugins in the mutable `package.toml`, but the regenerated config no longer references them. The `y()` wrapper remains in
+`00-setup_env.zsh.sh`, the sole writer of `00-setup_env.zsh`, and is emitted only when `APP_YAZI=1`.
 
 ## Git application
 
 `--app-git` owns the complete Git concern: GitHub CLI repository setup, `gh`, delta, lazygit, global Git settings, lazygit config, the `lg()` cwd-following
-function, and deferred `gh auth login`. Physical writers still follow the shared ownership rules: the Git leaf writes tool and Git config, `custom_env.sh`
-writes `lg()`, and `first_run.sh` writes the login block. Do not split delta or lazygit into modern CLI.
+function, and deferred `gh auth login`. Physical writers still follow the shared ownership rules: the Git leaf writes tool and Git config,
+`00-setup_env.zsh.sh` writes `lg()`, and `01-first_run.zsh.sh` writes the login block. Do not split delta or lazygit into modern CLI.
 
 The lazygit config targets the packaged schema. It keeps Nerd Fonts version `"3"` and narrows the side panel for side-by-side delta. It explicitly uses
 `delta --paging=never`; global `core.pager=delta` is not inherited by lazygit. The `lg()` function uses `LAZYGIT_NEW_DIR_FILE` to move the parent shell
@@ -330,9 +343,9 @@ N independently generated 32-byte hex keys. The task assumes the service has alr
 
 ## macOS-specific constraints
 
-The macOS tree has no `pre_plugin.sh` or `first_run.sh`; it has no load-time settings or deferred interactive component. Its `custom_env.sh` contains the
-same unconditional block as Debian with all flags off. Keep those blocks byte-equivalent, but do not hoist them outside each tree because the Debian-only
-Docker build context cannot see a shared root file.
+The macOS tree has no `setup-env.plugin.zsh.sh` or `01-first_run.zsh.sh`; it has no load-time settings or deferred interactive component. Its
+`00-setup_env.zsh.sh` contains the same unconditional block as Debian with all flags off. Keep those blocks byte-equivalent, but do not hoist them outside
+each tree because the Debian-only Docker build context cannot see a shared root file.
 
 `macos/main.sh` evaluates `/opt/homebrew/bin/brew shellenv` in the provisioning Bash process so child installers can find Homebrew; interactive discovery
 later comes from the Oh My Zsh `brew` plugin. The absolute prefix is a current hard requirement—strict mode aborts before child installers if Homebrew is

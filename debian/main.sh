@@ -6,16 +6,17 @@ export COMMAND_MODERN_CLI="${COMMAND_MODERN_CLI:-0}"
 
 export CODE_BASH="${CODE_BASH:-0}"
 export CODE_GO="${CODE_GO:-0}"
+export CODE_MARKDOWN="${CODE_MARKDOWN:-0}"
+export CODE_PROTOBUF="${CODE_PROTOBUF:-0}"
 export CODE_PYTHON="${CODE_PYTHON:-0}"
 export CODE_RUST="${CODE_RUST:-0}"
-
-export TOOLS_PROTOBUF="${TOOLS_PROTOBUF:-0}"
 
 export APP_CLAUDE="${APP_CLAUDE:-0}"
 export APP_DOCKER="${APP_DOCKER:-0}"
 export APP_GIT="${APP_GIT:-0}"
 export APP_TMUX="${APP_TMUX:-0}"
 export APP_VSCODE="${APP_VSCODE:-0}"
+export APP_YAZI="${APP_YAZI:-0}"
 
 parse_args() {
     POSITIONAL=()
@@ -33,16 +34,20 @@ parse_args() {
                 CODE_GO=1
                 shift
                 ;;
+            --code-markdown)
+                CODE_MARKDOWN=1
+                shift
+                ;;
+            --code-protobuf)
+                CODE_PROTOBUF=1
+                shift
+                ;;
             --code-python)
                 CODE_PYTHON=1
                 shift
                 ;;
             --code-rust)
                 CODE_RUST=1
-                shift
-                ;;
-            --tools-protobuf)
-                TOOLS_PROTOBUF=1
                 shift
                 ;;
             --app-claude)
@@ -63,6 +68,10 @@ parse_args() {
                 ;;
             --app-vscode)
                 APP_VSCODE=1
+                shift
+                ;;
+            --app-yazi)
+                APP_YAZI=1
                 shift
                 ;;
             *) # unknown flag/switch
@@ -89,16 +98,20 @@ main() {
         bash './code/go.sh' "$@"
     fi
 
+    if [[ $CODE_MARKDOWN == '1' ]]; then
+        bash './code/markdown.sh' "$@"
+    fi
+
+    if [[ $CODE_PROTOBUF == '1' ]]; then
+        bash './code/protobuf.sh' "$@"
+    fi
+
     if [[ $CODE_PYTHON == '1' ]]; then
         bash './code/python.sh' "$@"
     fi
 
     if [[ $CODE_RUST == '1' ]]; then
         bash './code/rust.sh' "$@"
-    fi
-
-    if [[ $TOOLS_PROTOBUF == '1' ]]; then
-        bash './tools/protobuf.sh' "$@"
     fi
 
     if [[ $APP_CLAUDE == '1' ]]; then
@@ -115,6 +128,10 @@ main() {
 
     if [[ $APP_TMUX == '1' ]]; then
         bash './app/tmux.sh' "$@"
+    fi
+
+    if [[ $APP_YAZI == '1' ]]; then
+        bash './app/yazi/main.sh' "$@"
     fi
 }
 

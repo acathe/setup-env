@@ -85,9 +85,9 @@ main() {
     install_plugin
     install_theme
 
-    bash './pre_plugin.sh' "$@"
-    bash './custom_env.sh' "$@"
-    bash './first_run.sh' "$@"
+    bash './setup-env.plugin.zsh.sh' "$@"
+    bash './00-setup_env.zsh.sh' "$@"
+    bash './01-first_run.zsh.sh' "$@"
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then

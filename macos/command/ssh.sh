@@ -115,7 +115,7 @@ add_config() {
         echo "    HostName $COMMAND_SSH_HOSTNAME"
         echo "    User $COMMAND_SSH_USER"
         if [[ -n $COMMAND_SSH_IDENTITY_FILE ]]; then
-            echo "    IdentityFile $HOME/.ssh/$COMMAND_SSH_IDENTITY_FILE"
+            echo "    IdentityFile ~/.ssh/$COMMAND_SSH_IDENTITY_FILE"
         fi
     } >> "$config_file"
 }
