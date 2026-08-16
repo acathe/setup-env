@@ -1,6 +1,5 @@
 gui:
   nerdFontsVersion: "3"
-  sidePanelWidth: 0.2
 git:
   paging:
     pager: delta --paging=never
