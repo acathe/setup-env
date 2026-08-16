@@ -8,6 +8,7 @@ APP_DOCKER="${APP_DOCKER:-0}"
 APP_GIT="${APP_GIT:-0}"
 APP_TMUX="${APP_TMUX:-0}"
 APP_VSCODE="${APP_VSCODE:-0}"
+APP_YAZI="${APP_YAZI:-0}"
 
 ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
 
@@ -64,15 +65,6 @@ render_blocks() {
         echo '# Micro'
         echo 'export MICRO_TRUECOLOR=1'
         echo 'alias micror="micro -readonly true"'
-        echo
-        echo '# yazi'
-        echo 'function y() {'
-        echo '    local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd'
-        echo '    command yazi "$@" --cwd-file="$tmp"'
-        echo '    IFS= read -r -d "" cwd < "$tmp"'
-        echo '    [ "$cwd" != "$PWD" ] && [ -d "$cwd" ] && builtin cd -- "$cwd"'
-        echo '    command rm -f -- "$tmp"'
-        echo '}'
     fi
 
     if [[ $APP_DOCKER == '1' ]]; then
@@ -98,6 +90,18 @@ render_blocks() {
         echo
         echo '# tmux mouse scroll'
         echo 'export LESS="-R -F --mouse"'
+    fi
+
+    if [[ $APP_YAZI == '1' ]]; then
+        echo
+        echo '# yazi'
+        echo 'function y() {'
+        echo '    local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd'
+        echo '    command yazi "$@" --cwd-file="$tmp"'
+        echo '    IFS= read -r -d "" cwd < "$tmp"'
+        echo '    [ "$cwd" != "$PWD" ] && [ -d "$cwd" ] && builtin cd -- "$cwd"'
+        echo '    command rm -f -- "$tmp"'
+        echo '}'
     fi
 }
 

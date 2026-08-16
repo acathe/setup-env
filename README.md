@@ -50,6 +50,7 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
 |                        | `--app-git-user-email <v>`              |
 | `--app-tmux`           |                                         |
 | `--app-vscode`         |                                         |
+| `--app-yazi`           |                                         |
 
 ```bash
 xargs -L1 code --install-extension < debian/vscode/extensions.txt

@@ -16,6 +16,7 @@ export APP_DOCKER="${APP_DOCKER:-0}"
 export APP_GIT="${APP_GIT:-0}"
 export APP_TMUX="${APP_TMUX:-0}"
 export APP_VSCODE="${APP_VSCODE:-0}"
+export APP_YAZI="${APP_YAZI:-0}"
 
 parse_args() {
     POSITIONAL=()
@@ -67,6 +68,10 @@ parse_args() {
                 ;;
             --app-vscode)
                 APP_VSCODE=1
+                shift
+                ;;
+            --app-yazi)
+                APP_YAZI=1
                 shift
                 ;;
             *) # unknown flag/switch
@@ -123,6 +128,10 @@ main() {
 
     if [[ $APP_TMUX == '1' ]]; then
         bash './app/tmux.sh' "$@"
+    fi
+
+    if [[ $APP_YAZI == '1' ]]; then
+        bash './app/yazi/main.sh' "$@"
     fi
 }
 

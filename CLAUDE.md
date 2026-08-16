@@ -54,7 +54,7 @@ Generated Zsh is embedded in Bash `echo` blocks and is invisible to ShellCheck. 
 environment with `HOME` and `ZSH_CUSTOM` explicitly pointing into one throwaway tree and a controlled `PATH`; changing `HOME` alone is insufficient because
 the writers honor inherited `ZSH_CUSTOM`. Then run `zsh -n` on their outputs. Seed `$HOME/.zshrc` from the Oh My Zsh template and put a stub `git` on
 `PATH`. On Linux when testing macOS, also provide a BSD-`sed` shim and a stub `brew`, because the theme installer invokes both. Set component variables
-inside the same harness; for a broad Debian render, use `COMMAND_MODERN_CLI=1 CODE_PYTHON=1 APP_GIT=1 bash debian/command/omz_custom/main.sh`.
+inside the same harness; for a broad Debian render, use `COMMAND_MODERN_CLI=1 CODE_PYTHON=1 APP_GIT=1 APP_YAZI=1 bash debian/command/omz_custom/main.sh`.
 
 For fzf changes, run `FZF_DEFAULT_OPTS_FILE=debian/command/modern_cli/fzf/fzfrc FZF_DEFAULT_OPTS= fzf --version`.
 Then inspect `${(z)FZF_CTRL_T_OPTS}` and `${(z)FZF_ALT_C_OPTS}` in `zsh -f`. Plugin-order changes require a real ZLE / PTY smoke test:
@@ -80,8 +80,8 @@ A multi-part runnable concern owns a directory. `app/claude/main.sh` is a nested
 an aggregate leaf with no parser.
 
 Flags intentionally cascade through exported variables and forwarded arguments. The Claude app reads `CODE_GO`, `CODE_PYTHON`, `CODE_RUST`, and `APP_GIT`
-from Debian; tmux reads `APP_CLAUDE`. OMZ writers read component flags because they physically own shared shell landing points. Cross-component reads are
-valid when they add integration only if both concerns are enabled.
+from Debian; tmux reads `APP_CLAUDE`; Yazi reads `COMMAND_MODERN_CLI` and `CODE_MARKDOWN`. OMZ writers read component flags because they physically own
+shared shell landing points. Cross-component reads are valid when they add integration only if both concerns are enabled.
 
 An argument-owning dispatcher or leaf uses the full sourceable footer:
 
@@ -136,13 +136,15 @@ bootstrap variables, and `PYTHON_AUTO_VRUN`; moving those to `00-setup_env.zsh` 
 must remain after the syntax-highlighting plugin; moving it early prevents that plugin from installing its `main` highlighter.
 
 Provisioning-managed runtime tool configuration is shipped as an artifact and installed with `install -Dm 644`, not generated with `echo`. This includes
-Atuin, bat, fzf, micro, lazygit, and the three Yazi files; repo-local lint config and undeployed VS Code reference data are outside this rule. The
-copilot-api settings template is a shipped JSON artifact completed by `jq`, written directly with directory mode 700 and file mode 600. The external
-exception is the Ruff baseline downloaded from BesLogic's `main` branch by `code/python.sh`. `echo` is reserved for files invented here and appends to
-upstream-owned files; global Git configuration uses `git config`.
+Atuin, bat, fzf, micro, lazygit, and Yazi's `init.lua` and `keymap.toml`; repo-local lint config and undeployed VS Code reference data are outside this rule.
+The copilot-api settings template is a shipped JSON artifact completed by `jq`, written directly with directory mode 700 and file mode 600. The external
+exception is the Ruff baseline downloaded from BesLogic's `main` branch by `code/python.sh`. Yazi's `yazi.toml` is the generated exception:
+`app/yazi/yazi.toml.sh` creates its target directory and redirects the complete `echo` render into the target because previewers depend on component flags.
+Otherwise, `echo` is reserved for files invented here and appends to upstream-owned files; global Git configuration uses `git config`.
 
-A rerun overwrites managed static configs. Yazi's `package.toml` is different: `ya pkg add` owns that mutable runtime manifest, so the repository never
-ships or overwrites it. Only configure values that materially differ from packaged defaults.
+A rerun overwrites managed static configs. When Yazi runs, it also fully rerenders `yazi.toml`, so disabling an integration flag retracts that previewer.
+Yazi's `package.toml` is different: `ya pkg add` owns that mutable runtime manifest, so the repository never ships, overwrites, or garbage-collects it. Only
+configure values that materially differ from packaged defaults.
 
 ### Empty renders do not retract prior output
 
@@ -251,8 +253,8 @@ every tool needs a One Dark override from the tools that have one.
 
 ## Debian modern CLI
 
-`command/modern_cli/main.sh` bulk-installs shared tools, then runs the fixed children: Atuin, bat, choose, fd, fzf, micro, tldr, and Yazi. Children own
-packages, binary links, completions, and static config; none has an independent flag.
+`command/modern_cli/main.sh` bulk-installs shared tools, then runs the fixed children: Atuin, bat, choose, fd, fzf, micro, and tldr. Children own packages,
+binary links, completions, and static config; none has an independent flag.
 
 Atuin uses Debian's package/completion and a two-setting config. Setup does not import history or configure account/sync. Its late init takes Ctrl-R and Up
 while fzf retains Ctrl-T, Alt-C, and `**` completion.
@@ -261,15 +263,24 @@ fzf bootstrap and runtime settings stay split. Before plugin load, `pre_plugin.s
 `FZF_CTRL_T_COMMAND`, and `FZF_ALT_C_COMMAND` separately: fzf does not reuse the default for widgets, and its generated Zsh uses empty values to decide
 whether Ctrl-T / Alt-C exist. `custom_env.sh` later adds bat/eza previews. `fzfrc` contains only reverse layout, border, and cycle because fzf-tab can still
 see it—do not add global preview, popup/tmux mode, or fixed height. The fzf-tab block uses the five-field `:completion:*:*:*:*:*` pattern to outrank Oh My
-Zsh's menu default, restore colors, preserve Git checkout ordering, and bind group navigation. bat/fd own their links, eza aliases come from early zstyles,
-and zoxide initializes exactly once through its OMZ plugin.
-
-Yazi uses the unversioned GNU release zip, installs its binaries/completions, and adds its official plugins before deploying `yazi.toml`, `init.lua`, and
-`keymap.toml`; partial plugin failure therefore cannot install config that references missing plugins. Those files own previews, Git integration, and smart
-bindings, but no theme. The `y()` wrapper remains in `custom_env.sh`, the sole writer of `00-setup_env.zsh`.
+Zsh's menu default, restore colors, preserve Git checkout ordering, and bind group navigation. The Bat child owns its managed config and canonical link;
+fd owns its link, eza aliases come from early zstyles, and zoxide initializes exactly once through its OMZ plugin.
 
 Micro true color remains `MICRO_TRUECOLOR=1`; tealdeer owns the guarded completion symlink and a non-fatal cache warm-up; choose installs the unversioned
-latest asset. Glow has no managed config, and zoxide owns no static config or second init.
+latest asset. Glow has no managed config and is installed by the Markdown code component; zoxide owns no static config or second init.
+
+## Yazi application
+
+`--app-yazi` uses the unversioned GNU release zip, installs `file` and `unzip`, then installs its binaries/completions. Git fetchers and the Git/keymap
+plugins are unconditional. With modern CLI enabled, the app adds the two Bat previewers and official `piper`; with Markdown enabled, it adds the Glow
+previewer and third-party `alberti42/faster-piper`. That plugin exposes `$w` and `$h` but not `$t`, so the runner uses its documented `dracula` style and
+preserves `-- "$1"`. Command and code components run first, so each conditional preview command is already available.
+
+After plugin installation, `main.sh` runs `yazi.toml.sh`; that script creates the Yazi config directory and directly writes the complete `yazi.toml` render.
+`init.lua` and `keymap.toml` remain shipped artifacts. Each plugin has its own `ya pkg add` invocation, so a partial failure cannot install config that
+references a missing plugin.
+A later run may leave disabled plugins in the mutable `package.toml`, but the regenerated config no longer references them. The `y()` wrapper remains in
+`custom_env.sh`, the sole writer of `00-setup_env.zsh`, and is emitted only when `APP_YAZI=1`.
 
 ## Git application
 

@@ -2,6 +2,9 @@
 
 set -euo pipefail
 
+COMMAND_MODERN_CLI="${COMMAND_MODERN_CLI:-0}"
+CODE_MARKDOWN="${CODE_MARKDOWN:-0}"
+
 ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
 
 fetch_yazi() {
@@ -23,17 +26,23 @@ set_completion() {
 install_plugins() {
     export PATH="$HOME/.local/bin:$PATH"
 
-    ya pkg add \
-        'yazi-rs/plugins:piper' \
-        'yazi-rs/plugins:git' \
-        'yazi-rs/plugins:toggle-pane' \
-        'yazi-rs/plugins:smart-enter' \
-        'yazi-rs/plugins:smart-filter' \
-        'yazi-rs/plugins:smart-paste'
+    if [[ $CODE_MARKDOWN == '1' ]]; then
+        ya pkg add 'acathe/faster-piper'
+    fi
+
+    if [[ $COMMAND_MODERN_CLI == '1' ]]; then
+        ya pkg add 'yazi-rs/plugins:piper'
+    fi
+
+    ya pkg add 'yazi-rs/plugins:git'
+    ya pkg add 'yazi-rs/plugins:toggle-pane'
+    ya pkg add 'yazi-rs/plugins:smart-enter'
+    ya pkg add 'yazi-rs/plugins:smart-filter'
+    ya pkg add 'yazi-rs/plugins:smart-paste'
 }
 
 install_config() {
-    install -Dm 644 './yazi.toml' "$HOME/.config/yazi/yazi.toml"
+    bash './yazi.toml.sh' "$@"
     install -Dm 644 './init.lua' "$HOME/.config/yazi/init.lua"
     install -Dm 644 './keymap.toml' "$HOME/.config/yazi/keymap.toml"
 }
@@ -46,7 +55,7 @@ main() {
     install_yazi
     set_completion
     install_plugins
-    install_config
+    install_config "$@"
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then

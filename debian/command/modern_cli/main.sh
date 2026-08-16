@@ -25,7 +25,6 @@ main() {
     bash './fzf/main.sh' "$@"
     bash './micro/main.sh' "$@"
     bash './tldr.sh' "$@"
-    bash './yazi/main.sh' "$@"
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
