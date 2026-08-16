@@ -8,6 +8,7 @@ main() {
         man-db \
         jq \
         unzip \
+        atuin \
         eza \
         ripgrep \
         zoxide \
@@ -18,7 +19,6 @@ main() {
         duf \
         procs
 
-    bash './atuin/main.sh' "$@"
     bash './bat/main.sh' "$@"
     bash './choose.sh' "$@"
     bash './fdfind.sh' "$@"
