@@ -10,6 +10,7 @@ main() {
         unzip \
         atuin \
         eza \
+        fzf \
         ripgrep \
         zoxide \
         hyperfine \
@@ -22,7 +23,6 @@ main() {
     bash './bat/main.sh' "$@"
     bash './choose.sh' "$@"
     bash './fdfind.sh' "$@"
-    bash './fzf/main.sh' "$@"
     bash './micro/main.sh' "$@"
     bash './tldr.sh' "$@"
 }

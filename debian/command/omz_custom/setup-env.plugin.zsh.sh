@@ -20,7 +20,6 @@ zstyle ":omz:plugins:eza" "icons" yes
 zstyle ":omz:plugins:eza" "time-style" "relative"
 
 # fzf
-export FZF_DEFAULT_OPTS_FILE="$HOME/.config/fzf/fzfrc"
 export FZF_DEFAULT_COMMAND="fd --type f --strip-cwd-prefix --hidden --follow --exclude .git"
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
 export FZF_ALT_C_COMMAND="fd --type d --strip-cwd-prefix --hidden --follow --exclude .git"
