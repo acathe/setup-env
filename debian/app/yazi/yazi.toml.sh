@@ -10,7 +10,7 @@ render_yazi_config() {
         cat << 'EOF'
 [[plugin.prepend_previewers]]
 url = "*.md"
-run = 'faster-piper -- CLICOLOR_FORCE=1 glow -s=$t -- "$1"'
+run = 'faster-piper -- CLICOLOR_FORCE=1 glow -w=$w -s=$t -- "$1"'
 
 EOF
     fi
