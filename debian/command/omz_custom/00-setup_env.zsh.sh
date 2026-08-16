@@ -47,15 +47,12 @@ alias tree="eza --tree"
 compdef bat=batcat
 export LESS="-RFK --mouse"
 
-# fzf
-export FZF_CTRL_T_OPTS="--preview \"bat --color=always --style=numbers --line-range=:200 -- {}\" --preview-window=right,60%,wrap --bind \"ctrl-/:change-preview-window(down|hidden|)\""
-export FZF_ALT_C_OPTS="--preview \"eza --tree --level=2 --color=always --icons=never -- {}\" --preview-window=right,60%,wrap --bind \"ctrl-/:change-preview-window(down|hidden|)\""
-
 # fzf-tab
 zstyle ":completion:*:*:*:*:*" menu no
 zstyle ":completion:*:descriptions" format "[%d]"
 zstyle ":completion:*" list-colors ${(s.:.)LS_COLORS}
 zstyle ":completion:*:git-checkout:*" sort false
+zstyle ":fzf-tab:complete:cd:*" fzf-preview 'eza -1 --color=always $realpath'
 zstyle ":fzf-tab:*" switch-group "<" ">"
 
 # Editor
