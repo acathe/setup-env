@@ -17,27 +17,8 @@ configure_tmux() {
     sed -i 's/^#set -g mouse on$/set -g mouse on/' "$HOME/.config/tmux/tmux.conf.local"
     sed -i 's/^#set -g history-limit .*/set -g history-limit 10000/' "$HOME/.config/tmux/tmux.conf.local"
 
-    {
-        cat << 'EOF'
-
-# Mouse wheel
-bind -n WheelUpPane {
-    if -F "#{||:#{pane_in_mode},#{mouse_any_flag}}" {
-        send -M
-    } {
-        if -F "#{alternate_on}" { send-keys Up } { copy-mode -e }
-    }
-}
-bind -n WheelDownPane {
-    if -F "#{||:#{pane_in_mode},#{mouse_any_flag}}" {
-        send -M
-    } {
-        if -F "#{alternate_on}" { send-keys Down }
-    }
-}
-EOF
-
-        if [[ $APP_CLAUDE == '1' ]]; then
+    if [[ $APP_CLAUDE == '1' ]]; then
+        {
             cat << 'EOF'
 
 # Claude Code
@@ -45,8 +26,8 @@ set -g allow-passthrough on
 set -s extended-keys on
 set -as terminal-features "xterm*:extkeys"
 EOF
-        fi
-    } >> "$HOME/.config/tmux/tmux.conf.local"
+        } >> "$HOME/.config/tmux/tmux.conf.local"
+    fi
 }
 
 main() {

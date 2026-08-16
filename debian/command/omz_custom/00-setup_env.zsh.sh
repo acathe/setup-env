@@ -6,7 +6,6 @@ COMMAND_MODERN_CLI="${COMMAND_MODERN_CLI:-0}"
 
 APP_DOCKER="${APP_DOCKER:-0}"
 APP_GIT="${APP_GIT:-0}"
-APP_TMUX="${APP_TMUX:-0}"
 APP_VSCODE="${APP_VSCODE:-0}"
 APP_YAZI="${APP_YAZI:-0}"
 
@@ -46,6 +45,7 @@ alias tree="eza --tree"
 
 # bat
 compdef bat=batcat
+export LESS="-RFK --mouse"
 
 # fzf
 export FZF_CTRL_T_OPTS="--preview \"bat --color=always --style=numbers --line-range=:200 -- {}\" --preview-window=right,60%,wrap --bind \"ctrl-/:change-preview-window(down|hidden|)\""
@@ -97,14 +97,6 @@ function lg() {
         rm -f $LAZYGIT_NEW_DIR_FILE > /dev/null
     fi
 }
-EOF
-    fi
-
-    if [[ $APP_TMUX == '1' ]]; then
-        cat << 'EOF'
-
-# tmux mouse scroll
-export LESS="-R -F --mouse"
 EOF
     fi
 
