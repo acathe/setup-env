@@ -7,32 +7,38 @@ CODE_MARKDOWN="${CODE_MARKDOWN:-0}"
 
 render_yazi_config() {
     if [[ $CODE_MARKDOWN == '1' ]]; then
-        echo '[[plugin.prepend_previewers]]'
-        echo 'url = "*.md"'
-        echo "run = 'faster-piper -- CLICOLOR_FORCE=1 glow -w=\$w -s=dark -- \"\$1\"'"
+        cat << 'EOF'
+[[plugin.prepend_previewers]]
+url = "*.md"
+run = 'faster-piper -- CLICOLOR_FORCE=1 glow -w=$w -s=$t -- "$1"'
+
+EOF
     fi
 
     if [[ $COMMAND_MODERN_CLI == '1' ]]; then
-        echo
-        echo '[[plugin.prepend_previewers]]'
-        echo 'mime = "text/*"'
-        echo "run = 'piper -- bat -p --color=always \"\$1\"'"
-        echo
-        echo '[[plugin.prepend_previewers]]'
-        echo 'mime = "application/{mbox,javascript,wine-extension-ini}"'
-        echo "run = 'piper -- bat -p --color=always \"\$1\"'"
+        cat << 'EOF'
+[[plugin.prepend_previewers]]
+mime = "text/*"
+run = 'piper -- bat -p --color=always "$1"'
+
+[[plugin.prepend_previewers]]
+mime = "application/{mbox,javascript,wine-extension-ini}"
+run = 'piper -- bat -p --color=always "$1"'
+
+EOF
     fi
 
-    echo
-    echo '[[plugin.prepend_fetchers]]'
-    echo 'url = "*"'
-    echo 'run = "git"'
-    echo 'group = "git"'
-    echo
-    echo '[[plugin.prepend_fetchers]]'
-    echo 'url = "*/"'
-    echo 'run = "git"'
-    echo 'group = "git"'
+    cat << 'EOF'
+[[plugin.prepend_fetchers]]
+url = "*"
+run = "git"
+group = "git"
+
+[[plugin.prepend_fetchers]]
+url = "*/"
+run = "git"
+group = "git"
+EOF
 }
 
 main() {

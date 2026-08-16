@@ -8,10 +8,13 @@ ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
 
 render_blocks() {
     if [[ $APP_GIT == '1' ]]; then
-        echo '# GitHub CLI'
-        echo 'if command -v gh > /dev/null 2>&1 && ! gh auth status > /dev/null 2>&1; then'
-        echo '    gh auth login'
-        echo 'fi'
+        cat << 'EOF'
+
+# GitHub CLI
+if command -v gh > /dev/null 2>&1 && ! gh auth status > /dev/null 2>&1; then
+    gh auth login
+fi
+EOF
     fi
 }
 
@@ -26,15 +29,16 @@ main() {
     mkdir -p "$ZSH_CUSTOM"
 
     {
-        echo '[[ ${SETUP_ENV_FIRST_RUN:-1} == 0 ]] && return'
-        echo
-        echo '{'
-        echo '    echo'
-        echo '    echo "# first run"'
-        echo '    echo "SETUP_ENV_FIRST_RUN=0"'
-        echo '} >> "$ZSH_CUSTOM/00-setup_env.zsh"'
-        echo
-        echo "$blocks"
+        cat << 'EOF'
+[[ ${SETUP_ENV_FIRST_RUN:-1} == 0 ]] && return
+
+{
+    echo
+    echo "# first run"
+    echo "SETUP_ENV_FIRST_RUN=0"
+} >> "$ZSH_CUSTOM/00-setup_env.zsh"
+EOF
+        printf '%s\n' "$blocks"
     } > "$ZSH_CUSTOM/01-first_run.zsh"
 }
 
