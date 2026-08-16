@@ -99,7 +99,7 @@ main() {
     fi
 
     if [[ $CODE_MARKDOWN == '1' ]]; then
-        bash './code/markdown.sh' "$@"
+        bash './code/markdown/main.sh' "$@"
     fi
 
     if [[ $CODE_PROTOBUF == '1' ]]; then

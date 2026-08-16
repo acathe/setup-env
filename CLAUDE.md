@@ -141,7 +141,8 @@ bootstrap variables, and `PYTHON_AUTO_VRUN`; moving those to `00-setup_env.zsh` 
 must remain after the syntax-highlighting plugin; moving it early prevents that plugin from installing its `main` highlighter.
 
 Provisioning-managed runtime tool configuration is shipped as an artifact and installed with `install -Dm 644`, rather than rendered by the
-provisioning shell. This includes bat, fzf, micro, lazygit, and Yazi's `init.lua` and `keymap.toml`; repo-local lint config and undeployed VS Code reference data are outside this rule.
+provisioning shell. This includes bat, fzf, Glow, micro, lazygit, and Yazi's `init.lua` and `keymap.toml`; repo-local lint config and undeployed VS Code
+reference data are outside this rule.
 The copilot-api settings template is a shipped JSON artifact completed by `jq`, written directly with directory mode 700 and file mode 600. The external
 exception is the Ruff baseline downloaded from BesLogic's `main` branch by `code/python.sh`. Yazi's `yazi.toml` is the generated exception:
 `app/yazi/yazi.toml.sh` creates its target directory and replaces the target from one complete render because previewers depend on component flags. Generated
@@ -280,7 +281,7 @@ link;
 fd owns its link, eza aliases come from early zstyles, and zoxide initializes exactly once through its OMZ plugin.
 
 Micro true color remains `MICRO_TRUECOLOR=1`; tealdeer owns the guarded completion symlink and a non-fatal cache warm-up; choose installs the unversioned
-latest asset. Glow has no managed config and is installed by the Markdown code component; zoxide owns no static config or second init.
+latest asset. The Markdown code component owns Glow's managed config and enables TUI mouse support; zoxide owns no static config or second init.
 
 ## Yazi application
 
