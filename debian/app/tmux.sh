@@ -18,29 +18,33 @@ configure_tmux() {
     sed -i 's/^#set -g history-limit .*/set -g history-limit 10000/' "$HOME/.config/tmux/tmux.conf.local"
 
     {
-        echo ''
-        echo '# Mouse wheel'
-        echo 'bind -n WheelUpPane {'
-        echo '    if -F "#{||:#{pane_in_mode},#{mouse_any_flag}}" {'
-        echo '        send -M'
-        echo '    } {'
-        echo '        if -F "#{alternate_on}" { send-keys Up } { copy-mode -e }'
-        echo '    }'
-        echo '}'
-        echo 'bind -n WheelDownPane {'
-        echo '    if -F "#{||:#{pane_in_mode},#{mouse_any_flag}}" {'
-        echo '        send -M'
-        echo '    } {'
-        echo '        if -F "#{alternate_on}" { send-keys Down }'
-        echo '    }'
-        echo '}'
+        cat << 'EOF'
+
+# Mouse wheel
+bind -n WheelUpPane {
+    if -F "#{||:#{pane_in_mode},#{mouse_any_flag}}" {
+        send -M
+    } {
+        if -F "#{alternate_on}" { send-keys Up } { copy-mode -e }
+    }
+}
+bind -n WheelDownPane {
+    if -F "#{||:#{pane_in_mode},#{mouse_any_flag}}" {
+        send -M
+    } {
+        if -F "#{alternate_on}" { send-keys Down }
+    }
+}
+EOF
 
         if [[ $APP_CLAUDE == '1' ]]; then
-            echo ''
-            echo '# Claude Code'
-            echo 'set -g allow-passthrough on'
-            echo 'set -s extended-keys on'
-            echo 'set -as terminal-features "xterm*:extkeys"'
+            cat << 'EOF'
+
+# Claude Code
+set -g allow-passthrough on
+set -s extended-keys on
+set -as terminal-features "xterm*:extkeys"
+EOF
         fi
     } >> "$HOME/.config/tmux/tmux.conf.local"
 }
