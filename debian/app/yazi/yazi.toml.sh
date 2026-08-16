@@ -10,7 +10,7 @@ render_yazi_config() {
         cat << 'EOF'
 [[plugin.prepend_previewers]]
 url = "*.md"
-run = 'faster-piper -- CLICOLOR_FORCE=1 glow -w=$w -s=$t -- "$1"'
+run = 'faster-piper -- CLICOLOR_FORCE=1 glow -s=$t -- "$1"'
 
 EOF
     fi
@@ -19,11 +19,11 @@ EOF
         cat << 'EOF'
 [[plugin.prepend_previewers]]
 mime = "text/*"
-run = 'piper -- bat -p --color=always "$1"'
+run = 'piper -- bat -p --color=always -- "$1"'
 
 [[plugin.prepend_previewers]]
 mime = "application/{mbox,javascript,wine-extension-ini}"
-run = 'piper -- bat -p --color=always "$1"'
+run = 'piper -- bat -p --color=always -- "$1"'
 
 EOF
     fi
