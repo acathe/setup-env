@@ -8,7 +8,7 @@
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
-    | bash -s -- --setup macos \
+    | bash -s -- [--setup macos] \
         [--flag]
 ```
 
