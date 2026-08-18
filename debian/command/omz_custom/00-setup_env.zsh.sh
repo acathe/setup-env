@@ -13,7 +13,6 @@ ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
 render_blocks() {
     cat << 'EOF'
 # Editor
-
 EOF
 
     if [[ $COMMAND_MODERN_CLI != '1' ]]; then
@@ -90,7 +89,6 @@ zstyle ":fzf-tab:*" switch-group "<" ">"
 
 # Micro
 export MICRO_TRUECOLOR=1
-alias micror='micro -readonly true'
 EOF
     fi
 
