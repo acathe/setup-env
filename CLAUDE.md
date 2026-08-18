@@ -5,8 +5,8 @@ failure modes that are not obvious from reading one script.
 
 ## Project shape
 
-This repository is a collection of Bash provisioning scripts. There is no build step and no test suite. The public entry point is designed to be piped from
-`curl`:
+This repository is a collection of Bash provisioning scripts. There is no repository-wide build target or automated test suite; container flows build
+Docker images as part of provisioning. The public entry point is designed to be piped from `curl`:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
@@ -16,18 +16,21 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
 The root `main.sh` understands only `--branch` and `--setup`. It installs the selected platform's minimum Git prerequisite, derives a
 `/tmp/setup_env.*` clone path with `mktemp -du`, shallow-clones the requested branch there, dispatches to `<setup>/main.sh`, and forwards every other
 argument unchanged. It does not remove the clone afterwards. It is the one script with no `BASH_SOURCE` footer guard: a piped entry point must execute
-unconditionally.
+unconditionally. `README.md` currently omits the root-only `--branch` option from its platform invocation tables; the root parser remains the source of
+truth for that option.
 
-The setup trees are independent:
+The setup trees have separate dispatchers, but are not fully independent: `container/dev-container` consumes `debian/` as its Docker build context.
 
 - `macos/` provisions a terminal client / jump box: Homebrew, Oh My Zsh, SSH support, and optional VS Code. It is deliberately not a development-machine
-  profile and omits the Git plugin.
-- `debian/` provisions the main development environment. Zsh and Oh My Zsh are unconditional; command, code, and app components are optional.
+  profile, omits the Git plugin, and has no classic CLI component.
+- `debian/` provisions the main development environment. Zsh, Oh My Zsh, and the classic CLI configuration leaf are unconditional; remaining command, code,
+  and app components are optional.
 - `container/` dispatches to `dev-container`, `copilot-api`, or the one-shot `copilot-api-config` task.
 
 `debian/vscode/` is reference data only. No dispatcher installs those files; `--app-vscode` enables the OMZ plugin, while `README.md` documents manual
-extension installation. Its editor branch exists only with modern CLI and selects `code --wait` only when `TERM_PROGRAM=vscode`; otherwise the managed
-editor remains micro. Invoke scripts through `bash` rather than executable bits.
+extension installation. Debian's `00-setup_env.zsh.sh` selects `nano -/` without modern CLI and Micro with modern CLI; when `--app-vscode` is enabled, the
+same writer adds a runtime `TERM_PROGRAM=vscode` override to `code --wait`. It does not emit `VISUAL`. Invoke scripts through `bash` rather than executable
+bits.
 
 Root `main.sh` and `macos/` must remain compatible with Apple's Bash 3.2; Debian and container code may use newer Bash. Debian components that download Go,
 protoc, choose, or Yazi assets currently select `amd64`/`x86_64`; do not claim arm64 support without updating all four.
@@ -55,13 +58,14 @@ modifies the current home. Do not use a normal account as a smoke-test sandbox. 
 `.bash_logout`. Generated-file repeated-home checks do not imply that full platform dispatchers are idempotent; OMZ plugin and theme installers clone into
 fixed destinations.
 
-The managed OMZ Zsh files are emitted from quoted Bash heredocs and are invisible to ShellCheck. Render `setup-env.plugin.zsh.sh`, `00-setup_env.zsh.sh`, and
-`99-first_run.zsh.sh` in a clean environment with `HOME` and `ZSH_CUSTOM` explicitly pointing into one throwaway tree and a controlled `PATH`; changing
+The managed OMZ Zsh files are emitted from quoted Bash heredocs and are invisible to ShellCheck. Render `setup-env.plugin.zsh.sh`, `00-setup_env.zsh.sh`,
+and `99-first_run.zsh.sh` in a clean environment with `HOME` and `ZSH_CUSTOM` explicitly pointing into one throwaway tree and a controlled `PATH`; changing
 `HOME` alone is insufficient because the writers honor inherited `ZSH_CUSTOM`. Then run `zsh -n` on their outputs. Seed `$HOME/.zshrc` from the Oh My Zsh
-template and put a stub `git` on
-`PATH`. On Linux when testing macOS, also provide a BSD-`sed` shim and a stub `brew`, because the theme installer invokes both. Set and export component
-variables inside the same harness, then invoke `plugin.sh` and `theme.sh` from the platform's `command/omz/` directory before running the writers through
-`command/omz_custom/main.sh`. Do not invoke `command/omz/main.sh` for a render check: the installer entry point performs real setup and, on Debian, runs `apt`.
+template and put a stub `git` on `PATH`. On Linux when testing macOS, also provide a BSD-`sed` shim and a stub `brew`, because the theme installer invokes
+both. Set and export component variables inside the same harness, including `APP_VSCODE`: Debian's `00-setup_env.zsh.sh` reads it without a local default and
+writes directly to its target, so omitting it aborts under `set -u` after leaving partial output. Invoke `plugin.sh` and `theme.sh` from the platform's
+`command/omz/` directory before running the writers through `command/omz_custom/main.sh`. Do not invoke `command/omz/main.sh` for a render check: the
+installer entry point performs real setup and, on Debian, runs `apt`.
 
 For fzf shell changes, inspect `${(z)FZF_CTRL_T_OPTS}` and `${(z)FZF_ALT_C_OPTS}` in `zsh -f`. Plugin-order changes require a real ZLE / PTY
 smoke test: ordinary Tab and `**<Tab>` must each open fzf once; `fzf_default_completion` must be `fzf-tab-complete`; Ctrl-T and Alt-C must remain single calls.
@@ -70,20 +74,21 @@ smoke test: ordinary Tab and `**<Tab>` must each open fzf once; `fzf_default_com
 
 Platform roots and true nested dispatchers follow this data flow:
 
-1. Initialize every owned flag with an override-friendly default. Export only values read by descendant scripts, such as
-   `export APP_GIT="${APP_GIT:-0}"`.
+1. Initialize every owned flag with an override-friendly default. Export values read by descendant scripts, such as
+   `export APP_GIT="${APP_GIT:-0}"`. Debian currently also exports `CODE_BASH`, `CODE_PROTOBUF`, and `APP_NEOVIM` even though only its root reads them; these
+   are redundant exceptions, not cross-component contracts.
 2. `parse_args()` consumes flags it owns and appends unknown arguments to `POSITIONAL`.
 3. Boolean flags shift once. Value flags use the `numOfArgs` guard so a missing value cannot read an unset `$2` under `set -u`.
 4. Restore the forwarded arguments and call `main()`.
-5. Run components in `--command-*`, `--code-*`, then `--app-*` order, alphabetically inside each group.
+5. Preserve the explicit dependency order of unconditional bootstrap components. Run optional flag-gated components in `--command-*`, `--code-*`, then
+   `--app-*` order, alphabetically within each group.
 
 For a normal runnable component, the export block, parser cases, `main()` gates, and corresponding `README.md` table are four ordered views of the same
 interface. Debian `APP_VSCODE` is the explicit integration-only exception: it has an export, parser case, and README flag but no Debian leaf or `main()`
-gate. OMZ uses it for the plugin and, only inside the modern-CLI editor block with runtime `TERM_PROGRAM=vscode`, for `code --wait`. Do not invent an empty
-gate to force symmetry.
+gate. OMZ uses it for the plugin and for the `TERM_PROGRAM=vscode` editor branch in `00-setup_env.zsh.sh`. Do not invent an empty gate to force symmetry.
 
-A multi-part runnable concern owns a directory. `app/claude/main.sh` is a nested dispatcher because it owns child arguments; `command/modern_cli/main.sh` is
-an aggregate leaf with no parser.
+A multi-part runnable concern owns a directory. `app/claude/main.sh` is a nested dispatcher because it owns child arguments.
+`command/classic_cli/main.sh` is a no-parser leaf that installs two artifacts directly; `command/modern_cli/main.sh` is an aggregate leaf with no parser.
 
 Flags intentionally cascade through exported variables and forwarded arguments. The Claude app reads `CODE_GO`, `CODE_PYTHON`, `CODE_RUST`, and `APP_GIT`
 from Debian; tmux reads `APP_CLAUDE`; Yazi reads `COMMAND_MODERN_CLI` and `CODE_MARKDOWN`. OMZ writers read component flags because they physically own
@@ -134,24 +139,25 @@ at shell startup.
 | --- | --- |
 | `compinit`, Oh My Zsh libraries, plugin list, theme | `.zshrc` |
 | another plugin while it is being sourced | `$ZSH_CUSTOM/plugins/setup-env/setup-env.plugin.zsh` |
-| aliases, functions, `compdef`, runtime variables | `$ZSH_CUSTOM/00-setup_env.zsh` |
+| aliases, functions, `compdef`, runtime variables, editor selection | `$ZSH_CUSTOM/00-setup_env.zsh` |
 | a deferred interactive login or wizard | `$ZSH_CUSTOM/99-first_run.zsh` |
 | non-interactive shell commands | `.zshenv` |
 
-The decision is based on when a value is read, not whether it looks like an environment variable. The `setup-env` plugin carries eza load-time zstyles, fzf
-bootstrap variables, and `PYTHON_AUTO_VRUN`; moving those to `00-setup_env.zsh` is silently too late. Conversely, `ZSH_HIGHLIGHT_HIGHLIGHTERS+=(brackets)`
-must remain after the syntax-highlighting plugin; moving it early prevents that plugin from installing its `main` highlighter.
+The decision is based on when a value is read, not whether it looks like an environment variable. The `setup-env` plugin carries eza load-time zstyles and
+`PYTHON_AUTO_VRUN`; moving those to `00-setup_env.zsh` is silently too late. Conversely, `ZSH_HIGHLIGHT_HIGHLIGHTERS+=(brackets)` must remain after the
+syntax-highlighting plugin; moving it early prevents that plugin from installing its `main` highlighter.
 
-Provisioning-managed runtime tool configuration is shipped as an artifact and installed with `install -Dm 644`, rather than rendered by the
-provisioning shell. This includes bat, Glow, micro, lazygit, and Yazi's `init.lua` and `keymap.toml`; repo-local lint config and undeployed VS Code
-reference data are outside this rule.
+Provisioning-managed runtime tool configuration is shipped as an artifact rather than rendered by the provisioning shell. Most writers use
+`install -m 644`, plus `-D` when the parent directory must be created. This includes bat, Glow, less, micro, Nano, lazygit, and Yazi's `init.lua` and
+`keymap.toml`; repo-local lint config and undeployed VS Code reference data are outside this rule.
 The copilot-api settings template is a shipped JSON artifact completed by `jq`, written directly with directory mode 700 and file mode 600. The external
 exception is the Ruff baseline downloaded from BesLogic's `main` branch by `code/python.sh`. Yazi's `yazi.toml` is the generated exception:
 `app/yazi/yazi.toml.sh` creates its target directory and replaces the target from one complete render because previewers depend on component flags. Generated
 files invented here are complete renders; append only to upstream-owned files, while global Git configuration uses `git config`.
 
 A rerun overwrites managed static configs that still have writers. Removing a shipped artifact does not delete a copy installed by an earlier revision;
-cleanup must be explicit. When Yazi runs, it also fully rerenders `yazi.toml`, so disabling an integration flag retracts that previewer.
+cleanup must be explicit. When execution reaches `yazi.toml.sh`, it fully rerenders `yazi.toml`, so the completed render reflects the current integration
+flags.
 Yazi's `package.toml` is different: `ya pkg add` owns that mutable runtime manifest, so the repository never ships, overwrites, or garbage-collects it. Only
 configure values that materially differ from packaged defaults. `ya pkg add` rejects an already-listed dependency. It identifies sources by full
 `owner/repository` but deploys by plugin name, so replacing an owner for the same plugin requires `ya pkg delete` for the old source before adding the new
@@ -167,7 +173,7 @@ Renaming the writer does not remove an installed `$ZSH_CUSTOM/01-first_run.zsh` 
 custom `*.zsh` glob and can run alongside `99-first_run.zsh`. Remove it explicitly when migrating an existing home; do not assume a current writer
 garbage-collects a retired target.
 
-A stale `setup-env.plugin.zsh` is inert after `install_plugin()` rebuilds the array from `plugins=(aliases)` without adding `setup-env`. A pending
+A stale `setup-env.plugin.zsh` is inert after Debian's OMZ `plugin.sh` rebuilds the array from `plugins=(aliases)` without adding `setup-env`. A pending
 `99-first_run.zsh` is not inert: turning off `APP_GIT` before it has been sourced leaves it matched by Oh My Zsh's custom `*.zsh` glob. When sourced, it
 removes itself before checking commands or launching interactive work, so a failed or canceled prompt is not retried in every new shell. A later setup with
 a non-empty first-run render recreates the file and permits the new sequence once again.
@@ -265,8 +271,18 @@ managed file. Keep `gui.nerdFontsVersion: "3"` as a string, lazygit's pager at `
 than inventing a micro setting. Unknown bat or fzf options instead make every invocation fail; parse those configs with installed binaries. `BAT_THEME`
 would override the managed bat config, so do not set both.
 
+Debian's managed Nano config relies on the system nanorc to load packaged syntax definitions; do not add duplicate include globs. Its options target Nano
+5.3 or newer and avoid settings that alter file contents or conflict with terminal selection. The classic CLI copies the artifact but does not install Nano.
+Debian selects `nano -/` only without modern CLI; modern CLI selects Micro instead. macOS has no managed Nano artifact and never selects Nano.
+
 Plugin or theme additions need an official or actively maintained source, and defaults should come from official setup or usage guidance. Do not infer that
 every tool needs a One Dark override from the tools that have one.
+
+## Classic CLI
+
+Only Debian runs `command/classic_cli/main.sh`, unconditionally after its OMZ custom writers. This flat leaf installs no packages and copies the shipped
+`lesskey` and `nanorc` artifacts to `$HOME/.config/lesskey` and `$HOME/.config/nano/nanorc` with `install -Dm 644`, creating missing parent directories.
+macOS has no classic CLI component.
 
 ## Debian modern CLI
 
@@ -277,15 +293,15 @@ Atuin is bulk-installed from Debian and has no repository-owned config. Fresh ho
 an older revision remains until explicitly deleted. Setup does not import history or configure account/sync. Its late init takes Ctrl-R and Up while fzf
 retains Ctrl-T, Alt-C, and `**` completion.
 
-fzf uses packaged default options and has no repository-owned static config. Bootstrap commands and runtime widget settings stay split. Before plugin load,
-`setup-env.plugin.zsh.sh` exports `FZF_DEFAULT_COMMAND`, `FZF_CTRL_T_COMMAND`, and `FZF_ALT_C_COMMAND` separately: fzf does not reuse the default for widgets,
-and its generated Zsh uses empty values to decide whether Ctrl-T / Alt-C exist. `00-setup_env.zsh.sh` later adds bat/eza previews. The fzf-tab block uses the
-five-field `:completion:*:*:*:*:*` pattern to outrank Oh My Zsh's menu default, restore colors, preserve Git checkout ordering, and bind group navigation.
-The Bat child owns its managed config and canonical link; fd owns its link, eza aliases come from early zstyles, and zoxide initializes exactly once
-through its OMZ plugin.
+fzf uses packaged shell-integration defaults and has no repository-owned static config. The `setup-env` plugin does not define fzf bootstrap variables.
+After plugin load, `00-setup_env.zsh.sh` derives `FZF_CTRL_T_COMMAND` and `FZF_ALT_C_COMMAND` from the current `FZF_DEFAULT_COMMAND` and adds bat/eza previews.
+The fzf-tab block uses the five-field `:completion:*:*:*:*:*` pattern to outrank Oh My Zsh's menu default, restore colors, preserve Git checkout ordering,
+and bind group navigation. The Bat child owns its managed config and canonical link; fd owns its link, eza aliases come from early zstyles, and zoxide
+initializes exactly once through its OMZ plugin.
 
-Micro true color remains `MICRO_TRUECOLOR=1`; tealdeer owns the guarded completion symlink and a non-fatal cache warm-up; choose installs the unversioned
-latest asset. The Markdown code component owns Glow's managed config and enables TUI mouse support; zoxide owns no static config or second init.
+Micro true color remains `MICRO_TRUECOLOR=1`, and modern CLI selects Micro as the default editor; tealdeer owns the guarded completion symlink and a
+non-fatal cache warm-up; choose installs the unversioned latest asset. The Markdown code component owns Glow's managed config and enables TUI mouse support;
+zoxide owns no static config or second init.
 
 ## Yazi application
 
@@ -298,8 +314,10 @@ available.
 After plugin installation, `main.sh` runs `yazi.toml.sh`; that script creates the Yazi config directory and directly writes the complete `yazi.toml` render.
 `init.lua` and `keymap.toml` remain shipped artifacts. Each plugin has its own `ya pkg add` invocation, so a partial failure cannot install config that
 references a missing plugin.
-A later run may leave disabled plugins in the mutable `package.toml`, but the regenerated config no longer references them. The `y()` wrapper remains in
-`00-setup_env.zsh.sh`, the sole writer of `00-setup_env.zsh`, and is emitted only when `APP_YAZI=1`.
+A later successful run may leave disabled plugins in the mutable `package.toml`, but the regenerated config no longer references them. Plugin installation
+precedes config rendering; because `ya pkg add` rejects an already-listed dependency, an ordinary rerun can exit before `yazi.toml.sh`. Do not rely on a
+rerun to retract a previewer. The `y()` wrapper remains in `00-setup_env.zsh.sh`, the sole writer of `00-setup_env.zsh`, and is emitted only when
+`APP_YAZI=1`.
 
 ## Git application
 
@@ -307,9 +325,8 @@ A later run may leave disabled plugins in the mutable `package.toml`, but the re
 function, and deferred `gh auth login`. Physical writers still follow the shared ownership rules: the Git leaf writes tool and Git config,
 `00-setup_env.zsh.sh` writes `lg()`, and `99-first_run.zsh.sh` writes the one-shot login block. Do not split delta or lazygit into modern CLI.
 
-The lazygit config targets the packaged schema. It keeps Nerd Fonts version `"3"` and narrows the side panel for side-by-side delta. It explicitly uses
-`delta --paging=never`; global `core.pager=delta` is not inherited by lazygit. The `lg()` function uses `LAZYGIT_NEW_DIR_FILE` to move the parent shell
-to lazygit's exit directory.
+The lazygit config targets the packaged schema. It keeps Nerd Fonts version `"3"` as a string and explicitly uses `delta --paging=never`; global
+`core.pager=delta` is not inherited by lazygit. The `lg()` function uses `LAZYGIT_NEW_DIR_FILE` to move the parent shell to lazygit's exit directory.
 
 GitHub login is deferred because unattended container builds have no interactive Zsh startup. The block removes its own file before checking command
 availability or current auth status and invoking `gh auth login`, so a failure or cancellation is not retried automatically. A later non-empty render
@@ -333,12 +350,14 @@ default to empty; the base URL defaults to `http://localhost:4141`, and the inte
 
 `install_settings()` merges the final `ANTHROPIC_*` values into the shipped template and writes `~/.claude/settings.json` with directory mode 700 and file
 mode 600. Treat that template as the source of truth for sandbox, permission, language, notification, and workflow preferences rather than copying each
-value here. For model IDs carrying the `[1m]` suffix, keep `CLAUDE_CODE_AUTO_COMPACT_WINDOW` unset: the suffix selects extended context, while Claude Code
-retains control of its output and compaction reserves.
+value here. Append `[1m]` only when the underlying model supports 1M context; with an LLM gateway, the gateway decides whether the request succeeds. Do not add
+`CLAUDE_CODE_AUTO_COMPACT_WINDOW` or `autoCompactWindow` to the managed template. Absent runtime or higher-priority managed overrides, Claude Code uses its
+model/provider-specific default auto-compaction window.
 
-The copilot marketplace installs `agent-inject` and `tool-search`. Keep native `ENABLE_TOOL_SEARCH` unset because withholding full tool definitions breaks
-the gateway's deferred tool bridge. Both plugins need Node/npm/npx. Bootstrap NodeSource LTS only when `node` is absent; an existing incompatible runtime is
-left for plugin installation to report. Node is private to this integration, not a standalone Debian component.
+The copilot marketplace installs `agent-inject` and `tool-search`. With this non-first-party `ANTHROPIC_BASE_URL`, keep native `ENABLE_TOOL_SEARCH` unset so
+Claude Code uses its documented upfront-loading fallback. Set it to `true` only if the gateway forwards `tool_reference` blocks. Both plugins need
+Node/npm/npx. Bootstrap NodeSource LTS only when `node` is absent; an existing incompatible runtime is left for plugin installation to report. Node is
+private to this integration, not a standalone Debian component.
 
 ## Container flows
 
@@ -362,9 +381,10 @@ N independently generated 32-byte hex keys. The task assumes the service has alr
 
 ## macOS-specific constraints
 
-The macOS tree has no `setup-env.plugin.zsh.sh` or `99-first_run.zsh.sh`; it has no load-time settings or deferred interactive component. Its
-`00-setup_env.zsh.sh` contains the same unconditional block as Debian with all flags off. Keep those blocks byte-equivalent, but do not hoist them outside
-each tree because the Debian-only Docker build context cannot see a shared root file.
+The macOS OMZ custom tree has only `00-setup_env.zsh.sh`; it has no load-time settings or deferred interactive component. With `APP_VSCODE=1`, that writer
+selects `code --wait` unconditionally. With all flags off, its output from `# zsh-autosuggestions` through `ZSHZ_TILDE=1` matches the Debian writer after
+Debian's Editor section. Keep that shared block byte-equivalent. Do not hoist it outside each tree because the Debian-only Docker build context cannot see a
+root-level file.
 
 `macos/main.sh` evaluates `/opt/homebrew/bin/brew shellenv` in the provisioning Bash process so child installers can find Homebrew; interactive discovery
 later comes from the Oh My Zsh `brew` plugin. The absolute prefix is a current hard requirement—strict mode aborts before child installers if Homebrew is

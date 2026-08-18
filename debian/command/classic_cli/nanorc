@@ -1,0 +1,16 @@
+set atblanks
+set autoindent
+set colonparsing
+set constantshow
+set historylog
+set indicator
+set linenumbers
+set locking
+set minibar
+set mouse
+set positionlog
+set smarthome
+set softwrap
+set stateflags
+set tabsize 4
+set zap

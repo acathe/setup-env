@@ -2,9 +2,19 @@
 
 set -euo pipefail
 
+APP_VSCODE="${APP_VSCODE:-0}"
+
 ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
 
 render_blocks() {
+    if [[ $APP_VSCODE == '1' ]]; then
+        cat << 'EOF'
+# Editor
+export EDITOR='code --wait'
+
+EOF
+    fi
+
     cat << 'EOF'
 # zsh-autosuggestions
 ZSH_AUTOSUGGEST_STRATEGY=(history completion)
@@ -15,7 +25,7 @@ ZSH_HIGHLIGHT_HIGHLIGHTERS+=(brackets)
 ZSH_HIGHLIGHT_MAXLENGTH=512
 
 # you-should-use
-export YSU_MESSAGE_POSITION="after"
+export YSU_MESSAGE_POSITION=after
 
 # z
 ZSHZ_CASE=smart

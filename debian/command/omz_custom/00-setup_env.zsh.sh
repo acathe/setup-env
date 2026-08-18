@@ -6,13 +6,41 @@ COMMAND_MODERN_CLI="${COMMAND_MODERN_CLI:-0}"
 
 APP_DOCKER="${APP_DOCKER:-0}"
 APP_GIT="${APP_GIT:-0}"
-APP_VSCODE="${APP_VSCODE:-0}"
 APP_YAZI="${APP_YAZI:-0}"
 
 ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
 
 render_blocks() {
     cat << 'EOF'
+# Editor
+
+EOF
+
+    if [[ $COMMAND_MODERN_CLI != '1' ]]; then
+        cat << 'EOF'
+export EDITOR='nano -/'
+EOF
+    fi
+
+    if [[ $COMMAND_MODERN_CLI == '1' ]]; then
+        cat << 'EOF'
+export EDITOR=micro
+EOF
+    fi
+
+    if [[ $APP_VSCODE == '1' ]]; then
+        cat << 'EOF'
+if [[ $TERM_PROGRAM == 'vscode' ]]; then
+  export EDITOR='code --wait'
+fi
+EOF
+    fi
+
+    cat << 'EOF'
+
+# nano
+alias nano='nano -/'
+
 # zsh-autosuggestions
 ZSH_AUTOSUGGEST_STRATEGY=(history completion)
 ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
@@ -22,7 +50,7 @@ ZSH_HIGHLIGHT_HIGHLIGHTERS+=(brackets)
 ZSH_HIGHLIGHT_MAXLENGTH=512
 
 # you-should-use
-export YSU_MESSAGE_POSITION="after"
+export YSU_MESSAGE_POSITION=after
 EOF
 
     if [[ $COMMAND_MODERN_CLI != '1' ]]; then
@@ -41,11 +69,10 @@ EOF
 eval "$(atuin init zsh)"
 
 # eza
-alias tree="eza --tree"
+alias tree='eza --tree'
 
 # bat
 compdef bat=batcat
-export LESS="-RFK --mouse"
 
 # fzf
 export FZF_CTRL_T_COMMAND="${FZF_DEFAULT_COMMAND/ --type f/}"
@@ -61,22 +88,9 @@ zstyle ":completion:*:git-checkout:*" sort false
 zstyle ":fzf-tab:complete:cd:*" fzf-preview 'eza -1 --color=always $realpath'
 zstyle ":fzf-tab:*" switch-group "<" ">"
 
-# Editor
-export EDITOR=micro
-EOF
-        if [[ $APP_VSCODE == '1' ]]; then
-            cat << 'EOF'
-if [[ "$TERM_PROGRAM" == "vscode" ]]; then
-  export EDITOR="code --wait"
-fi
-EOF
-        fi
-        cat << 'EOF'
-export VISUAL="$EDITOR"
-
 # Micro
 export MICRO_TRUECOLOR=1
-alias micror="micro -readonly true"
+alias micror='micro -readonly true'
 EOF
     fi
 
@@ -84,7 +98,7 @@ EOF
         cat << 'EOF'
 
 # Docker
-alias lzd="lazydocker"
+alias lzd=lazydocker
 EOF
     fi
 
