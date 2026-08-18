@@ -29,17 +29,9 @@ main() {
     mkdir -p "$ZSH_CUSTOM"
 
     {
-        cat << 'EOF'
-[[ ${SETUP_ENV_FIRST_RUN:-1} == 0 ]] && return
-
-{
-    echo
-    echo "# first run"
-    echo "SETUP_ENV_FIRST_RUN=0"
-} >> "$ZSH_CUSTOM/00-setup_env.zsh"
-EOF
+        printf '%s\n' 'command rm -f -- "${(%):-%x}"'
         printf '%s\n' "$blocks"
-    } > "$ZSH_CUSTOM/01-first_run.zsh"
+    } > "$ZSH_CUSTOM/99-first_run.zsh"
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
