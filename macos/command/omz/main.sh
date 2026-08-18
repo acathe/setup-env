@@ -2,12 +2,7 @@
 
 set -euo pipefail
 
-main() {
-    if ! command -v curl > /dev/null 2>&1; then
-        echo 'curl is not installed.' >&2
-        return 1
-    fi
-
+install_omz() {
     # Use `RUNZSH='no'` to skip running Zsh and prevent interrupting the script.
     # Ref. https://ohmyz.sh/#install
     RUNZSH='no' sh -c "$(curl -fsSL 'https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh')"
@@ -25,6 +20,17 @@ main() {
     fi
 
     rm -f "$HOME/.zshrc.pre-oh-my-zsh"
+}
+
+main() {
+    if ! command -v curl > /dev/null 2>&1; then
+        echo 'curl is not installed.' >&2
+        return 1
+    fi
+
+    install_omz
+    bash './plugin.sh' "$@"
+    bash './theme.sh' "$@"
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
