@@ -29,7 +29,22 @@ USER ${user}
 ENV USER=${user}
 
 RUN sudo apt-get update \
-    && sudo apt-get install -y git curl \
+    && sudo apt-get install -y \
+        bzip2 \
+        ca-certificates \
+        curl \
+        file \
+        git \
+        iproute2 \
+        iputils-ping \
+        less \
+        lsof \
+        nano \
+        netcat-openbsd \
+        procps \
+        psmisc \
+        vim-tiny \
+        xz-utils \
     && sudo rm -rf /var/lib/apt/lists/* /tmp/*
 
 ARG setup_args_b64=""
