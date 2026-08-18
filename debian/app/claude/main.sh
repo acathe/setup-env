@@ -78,6 +78,9 @@ install_plugin() {
 }
 
 main() {
+    sudo apt-get update
+    sudo apt-get install -y bubblewrap socat
+
     install_claude_code
 
     if [[ $APP_CLAUDE_COPILOT_API == '1' ]]; then
