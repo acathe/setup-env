@@ -14,6 +14,7 @@ export CODE_RUST="${CODE_RUST:-0}"
 export APP_CLAUDE="${APP_CLAUDE:-0}"
 export APP_DOCKER="${APP_DOCKER:-0}"
 export APP_GIT="${APP_GIT:-0}"
+export APP_NEOVIM="${APP_NEOVIM:-0}"
 export APP_TMUX="${APP_TMUX:-0}"
 export APP_VSCODE="${APP_VSCODE:-0}"
 export APP_YAZI="${APP_YAZI:-0}"
@@ -60,6 +61,10 @@ parse_args() {
                 ;;
             --app-git)
                 APP_GIT=1
+                shift
+                ;;
+            --app-neovim)
+                APP_NEOVIM=1
                 shift
                 ;;
             --app-tmux)
@@ -124,6 +129,10 @@ main() {
 
     if [[ $APP_GIT == '1' ]]; then
         bash './app/git/main.sh' "$@"
+    fi
+
+    if [[ $APP_NEOVIM == '1' ]]; then
+        bash './app/neovim.sh' "$@"
     fi
 
     if [[ $APP_TMUX == '1' ]]; then
