@@ -3,7 +3,8 @@
 set -euo pipefail
 
 main() {
-    return 0
+    install -Dm 644 './lesskey' "$HOME/.config/lesskey"
+    install -Dm 644 './nanorc' "$HOME/.config/nano/nanorc"
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
