@@ -55,7 +55,7 @@ modifies the current home. Do not use a normal account as a smoke-test sandbox. 
 `.bash_logout`. Generated-file repeated-home checks do not imply that full platform dispatchers are idempotent; OMZ customizers clone into fixed destinations.
 
 The managed OMZ Zsh files are emitted from quoted Bash heredocs and are invisible to ShellCheck. Render `setup-env.plugin.zsh.sh`, `00-setup_env.zsh.sh`, and
-`01-first_run.zsh.sh` in a clean environment with `HOME` and `ZSH_CUSTOM` explicitly pointing into one throwaway tree and a controlled `PATH`; changing
+`99-first_run.zsh.sh` in a clean environment with `HOME` and `ZSH_CUSTOM` explicitly pointing into one throwaway tree and a controlled `PATH`; changing
 `HOME` alone is insufficient because the writers honor inherited `ZSH_CUSTOM`. Then run `zsh -n` on their outputs. Seed `$HOME/.zshrc` from the Oh My Zsh
 template and put a stub `git` on
 `PATH`. On Linux when testing macOS, also provide a BSD-`sed` shim and a stub `brew`, because the theme installer invokes both. Set component variables
@@ -132,7 +132,7 @@ at shell startup.
 | `compinit`, Oh My Zsh libraries, plugin list, theme | `.zshrc` |
 | another plugin while it is being sourced | `$ZSH_CUSTOM/plugins/setup-env/setup-env.plugin.zsh` |
 | aliases, functions, `compdef`, runtime variables | `$ZSH_CUSTOM/00-setup_env.zsh` |
-| a deferred interactive login or wizard | `$ZSH_CUSTOM/01-first_run.zsh` |
+| a deferred interactive login or wizard | `$ZSH_CUSTOM/99-first_run.zsh` |
 | non-interactive shell commands | `.zshenv` |
 
 The decision is based on when a value is read, not whether it looks like an environment variable. The `setup-env` plugin carries eza load-time zstyles, fzf
@@ -156,19 +156,20 @@ one; never edit `package.toml` directly.
 
 ### Empty renders do not retract prior output
 
-`setup-env.plugin.zsh.sh` and `01-first_run.zsh.sh` capture `render_blocks()` before touching a target. An empty render returns successfully without
-writing or deleting. On a fresh home this creates no artifact; on a repeated setup it leaves an earlier artifact byte-for-byte unchanged. This is an
-intentional provisioning contract: disabling a flag is not uninstall or garbage collection.
+`setup-env.plugin.zsh.sh` and `99-first_run.zsh.sh` capture `render_blocks()` before touching their current targets. An empty render returns successfully
+without writing or deleting the current target. On a fresh home this creates no artifact; on a repeated setup it leaves an earlier artifact byte-for-byte
+unchanged. This is an intentional provisioning contract: disabling a flag is not uninstall or garbage collection.
 
-A stale `setup-env.plugin.zsh` is inert after `install_plugin()` rebuilds the array from `plugins=(aliases)` without adding `setup-env`. A stale
-`01-first_run.zsh` is not inert: it remains matched by Oh My Zsh's custom `*.zsh` glob. Because `00-setup_env.zsh.sh` rebuilds `00-setup_env.zsh`, the
-previous sentinel disappears and the old first-run file can execute again. Its GitHub block still checks for `gh` and existing authentication, but
-turning off `APP_GIT` does not remove the file. Delete `$ZSH_CUSTOM/01-first_run.zsh` explicitly when retiring that step. Do not add automatic deletion
-unless the non-retraction contract is deliberately changed.
+Renaming the writer does not remove an installed `$ZSH_CUSTOM/01-first_run.zsh` from an earlier revision. That retired file remains matched by Oh My Zsh's
+custom `*.zsh` glob and can run alongside `99-first_run.zsh`. Remove it explicitly when migrating an existing home; do not assume a current writer
+garbage-collects a retired target.
 
-`00-setup_env.zsh.sh` always has an unconditional section and rebuilds `00-setup_env.zsh`. `01-first_run.zsh.sh` appends its sentinel there before
-launching interactive work, so a canceled prompt is not retried in every new shell. A later setup with a non-empty first-run render rewrites both files and
-permits the new sequence once again.
+A stale `setup-env.plugin.zsh` is inert after `install_plugin()` rebuilds the array from `plugins=(aliases)` without adding `setup-env`. A pending
+`99-first_run.zsh` is not inert: turning off `APP_GIT` before it has been sourced leaves it matched by Oh My Zsh's custom `*.zsh` glob. When sourced, it
+removes itself before checking commands or launching interactive work, so a failed or canceled prompt is not retried in every new shell. A later setup with
+a non-empty first-run render recreates the file and permits the new sequence once again.
+
+`00-setup_env.zsh.sh` always has an unconditional section and rebuilds `00-setup_env.zsh`; the first-run file neither reads nor modifies it.
 
 ## Oh My Zsh load and plugin order
 
@@ -176,6 +177,8 @@ Oh My Zsh initializes completion and libraries before plugins, sources plugins i
 loads the theme last. Preserve these constraints:
 
 - When generated, `setup-env` is prepended and remains the first plugin.
+- When generated, `99-first_run.zsh` remains the last provisioning-managed custom Zsh file so deferred interactive work starts after managed runtime
+  configuration.
 - `zsh-syntax-highlighting` remains last.
 - `fzf-tab` precedes wrappers such as `zsh-autosuggestions` and syntax highlighting.
 - In this repository, `fzf-tab` also precedes `fzf`. fzf captures the current Tab binding as `fzf_default_completion`; reversing them nests two fzf
@@ -299,14 +302,15 @@ A later run may leave disabled plugins in the mutable `package.toml`, but the re
 
 `--app-git` owns the complete Git concern: GitHub CLI repository setup, `gh`, delta, lazygit, global Git settings, lazygit config, the `lg()` cwd-following
 function, and deferred `gh auth login`. Physical writers still follow the shared ownership rules: the Git leaf writes tool and Git config,
-`00-setup_env.zsh.sh` writes `lg()`, and `01-first_run.zsh.sh` writes the login block. Do not split delta or lazygit into modern CLI.
+`00-setup_env.zsh.sh` writes `lg()`, and `99-first_run.zsh.sh` writes the one-shot login block. Do not split delta or lazygit into modern CLI.
 
 The lazygit config targets the packaged schema. It keeps Nerd Fonts version `"3"` and narrows the side panel for side-by-side delta. It explicitly uses
 `delta --paging=never`; global `core.pager=delta` is not inherited by lazygit. The `lg()` function uses `LAZYGIT_NEW_DIR_FILE` to move the parent shell
 to lazygit's exit directory.
 
-GitHub login is deferred because unattended container builds have no interactive Zsh startup. The block checks both command availability and current auth
-status before invoking `gh auth login`.
+GitHub login is deferred because unattended container builds have no interactive Zsh startup. The block removes its own file before checking command
+availability or current auth status and invoking `gh auth login`, so a failure or cancellation is not retried automatically. A later non-empty render
+recreates the file and permits one new attempt.
 
 ## Claude Code and copilot-api
 
@@ -355,7 +359,7 @@ N independently generated 32-byte hex keys. The task assumes the service has alr
 
 ## macOS-specific constraints
 
-The macOS tree has no `setup-env.plugin.zsh.sh` or `01-first_run.zsh.sh`; it has no load-time settings or deferred interactive component. Its
+The macOS tree has no `setup-env.plugin.zsh.sh` or `99-first_run.zsh.sh`; it has no load-time settings or deferred interactive component. Its
 `00-setup_env.zsh.sh` contains the same unconditional block as Debian with all flags off. Keep those blocks byte-equivalent, but do not hoist them outside
 each tree because the Debian-only Docker build context cannot see a shared root file.
 
@@ -371,7 +375,8 @@ Before finishing a change:
   ordered.
 - Confirm each configuration fragment has one logical owner and place shell settings by read time.
 - Check behavior on a fresh home and a repeated home with relevant flags disabled.
-- Preserve first-run non-retraction unless changing it intentionally and documenting cleanup.
+- Preserve the first-run lifecycle: empty renders retain a pending current task, sourcing deletes it before interaction, retired paths have documented
+  explicit cleanup, and a non-empty rerender permits one new attempt.
 - Validate shipped config against the packaged tool, including keys parsers may silently ignore.
 - Run Bash syntax, ShellCheck, shfmt, and staged/unstaged whitespace checks.
 - Render generated Zsh and run `zsh -n`; use a real ZLE smoke test for plugin-order or fzf changes.

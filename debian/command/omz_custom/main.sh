@@ -87,7 +87,7 @@ main() {
 
     bash './setup-env.plugin.zsh.sh' "$@"
     bash './00-setup_env.zsh.sh' "$@"
-    bash './01-first_run.zsh.sh' "$@"
+    bash './99-first_run.zsh.sh' "$@"
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
