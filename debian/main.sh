@@ -90,6 +90,7 @@ parse_args() {
 main() {
     bash './command/omz.sh' "$@"
     bash './command/omz_custom/main.sh' "$@"
+    bash './command/classic_cli/main.sh' "$@"
 
     if [[ $COMMAND_MODERN_CLI == '1' ]]; then
         bash './command/modern_cli/main.sh' "$@"
