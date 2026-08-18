@@ -20,20 +20,7 @@ parse_args() {
     done
 }
 
-main() {
-    if ! command -v git > /dev/null 2>&1; then
-        echo 'git is not installed.' >&2
-        return 1
-    fi
-
-    if ! command -v curl > /dev/null 2>&1; then
-        echo 'curl is not installed.' >&2
-        return 1
-    fi
-
-    sudo apt-get update
-    sudo apt-get install -y zsh
-
+install_omz() {
     if [[ $UNATTENDED == '1' ]]; then
         sh -c "$(curl -fsSL 'https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh')" '' --unattended
         sudo -n usermod -s "$(command -v zsh)" "$USER"
@@ -60,6 +47,25 @@ main() {
     rm -f "$HOME/.profile"
     rm -f "$HOME/.bashrc"
     rm -f "$HOME/.bash_logout"
+}
+
+main() {
+    if ! command -v git > /dev/null 2>&1; then
+        echo 'git is not installed.' >&2
+        return 1
+    fi
+
+    if ! command -v curl > /dev/null 2>&1; then
+        echo 'curl is not installed.' >&2
+        return 1
+    fi
+
+    sudo apt-get update
+    sudo apt-get install -y zsh
+
+    install_omz
+    bash './plugin.sh' "$@"
+    bash './theme.sh' "$@"
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
