@@ -52,14 +52,16 @@ and generated shell content intentionally preserve dollar signs for a later inte
 
 A direct dispatcher run performs real installation and configuration. For example, `bash debian/main.sh --app-tmux` runs `apt`, installs Oh My Zsh, and
 modifies the current home. Do not use a normal account as a smoke-test sandbox. Debian's OMZ installer also removes existing `.profile`, `.bashrc`, and
-`.bash_logout`. Generated-file repeated-home checks do not imply that full platform dispatchers are idempotent; OMZ customizers clone into fixed destinations.
+`.bash_logout`. Generated-file repeated-home checks do not imply that full platform dispatchers are idempotent; OMZ plugin and theme installers clone into
+fixed destinations.
 
 The managed OMZ Zsh files are emitted from quoted Bash heredocs and are invisible to ShellCheck. Render `setup-env.plugin.zsh.sh`, `00-setup_env.zsh.sh`, and
 `99-first_run.zsh.sh` in a clean environment with `HOME` and `ZSH_CUSTOM` explicitly pointing into one throwaway tree and a controlled `PATH`; changing
 `HOME` alone is insufficient because the writers honor inherited `ZSH_CUSTOM`. Then run `zsh -n` on their outputs. Seed `$HOME/.zshrc` from the Oh My Zsh
 template and put a stub `git` on
-`PATH`. On Linux when testing macOS, also provide a BSD-`sed` shim and a stub `brew`, because the theme installer invokes both. Set component variables
-inside the same harness; for a broad Debian render, use `COMMAND_MODERN_CLI=1 CODE_PYTHON=1 APP_GIT=1 APP_YAZI=1 bash debian/command/omz_custom/main.sh`.
+`PATH`. On Linux when testing macOS, also provide a BSD-`sed` shim and a stub `brew`, because the theme installer invokes both. Set and export component
+variables inside the same harness, then invoke `plugin.sh` and `theme.sh` from the platform's `command/omz/` directory before running the writers through
+`command/omz_custom/main.sh`. Do not invoke `command/omz/main.sh` for a render check: the installer entry point performs real setup and, on Debian, runs `apt`.
 
 For fzf shell changes, inspect `${(z)FZF_CTRL_T_OPTS}` and `${(z)FZF_ALT_C_OPTS}` in `zsh -f`. Plugin-order changes require a real ZLE / PTY
 smoke test: ordinary Tab and `**<Tab>` must each open fzf once; `fzf_default_completion` must be `fzf-tab-complete`; Ctrl-T and Alt-C must remain single calls.
@@ -122,9 +124,10 @@ directly to a shared generated shell file.
 
 ## Configuration ownership and landing points
 
-Each shared configuration fragment has one logical owner, but `.zshrc` has coordinated writers. Each setup tree's `command/omz.sh` installs Oh My Zsh and
-prepares its template; Debian's also activates the template's user-bin PATH. `command/omz_custom/main.sh` owns the plugin array, clones, and theme. After
-writing a non-empty `setup-env` plugin, `setup-env.plugin.zsh.sh` prepends the coupled array entry only afterwards, avoiding an enabled-but-missing warning
+Each shared configuration fragment has one logical owner, but `.zshrc` has coordinated writers. Each setup tree's `command/omz/main.sh` installs Oh My Zsh,
+prepares its template, then orchestrates `plugin.sh` and `theme.sh`; Debian's installer also activates the template's user-bin PATH. `plugin.sh` owns the
+plugin array and clones, while `theme.sh` owns the theme. `command/omz_custom/main.sh` only orchestrates the writers. After writing a non-empty `setup-env`
+plugin, `setup-env.plugin.zsh.sh` prepends the coupled array entry only afterwards, avoiding an enabled-but-missing warning
 at shell startup.
 
 | Configuration needed by | Owned destination |
