@@ -48,6 +48,7 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
 | `--app-docker`         |                                         |
 | `--app-git`            | `--app-git-user-name <v>`               |
 |                        | `--app-git-user-email <v>`              |
+| `--app-neovim`         |                                         |
 | `--app-tmux`           |                                         |
 | `--app-vscode`         |                                         |
 | `--app-yazi`           |                                         |
