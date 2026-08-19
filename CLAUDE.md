@@ -32,8 +32,8 @@ extension installation. Debian's `00-setup_env.zsh.sh` selects `nano -/` without
 same writer adds a runtime `TERM_PROGRAM=vscode` override to `code --wait`. It does not emit `VISUAL`. Invoke scripts through `bash` rather than executable
 bits.
 
-Root `main.sh` and `macos/` must remain compatible with Apple's Bash 3.2; Debian and container code may use newer Bash. Debian components that download Go,
-protoc, or Yazi assets currently select `amd64`/`x86_64`; do not claim arm64 support without updating all three.
+Root `main.sh` and `macos/` must remain compatible with Apple's Bash 3.2; Debian and container code may use newer Bash. Debian components that download Go
+or protoc assets currently select `amd64`/`x86_64`; do not claim arm64 support without updating both.
 
 ## Checks and safe validation
 
@@ -262,7 +262,6 @@ change that declaration.
 | `bat` | `_batcat` declares `batcat` | link the binary; run `compdef bat=batcat` after `compinit` |
 | `fd` | `_fd` declares `fd` | link `fd` to `fdfind`; no `compdef` |
 | `tldr` | `tldr.zsh` declares `tldr` | link it as `$ZSH_CUSTOM/completions/_tldr` |
-| `yazi`, `ya` | release zip provides `_yazi`, `_ya` | install under custom completions unchanged |
 
 Prefer executable symlinks over aliases for renamed binaries; child shells, fzf previews, `command -v`, and Zsh's `$commands` see `PATH`, not aliases. Oh My
 Zsh's template adds `~/.local/bin` in `.zshrc`, which is sufficient for interactive plugin probes but not non-interactive `zsh -c`; language components
@@ -309,9 +308,10 @@ non-fatal cache warm-up. The Markdown code component owns Glow's managed config 
 
 ## Yazi application
 
-`--app-yazi` uses the unversioned GNU release zip, installs `file` and `unzip`, then installs its binaries/completions. Git fetchers and the Git/keymap
-plugins are unconditional. With modern CLI enabled, the app adds the two Bat previewers and official `piper`; with Markdown enabled, it adds the Glow
-previewer and third-party `alberti42/faster-piper`, which requires Yazi 26.8.15 or newer. It exposes `$w`, `$h`, and terminal-theme `$t`; Glow consumes
+`--app-yazi` adds Yazi's official signed stable APT repository, then installs `file` and `yazi`; the package owns the `yazi` and `ya` binaries and Bash
+completions. Git fetchers and the Git/keymap plugins are unconditional. With modern CLI enabled, the app adds the two Bat previewers and official `piper`;
+with Markdown enabled, it adds the Glow previewer and third-party `alberti42/faster-piper`, which requires Yazi 26.8.15 or newer. It exposes `$w`, `$h`, and
+terminal-theme `$t`; Glow consumes
 `$t` as `dark` or `light`, and the runner preserves `-- "$1"`. Command and code components run first, so each conditional preview command is already
 available.
 
