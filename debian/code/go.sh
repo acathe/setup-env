@@ -23,8 +23,10 @@ install_go() {
         return 1
     fi
 
-    curl -fsSL "https://go.dev/dl/$version" -o "/tmp/$version"
-    sudo tar -C '/usr/local' -xzf "/tmp/$version"
+    local tmp
+    tmp="$(mktemp)"
+    curl -fsSL "https://go.dev/dl/$version" -o "$tmp"
+    sudo tar -C '/usr/local' -xzf "$tmp"
 }
 
 set_env() {

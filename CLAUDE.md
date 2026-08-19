@@ -32,8 +32,8 @@ extension installation. Debian's `00-setup_env.zsh.sh` selects `nano -/` without
 same writer adds a runtime `TERM_PROGRAM=vscode` override to `code --wait`. It does not emit `VISUAL`. Invoke scripts through `bash` rather than executable
 bits.
 
-Root `main.sh` and `macos/` must remain compatible with Apple's Bash 3.2; Debian and container code may use newer Bash. Debian components that download Go,
-protoc, or Yazi assets currently select `amd64`/`x86_64`; do not claim arm64 support without updating all three.
+Root `main.sh` and `macos/` must remain compatible with Apple's Bash 3.2; Debian and container code may use newer Bash. Debian components that download Go
+or protoc assets currently select `amd64`/`x86_64`; do not claim arm64 support without updating both.
 
 ## Checks and safe validation
 
@@ -59,13 +59,14 @@ modifies the current home. Do not use a normal account as a smoke-test sandbox. 
 fixed destinations.
 
 The managed OMZ Zsh files are emitted from quoted Bash heredocs and are invisible to ShellCheck. Render `setup-env.plugin.zsh.sh`, `00-setup_env.zsh.sh`,
-and `99-first_run.zsh.sh` in a clean environment with `HOME` and `ZSH_CUSTOM` explicitly pointing into one throwaway tree and a controlled `PATH`; changing
-`HOME` alone is insufficient because the writers honor inherited `ZSH_CUSTOM`. Then run `zsh -n` on their outputs. Seed `$HOME/.zshrc` from the Oh My Zsh
-template and put a stub `git` on `PATH`. On Linux when testing macOS, also provide a BSD-`sed` shim and a stub `brew`, because the theme installer invokes
-both. Set and export component variables inside the same harness, including `APP_VSCODE`: Debian's `00-setup_env.zsh.sh` reads it without a local default and
-writes directly to its target, so omitting it aborts under `set -u` after leaving partial output. Invoke `plugin.sh` and `theme.sh` from the platform's
-`command/omz/` directory before running the writers through `command/omz_custom/main.sh`. Do not invoke `command/omz/main.sh` for a render check: the
-installer entry point performs real setup and, on Debian, runs `apt`.
+`01-update.zsh.sh`, and `99-first_run.zsh.sh` in a clean environment with `HOME` and `ZSH_CUSTOM` explicitly pointing into one throwaway tree and a
+controlled `PATH`; changing `HOME` alone is insufficient because the writers honor inherited `ZSH_CUSTOM`. Then run `zsh -n` on their outputs. Seed
+`$HOME/.zshrc` from the Oh My Zsh template and put a stub `git` on `PATH`. On Linux when testing macOS, also provide a BSD-`sed` shim and a stub `brew`,
+because the theme installer invokes both. Set and export component variables inside the same harness, including `APP_VSCODE`: Debian's
+`00-setup_env.zsh.sh` reads it without a local default and writes directly to its target, so omitting it aborts under `set -u` after leaving partial output.
+Invoke `plugin.sh` and `theme.sh` from the platform's `command/omz/` directory before running the writers through `command/omz_custom/main.sh`. Do not
+invoke `command/omz/main.sh` for a render check: the installer entry point performs real setup and, on Debian, runs `apt`. Do not invoke
+`update-all-in-one` in this harness: it performs real package and network updates.
 
 For fzf shell changes, inspect `${(z)FZF_CTRL_T_OPTS}` and `${(z)FZF_ALT_C_OPTS}` in `zsh -f`. Plugin-order changes require a real ZLE / PTY
 smoke test: ordinary Tab and `**<Tab>` must each open fzf once; `fzf_default_completion` must be `fzf-tab-complete`; Ctrl-T and Alt-C must remain single calls.
@@ -142,7 +143,8 @@ at shell startup.
 | --- | --- |
 | `compinit`, Oh My Zsh libraries, plugin list, theme | `.zshrc` |
 | another plugin while it is being sourced | `$ZSH_CUSTOM/plugins/setup-env/setup-env.plugin.zsh` |
-| aliases, functions, `compdef`, runtime variables, editor selection | `$ZSH_CUSTOM/00-setup_env.zsh` |
+| aliases, integration functions, `compdef`, runtime variables, editor selection | `$ZSH_CUSTOM/00-setup_env.zsh` |
+| the user-invoked aggregate update function | `$ZSH_CUSTOM/01-update.zsh` |
 | a deferred interactive login or wizard | `$ZSH_CUSTOM/99-first_run.zsh` |
 | non-interactive shell commands | `.zshenv` |
 
@@ -183,12 +185,21 @@ a non-empty first-run render recreates the file and permits the new sequence onc
 
 `00-setup_env.zsh.sh` always has an unconditional section and rebuilds `00-setup_env.zsh`; the first-run file neither reads nor modifies it.
 
+`01-update.zsh.sh` likewise has an unconditional section and fully rebuilds `01-update.zsh`. Disabling a component flag therefore removes its prior
+optional update block instead of preserving stale output. The writer runs before optional installers, so it selects blocks from exported setup flags
+rather than probing command availability while rendering; the generated file must only define `update-all-in-one` when sourced.
+
+APT owns updates for APT-installed tools; dedicated blocks cover tealdeer cache data, Go and protoc archives, uv tools, rustup, Claude Code, lazydocker,
+and Yazi packages. The Go block updates only the toolchain: do not scan `$GOBIN`/`$GOPATH/bin`, add a global Go-tool updater, or update `gopls` here. Go
+and protoc temporary downloads intentionally rely on temporary-storage cleanup.
+
 ## Oh My Zsh load and plugin order
 
 Oh My Zsh initializes completion and libraries before plugins, sources plugins in `plugins=()` order, then sources `$ZSH_CUSTOM/*.zsh` alphabetically, and
 loads the theme last. Preserve these constraints:
 
 - When generated, `setup-env` is prepended and remains the first plugin.
+- `01-update.zsh` loads after `00-setup_env.zsh` and before `99-first_run.zsh`; sourcing it must never run updates.
 - When generated, `99-first_run.zsh` remains the last provisioning-managed custom Zsh file so deferred interactive work starts after managed runtime
   configuration.
 - `zsh-syntax-highlighting` remains last.
@@ -262,7 +273,6 @@ change that declaration.
 | `bat` | `_batcat` declares `batcat` | link the binary; run `compdef bat=batcat` after `compinit` |
 | `fd` | `_fd` declares `fd` | link `fd` to `fdfind`; no `compdef` |
 | `tldr` | `tldr.zsh` declares `tldr` | link it as `$ZSH_CUSTOM/completions/_tldr` |
-| `yazi`, `ya` | release zip provides `_yazi`, `_ya` | install under custom completions unchanged |
 
 Prefer executable symlinks over aliases for renamed binaries; child shells, fzf previews, `command -v`, and Zsh's `$commands` see `PATH`, not aliases. Oh My
 Zsh's template adds `~/.local/bin` in `.zshrc`, which is sufficient for interactive plugin probes but not non-interactive `zsh -c`; language components
@@ -309,9 +319,10 @@ non-fatal cache warm-up. The Markdown code component owns Glow's managed config 
 
 ## Yazi application
 
-`--app-yazi` uses the unversioned GNU release zip, installs `file` and `unzip`, then installs its binaries/completions. Git fetchers and the Git/keymap
-plugins are unconditional. With modern CLI enabled, the app adds the two Bat previewers and official `piper`; with Markdown enabled, it adds the Glow
-previewer and third-party `alberti42/faster-piper`, which requires Yazi 26.8.15 or newer. It exposes `$w`, `$h`, and terminal-theme `$t`; Glow consumes
+`--app-yazi` adds Yazi's official signed stable APT repository, then installs `file` and `yazi`; the package owns the `yazi` and `ya` binaries and Bash
+completions. Git fetchers and the Git/keymap plugins are unconditional. With modern CLI enabled, the app adds the two Bat previewers and official `piper`;
+with Markdown enabled, it adds the Glow previewer and third-party `alberti42/faster-piper`, which requires Yazi 26.8.15 or newer. It exposes `$w`, `$h`, and
+terminal-theme `$t`; Glow consumes
 `$t` as `dark` or `light`, and the runner preserves `-- "$1"`. Command and code components run first, so each conditional preview command is already
 available.
 

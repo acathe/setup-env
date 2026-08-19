@@ -5,22 +5,11 @@ set -euo pipefail
 COMMAND_MODERN_CLI="${COMMAND_MODERN_CLI:-0}"
 CODE_MARKDOWN="${CODE_MARKDOWN:-0}"
 
-ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
-
-fetch_yazi() {
-    curl -fsSL -o '/tmp/yazi.zip' \
-        'https://github.com/sxyazi/yazi/releases/latest/download/yazi-x86_64-unknown-linux-gnu.zip'
-    unzip -qo '/tmp/yazi.zip' -d '/tmp'
-}
-
-install_yazi() {
-    install -Dm 755 '/tmp/yazi-x86_64-unknown-linux-gnu/yazi' "$HOME/.local/bin/yazi"
-    install -Dm 755 '/tmp/yazi-x86_64-unknown-linux-gnu/ya' "$HOME/.local/bin/ya"
-}
-
-set_completion() {
-    install -Dm 644 '/tmp/yazi-x86_64-unknown-linux-gnu/completions/_yazi' "$ZSH_CUSTOM/completions/_yazi"
-    install -Dm 644 '/tmp/yazi-x86_64-unknown-linux-gnu/completions/_ya' "$ZSH_CUSTOM/completions/_ya"
+add_repo() {
+    curl -fsSL 'https://yazi-rs.github.io/builds/yazi-keyring.gpg' \
+        | sudo tee '/usr/share/keyrings/yazi-keyring.gpg' > /dev/null
+    echo 'deb [signed-by=/usr/share/keyrings/yazi-keyring.gpg] https://yazi-rs.github.io/builds/ stable main' \
+        | sudo tee '/etc/apt/sources.list.d/yazi.list' > /dev/null
 }
 
 install_plugins() {
@@ -48,12 +37,10 @@ install_config() {
 }
 
 main() {
+    add_repo
     sudo apt-get update
-    sudo apt-get install -y file unzip
+    sudo apt-get install -y file yazi
 
-    fetch_yazi
-    install_yazi
-    set_completion
     install_plugins
     install_config "$@"
 }
