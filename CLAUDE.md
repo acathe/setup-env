@@ -50,6 +50,12 @@ git diff --check
 git diff --cached --check
 ```
 
+The full syntax sweep uses whichever Bash is on `PATH` and does not prove Bash 3.2 compatibility. For root or macOS changes, also run this check on macOS:
+
+```bash
+find main.sh macos -type f -name '*.sh' -exec /bin/bash -n {} \;
+```
+
 ShellCheck uses `-x` because `debian/app/docker.sh` dynamically sources `/etc/os-release`. `.shellcheckrc` disables `SC2016`; literal `jq`/`sed` programs
 and generated shell content intentionally preserve dollar signs for a later interpreter.
 
@@ -58,9 +64,10 @@ modifies the current home. Do not use a normal account as a smoke-test sandbox. 
 `.bash_logout`. Generated-file repeated-home checks do not imply that full platform dispatchers are idempotent; OMZ plugin and theme installers clone into
 fixed destinations.
 
-The managed OMZ Zsh files are emitted from quoted Bash heredocs and are invisible to ShellCheck. Render `setup-env.plugin.zsh.sh`, `00-setup_env.zsh.sh`,
-`01-update.zsh.sh`, and `99-first_run.zsh.sh` in a clean environment with `HOME` and `ZSH_CUSTOM` explicitly pointing into one throwaway tree and a
-controlled `PATH`; changing `HOME` alone is insufficient because the writers honor inherited `ZSH_CUSTOM`. Then run `zsh -n` on their outputs. Seed
+Managed OMZ Zsh validation is currently a manual harness. The files are emitted from quoted Bash heredocs and are invisible to ShellCheck. Render
+`setup-env.plugin.zsh.sh`, `00-setup_env.zsh.sh`, `01-update.zsh.sh`, and `99-first_run.zsh.sh` in a clean environment with `HOME` and
+`ZSH_CUSTOM` explicitly pointing into one throwaway tree with a controlled `PATH`; changing `HOME` alone is insufficient because the writers honor inherited
+`ZSH_CUSTOM`. Then run `zsh -n` on their outputs. Seed
 `$HOME/.zshrc` from the Oh My Zsh template and put a stub `git` on `PATH`. On Linux when testing macOS, also provide a BSD-`sed` shim and a stub `brew`,
 because the theme installer invokes both. Set and export component variables inside the same harness, including `APP_VSCODE`: Debian's
 `00-setup_env.zsh.sh` reads it without a local default and writes directly to its target, so omitting it aborts under `set -u` after leaving partial output.
@@ -185,13 +192,16 @@ a non-empty first-run render recreates the file and permits the new sequence onc
 
 `00-setup_env.zsh.sh` always has an unconditional section and rebuilds `00-setup_env.zsh`; the first-run file neither reads nor modifies it.
 
-`01-update.zsh.sh` likewise has an unconditional section and fully rebuilds `01-update.zsh`. Disabling a component flag therefore removes its prior
-optional update block instead of preserving stale output. The writer runs before optional installers, so it selects blocks from exported setup flags
-rather than probing command availability while rendering; the generated file must only define `update-all-in-one` when sourced.
+`01-update.zsh.sh` has an unconditional section on both platforms and fully rebuilds `01-update.zsh`; the generated file must only define
+`update-all-in-one` when sourced. Debian's writer runs before optional installers and selects blocks from exported setup flags rather than probing command
+availability while rendering. Disabling a component flag therefore removes its prior optional update block instead of preserving stale output.
 
-APT owns updates for APT-installed tools; dedicated blocks cover tealdeer cache data, Go and protoc archives, uv tools, rustup, Claude Code, lazydocker,
-and Yazi packages. The Go block updates only the toolchain: do not scan `$GOBIN`/`$GOPATH/bin`, add a global Go-tool updater, or update `gopls` here. Go
-and protoc temporary downloads intentionally rely on temporary-storage cleanup.
+On macOS, `update-all-in-one` runs `brew update`, `brew upgrade --greedy`, and `brew cleanup`, then keeps `omz update` as its final action. Homebrew covers
+its formulae and casks, so `APP_VSCODE` needs no dedicated update block.
+
+On Debian, APT owns updates for APT-installed tools; dedicated blocks cover tealdeer cache data, Go and protoc archives, uv tools, rustup, Claude Code,
+lazydocker, and Yazi packages. The Go block updates only the toolchain: do not scan `$GOBIN`/`$GOPATH/bin`, add a global Go-tool updater, or update `gopls`
+here. Go and protoc temporary downloads intentionally rely on temporary-storage cleanup.
 
 ## Oh My Zsh load and plugin order
 
@@ -396,10 +406,10 @@ N independently generated 32-byte hex keys. The task assumes the service has alr
 
 ## macOS-specific constraints
 
-The macOS OMZ custom tree has only `00-setup_env.zsh.sh`; it has no load-time settings or deferred interactive component. With `APP_VSCODE=1`, that writer
-selects `code --wait` unconditionally. With all flags off, its output from `# zsh-autosuggestions` through `ZSHZ_TILDE=1` matches the Debian writer after
-Debian's Editor section. Keep that shared block byte-equivalent. Do not hoist it outside each tree because the Debian-only Docker build context cannot see a
-root-level file.
+The macOS OMZ custom tree has `00-setup_env.zsh.sh` and the unconditional `01-update.zsh.sh`; it has no load-time settings writer or deferred interactive
+component. With `APP_VSCODE=1`, the `00` writer selects `code --wait` unconditionally. With all flags off, its output from `# zsh-autosuggestions` through
+`ZSHZ_TILDE=1` matches the Debian writer after Debian's Editor section. Keep that shared block byte-equivalent. Do not hoist it outside each tree because
+the Debian-only Docker build context cannot see a root-level file.
 
 `macos/main.sh` evaluates `/opt/homebrew/bin/brew shellenv` in the provisioning Bash process so child installers can find Homebrew; interactive discovery
 later comes from the Oh My Zsh `brew` plugin. The absolute prefix is a current hard requirement—strict mode aborts before child installers if Homebrew is
@@ -418,4 +428,3 @@ Before finishing a change:
 - Validate shipped config against the packaged tool, including keys parsers may silently ignore.
 - Run Bash syntax, ShellCheck, shfmt, and staged/unstaged whitespace checks.
 - Render generated Zsh and run `zsh -n`; use a real ZLE smoke test for plugin-order or fzf changes.
-- Do not run an installer smoke test on the host merely to prove dispatch; these scripts perform real package installation and modify the home directory.
