@@ -39,6 +39,7 @@ RUN sudo apt-get update \
         iputils-ping \
         less \
         lsof \
+        man-db \
         nano \
         netcat-openbsd \
         procps \
