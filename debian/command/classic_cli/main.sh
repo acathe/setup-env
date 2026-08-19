@@ -3,11 +3,6 @@
 set -euo pipefail
 
 main() {
-    sudo apt-get update
-    sudo apt-get install -y \
-        jq \
-        unzip
-
     install -Dm 644 './lesskey' "$HOME/.config/lesskey"
     install -Dm 644 './nanorc' "$HOME/.config/nano/nanorc"
 }

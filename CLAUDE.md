@@ -23,8 +23,8 @@ The setup trees have separate dispatchers, but are not fully independent: `conta
 
 - `macos/` provisions a terminal client / jump box: Homebrew, Oh My Zsh, SSH support, and optional VS Code. It is deliberately not a development-machine
   profile, omits the Git plugin, and has no classic CLI component.
-- `debian/` provisions the main development environment. Zsh, Oh My Zsh, and the classic CLI baseline are unconditional; the classic layer installs shared
-  `jq`/`unzip` dependencies and managed less/Nano configuration. Remaining command, code, and app components are optional.
+- `debian/` provisions the main development environment. Zsh, Oh My Zsh, and the classic CLI baseline are unconditional; the classic layer installs no tools
+  and only manages configuration for platform-provided less and Nano. Remaining command, code, and app components are optional.
 - `container/` dispatches to `dev-container`, `copilot-api`, or the one-shot `copilot-api-config` task.
 
 `debian/vscode/` is reference data only. No dispatcher installs those files; `--app-vscode` enables the OMZ plugin, while `README.md` documents manual
@@ -82,13 +82,15 @@ Platform roots and true nested dispatchers follow this data flow:
 4. Restore the forwarded arguments and call `main()`.
 5. Preserve the explicit dependency order of unconditional bootstrap components. Run optional flag-gated components in `--command-*`, `--code-*`, then
    `--app-*` order, alphabetically within each group.
+6. Each optional component installs or guards every executable it requires. Do not make one optional flag depend on another except for an explicitly
+   documented integration.
 
 For a normal runnable component, the export block, parser cases, `main()` gates, and corresponding `README.md` table are four ordered views of the same
 interface. Debian `APP_VSCODE` is the explicit integration-only exception: it has an export, parser case, and README flag but no Debian leaf or `main()`
 gate. OMZ uses it for the plugin and for the `TERM_PROGRAM=vscode` editor branch in `00-setup_env.zsh.sh`. Do not invent an empty gate to force symmetry.
 
 A multi-part runnable concern owns a directory. `app/claude/main.sh` is a nested dispatcher because it owns child arguments.
-Both CLI entry points are no-parser leaves: `command/classic_cli/main.sh` owns the unconditional baseline dependencies and configuration, while
+Both CLI entry points are no-parser leaves: `command/classic_cli/main.sh` owns only unconditional configuration for platform-provided CLI tools, while
 `command/modern_cli/main.sh` aggregates optional tools and fixed child installers.
 
 Flags intentionally cascade through exported variables and forwarded arguments. The Claude app reads `CODE_GO`, `CODE_PYTHON`, `CODE_RUST`, and `APP_GIT`
@@ -281,15 +283,16 @@ every tool needs a One Dark override from the tools that have one.
 
 ## Classic CLI
 
-Only Debian runs `command/classic_cli/main.sh`, unconditionally after its OMZ custom writers. It installs `jq` and `unzip`, then copies the shipped
-`lesskey` and `nanorc` artifacts to `$HOME/.config/lesskey` and `$HOME/.config/nano/nanorc` with `install -Dm 644`. It does not install Nano itself.
+Only Debian runs `command/classic_cli/main.sh`, unconditionally after its OMZ custom writers. It installs no packages and only copies the shipped `lesskey`
+and `nanorc` artifacts to `$HOME/.config/lesskey` and `$HOME/.config/nano/nanorc` with `install -Dm 644`; less and Nano come from the platform baseline.
 macOS has no classic CLI component.
 
 ## Debian modern CLI
 
-`command/modern_cli/main.sh` is an optional aggregate leaf. It bulk-installs user-facing modern tools, including Atuin and fzf, then runs the fixed children
-for bat, fd, Micro, and tealdeer. Children own package-specific links, completions, and static configuration; none has an independent flag. `man-db` is a
-platform baseline: a full Debian host is expected to provide it, while `container/dev-container/Dockerfile` installs it explicitly.
+`command/modern_cli/main.sh` is an optional aggregate leaf. It bulk-installs user-facing modern tools, including `jq`, `unzip`, Atuin, and fzf, then runs the
+fixed children for bat, fd, Micro, and tealdeer. Children own package-specific links, completions, and static configuration; none has an independent flag.
+`man-db` is a platform baseline: a full Debian host is expected to provide it, while `container/dev-container/Dockerfile` installs it
+explicitly.
 
 Atuin is bulk-installed from Debian and has no repository-owned config. Fresh homes use packaged defaults, but a `~/.config/atuin/config.toml` installed by
 an older revision remains until explicitly deleted. Setup does not import history or configure account/sync. Its late init takes Ctrl-R and Up while fzf
