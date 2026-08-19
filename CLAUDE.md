@@ -185,13 +185,16 @@ a non-empty first-run render recreates the file and permits the new sequence onc
 
 `00-setup_env.zsh.sh` always has an unconditional section and rebuilds `00-setup_env.zsh`; the first-run file neither reads nor modifies it.
 
-`01-update.zsh.sh` likewise has an unconditional section and fully rebuilds `01-update.zsh`. Disabling a component flag therefore removes its prior
-optional update block instead of preserving stale output. The writer runs before optional installers, so it selects blocks from exported setup flags
-rather than probing command availability while rendering; the generated file must only define `update-all-in-one` when sourced.
+`01-update.zsh.sh` has an unconditional section on both platforms and fully rebuilds `01-update.zsh`; the generated file must only define
+`update-all-in-one` when sourced. Debian's writer runs before optional installers and selects blocks from exported setup flags rather than probing command
+availability while rendering. Disabling a component flag therefore removes its prior optional update block instead of preserving stale output.
 
-APT owns updates for APT-installed tools; dedicated blocks cover tealdeer cache data, Go and protoc archives, uv tools, rustup, Claude Code, lazydocker,
-and Yazi packages. The Go block updates only the toolchain: do not scan `$GOBIN`/`$GOPATH/bin`, add a global Go-tool updater, or update `gopls` here. Go
-and protoc temporary downloads intentionally rely on temporary-storage cleanup.
+On macOS, Homebrew owns updates for its formulae and casks. The update function uses ordinary `brew update` and `brew upgrade`, then keeps `omz update` as
+its final action. Do not add `brew cleanup`, `brew autoremove`, or greedy cask options to this function; `APP_VSCODE` needs no dedicated update block.
+
+On Debian, APT owns updates for APT-installed tools; dedicated blocks cover tealdeer cache data, Go and protoc archives, uv tools, rustup, Claude Code,
+lazydocker, and Yazi packages. The Go block updates only the toolchain: do not scan `$GOBIN`/`$GOPATH/bin`, add a global Go-tool updater, or update `gopls`
+here. Go and protoc temporary downloads intentionally rely on temporary-storage cleanup.
 
 ## Oh My Zsh load and plugin order
 
@@ -396,10 +399,10 @@ N independently generated 32-byte hex keys. The task assumes the service has alr
 
 ## macOS-specific constraints
 
-The macOS OMZ custom tree has only `00-setup_env.zsh.sh`; it has no load-time settings or deferred interactive component. With `APP_VSCODE=1`, that writer
-selects `code --wait` unconditionally. With all flags off, its output from `# zsh-autosuggestions` through `ZSHZ_TILDE=1` matches the Debian writer after
-Debian's Editor section. Keep that shared block byte-equivalent. Do not hoist it outside each tree because the Debian-only Docker build context cannot see a
-root-level file.
+The macOS OMZ custom tree has `00-setup_env.zsh.sh` and the unconditional `01-update.zsh.sh`; it has no load-time settings writer or deferred interactive
+component. With `APP_VSCODE=1`, the `00` writer selects `code --wait` unconditionally. With all flags off, its output from `# zsh-autosuggestions` through
+`ZSHZ_TILDE=1` matches the Debian writer after Debian's Editor section. Keep that shared block byte-equivalent. Do not hoist it outside each tree because
+the Debian-only Docker build context cannot see a root-level file.
 
 `macos/main.sh` evaluates `/opt/homebrew/bin/brew shellenv` in the provisioning Bash process so child installers can find Homebrew; interactive discovery
 later comes from the Oh My Zsh `brew` plugin. The absolute prefix is a current hard requirement—strict mode aborts before child installers if Homebrew is
