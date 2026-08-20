@@ -88,6 +88,7 @@ parse_args() {
 }
 
 main() {
+    bash './command/homebrew.sh' "$@"
     bash './command/omz/main.sh' "$@"
     bash './command/omz_custom/main.sh' "$@"
     bash './command/classic_cli/main.sh' "$@"

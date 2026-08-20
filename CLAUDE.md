@@ -23,9 +23,14 @@ The setup trees have separate dispatchers, but are not fully independent: `conta
 
 - `macos/` provisions a terminal client / jump box: Homebrew, Oh My Zsh, SSH support, and optional VS Code. It is deliberately not a development-machine
   profile, omits the Git plugin, and has no classic CLI component.
-- `debian/` provisions the main development environment. Zsh, Oh My Zsh, and the classic CLI baseline are unconditional; the classic layer installs no tools
-  and only manages configuration for platform-provided less and Nano. Remaining command, code, and app components are optional.
+- `debian/` provisions the main development environment. Homebrew, Zsh, Oh My Zsh, and the classic CLI baseline are unconditional; Homebrew runs first,
+  while the classic layer installs no tools and only manages configuration for platform-provided less and Nano. Remaining command, code, and app components
+  are optional.
 - `container/` dispatches to `dev-container`, `copilot-api`, or the one-shot `copilot-api-config` task.
+
+Debian's Homebrew bootstrap mirrors macOS's PATH guard and invokes the official installer directly; `--unattended` only adds `NONINTERACTIVE=1`. The
+provisioning parent does not evaluate `brew shellenv`; the Oh My Zsh `brew` plugin discovers the default Linux prefix and configures interactive Zsh. This
+integration does not write `.zshenv` for non-interactive shells.
 
 `debian/vscode/` is reference data only. No dispatcher installs those files; `--app-vscode` enables the OMZ plugin, while `README.md` documents manual
 extension installation. Debian's `00-setup_env.zsh.sh` selects `nano -/` without modern CLI and Micro with modern CLI; when `--app-vscode` is enabled, the
@@ -217,7 +222,8 @@ loads the theme last. Preserve these constraints:
 - In this repository, `fzf-tab` also precedes `fzf`. fzf captures the current Tab binding as `fzf_default_completion`; reversing them nests two fzf
   completion interfaces.
 - Third-party cloned plugins load after `ohmyzsh-full-autoupdate`, whose update is synchronous.
-- On macOS, `brew` precedes `command-not-found`, whose Homebrew handler expects `brew` on `PATH`.
+- `brew` immediately follows `aliases` on both platforms so it establishes the Homebrew environment before later plugins. On macOS, it also precedes
+  `command-not-found`, whose Homebrew handler expects `brew` on `PATH`.
 
 Atuin is a deliberate post-plugin exception. It initializes from `00-setup_env.zsh` so it can take Ctrl-R and Up after fzf loads; the packaged Zsh and
 syntax-highlighting combination still highlights widgets added at that point. Do not move it early to follow a generic ordering rule.
