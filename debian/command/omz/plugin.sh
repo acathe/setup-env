@@ -38,6 +38,7 @@ main() {
 
     sed -i 's/^plugins=(.*)/plugins=(aliases)/' "$HOME/.zshrc"
 
+    append_plugin 'brew'
     append_plugin 'colored-man-pages'
     append_plugin 'dirhistory'
     append_plugin 'extract'
