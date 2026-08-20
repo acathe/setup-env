@@ -13,7 +13,6 @@ install_python() {
 install_tools() {
     export PATH="$HOME/.local/bin:$PATH"
     uv tool install py-spy
-    uv tool install ruff
 
     mkdir -p "$HOME/.config/Beslogic"
     curl -fsSL 'https://raw.githubusercontent.com/BesLogic/Beslogic-Ruff-Config/refs/heads/main/ruff.toml' \
