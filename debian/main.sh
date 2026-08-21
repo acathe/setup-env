@@ -89,7 +89,7 @@ parse_args() {
 
 main() {
     bash './command/homebrew.sh' "$@"
-    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv bash)" # export brew PATH for child scripts
+    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv bash)"
 
     bash './command/omz/main.sh' "$@"
     bash './command/starship.sh' "$@"

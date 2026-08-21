@@ -37,7 +37,7 @@ main() {
     fi
 
     bash './command/homebrew.sh' "$@"
-    eval "$(/opt/homebrew/bin/brew shellenv)" # export brew PATH for child scripts
+    eval "$(/opt/homebrew/bin/brew shellenv)"
 
     bash './command/omz/main.sh' "$@"
     bash './command/starship.sh' "$@"
