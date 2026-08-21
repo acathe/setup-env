@@ -27,10 +27,9 @@
     "claudeCode.disableLoginPrompt": true,
     "claudeCode.preferredLocation": "sidebar",
     "diffEditor.hideUnchangedRegions.enabled": true,
-    "diffEditor.ignoreTrimWhitespace": false,
     "docker.extension.dockerEngineAvailabilityPrompt": false,
     "docker.extension.enableComposeLanguageServer": true,
-    "editor.fontFamily": "Fira Code",
+    "editor.fontFamily": "JetBrains Maple Mono",
     "editor.fontLigatures": true,
     "editor.formatOnSave": true,
     "editor.rulers": [
@@ -82,8 +81,9 @@
             "string": false
         }
     },
-    "markdown-preview-enhanced.codeBlockTheme": "one-dark.css",
-    "markdown-preview-enhanced.previewTheme": "one-dark.css",
+    "markdown-preview-enhanced.codeBlockTheme": "vscode.css",
+    "markdown-preview-enhanced.previewTheme": "vscode.css",
+    "markdown-preview-enhanced.revealjsTheme": "vscode.css",
     "markdown.extension.toc.levels": "2..6",
     "oneDarkPro.bold": true,
     "protobuf.autoDetection.prompted": true,
@@ -128,7 +128,7 @@
     "rust-analyzer.lens.references.enumVariant.enable": true,
     "rust-analyzer.lens.references.method.enable": true,
     "rust-analyzer.lens.references.trait.enable": true,
-    "terminal.integrated.fontFamily": "MesloLGS NF",
+    "terminal.integrated.fontFamily": "JetBrainsMono Nerd Font",
     "tooltitude.json.tags.style": "snakeCase",
     "tooltitude.shadowInspectionEnabled": true,
     "tooltitude.unusedParamsEnabled": true,
