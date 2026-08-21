@@ -8,9 +8,9 @@ render_blocks() {
     cat << 'EOF'
 function update-all-in-one() {
     # Homebrew
-    brew update
-    brew upgrade --greedy
-    brew cleanup
+    brew update \
+        && brew upgrade --greedy \
+        && brew cleanup
 
     # Oh My Zsh
     omz update

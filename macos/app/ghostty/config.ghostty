@@ -1,2 +1,3 @@
 theme = Atom One Dark
 shell-integration-features = sudo,ssh-env,ssh-terminfo
+macos-option-as-alt = left

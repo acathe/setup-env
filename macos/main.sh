@@ -47,7 +47,7 @@ main() {
     fi
 
     if [[ $APP_GHOSTTY == '1' ]]; then
-        bash './app/ghostty.sh' "$@"
+        bash './app/ghostty/main.sh' "$@"
     fi
 
     if [[ $APP_VSCODE == '1' ]]; then
