@@ -26,7 +26,7 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
 
 各配置树拥有独立的分发器，但并非完全独立：`container/dev-container` 使用 `debian/` 作为其 Docker 构建上下文。
 
-- `macos/` 配置终端客户端／跳板机：Homebrew、Starship、Oh My Zsh、SSH 支持，以及可选的 Ghostty 和 VS Code。它刻意不作为
+- `macos/` 配置终端客户端／跳板机：Homebrew、Starship、Oh My Zsh、SSH 支持，以及可选的 ChatGPT、Ghostty 和 VS Code。它刻意不作为
   开发机配置，不包含 Git 插件，也没有 classic CLI 组件。
 - `debian/` 配置主要开发环境。Homebrew、Zsh、Oh My Zsh、Starship 和 classic CLI 基线均无条件执行；Homebrew 最先运行，
   而 classic 层不安装任何工具，只管理平台提供的 less 和 Nano 的配置。其余 command、code 和 app 组件
