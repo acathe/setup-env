@@ -4,6 +4,7 @@ set -euo pipefail
 
 export COMMAND_SSH="${COMMAND_SSH:-0}"
 
+export APP_GHOSTTY="${APP_GHOSTTY:-0}"
 export APP_VSCODE="${APP_VSCODE:-0}"
 
 parse_args() {
@@ -12,6 +13,10 @@ parse_args() {
         case "$1" in
             --command-ssh)
                 COMMAND_SSH=1
+                shift # shift once since flags have no values
+                ;;
+            --app-ghostty)
+                APP_GHOSTTY=1
                 shift # shift once since flags have no values
                 ;;
             --app-vscode)
@@ -35,13 +40,15 @@ main() {
     eval "$(/opt/homebrew/bin/brew shellenv)" # export brew PATH for child scripts
 
     bash './command/omz/main.sh' "$@"
-    bash './command/omz_custom/main.sh' "$@"
+    bash './command/starship.sh' "$@"
 
     if [[ $COMMAND_SSH == '1' ]]; then
         bash './command/ssh.sh' "$@"
     fi
 
-    bash './app/terminal.sh' "$@"
+    if [[ $APP_GHOSTTY == '1' ]]; then
+        bash './app/ghostty.sh' "$@"
+    fi
 
     if [[ $APP_VSCODE == '1' ]]; then
         bash './app/vscode.sh' "$@"

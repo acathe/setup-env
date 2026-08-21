@@ -73,12 +73,12 @@ Managed OMZ Zsh validation is currently a manual harness. The files are emitted 
 `setup-env.plugin.zsh.sh`, `00-setup_env.zsh.sh`, `01-update.zsh.sh`, and `99-first_run.zsh.sh` in a clean environment with `HOME` and
 `ZSH_CUSTOM` explicitly pointing into one throwaway tree with a controlled `PATH`; changing `HOME` alone is insufficient because the writers honor inherited
 `ZSH_CUSTOM`. Then run `zsh -n` on their outputs. Seed
-`$HOME/.zshrc` from the Oh My Zsh template and put a stub `git` on `PATH`. On Linux when testing macOS, also provide a BSD-`sed` shim and a stub `brew`,
-because the theme installer invokes both. Set and export component variables inside the same harness, including `APP_VSCODE`: Debian's
-`00-setup_env.zsh.sh` reads it without a local default and writes directly to its target, so omitting it aborts under `set -u` after leaving partial output.
-Invoke `plugin.sh` and `theme.sh` from the platform's `command/omz/` directory before running the writers through `command/omz_custom/main.sh`. Do not
-invoke `command/omz/main.sh` for a render check: the installer entry point performs real setup and, on Debian, runs `apt`. Do not invoke
-`update-all-in-one` in this harness: it performs real package and network updates.
+`$HOME/.zshrc` from the Oh My Zsh template and put a stub `git` on `PATH`. On Linux when testing macOS, also provide a BSD-`sed` shim for `plugin.sh`.
+Set and export component variables inside the same harness, including `APP_VSCODE`: Debian's `00-setup_env.zsh.sh` reads it without a local default and
+writes directly to its target, so omitting it aborts under `set -u` after leaving partial output. For macOS, invoke `plugin.sh`,
+`00-setup_env.zsh.sh`, and `01-update.zsh.sh` directly from `command/omz/`; for Debian, invoke `plugin.sh` and `theme.sh` from `command/omz/` before running
+the writers through `command/omz_custom/main.sh`. Do not invoke `command/omz/main.sh` for a render check: the installer entry point performs real setup and,
+on Debian, runs `apt`. Do not invoke `update-all-in-one` in this harness: it performs real package and network updates.
 
 For fzf shell changes, inspect `${(z)FZF_CTRL_T_OPTS}` and `${(z)FZF_ALT_C_OPTS}` in `zsh -f`. Plugin-order changes require a real ZLE / PTY
 smoke test: ordinary Tab and `**<Tab>` must each open fzf once; `fzf_default_completion` must be `fzf-tab-complete`; Ctrl-T and Alt-C must remain single calls.
@@ -145,11 +145,11 @@ directly to a shared generated shell file.
 
 ## Configuration ownership and landing points
 
-Each shared configuration fragment has one logical owner, but `.zshrc` has coordinated writers. Each setup tree's `command/omz/main.sh` installs Oh My Zsh,
-prepares its template, then orchestrates `plugin.sh` and `theme.sh`; Debian's installer also activates the template's user-bin PATH. `plugin.sh` owns the
-plugin array and clones, while `theme.sh` owns the theme. `command/omz_custom/main.sh` only orchestrates the writers. After writing a non-empty `setup-env`
-plugin, `setup-env.plugin.zsh.sh` prepends the coupled array entry only afterwards, avoiding an enabled-but-missing warning
-at shell startup.
+Each shared configuration fragment has one logical owner, but `.zshrc` has coordinated writers. Each setup tree's `command/omz/main.sh` installs Oh My Zsh
+and prepares its template. On macOS it then orchestrates `plugin.sh`, `00-setup_env.zsh.sh`, and `01-update.zsh.sh`; on Debian it orchestrates `plugin.sh`
+and `theme.sh`, while `command/omz_custom/main.sh` orchestrates the writers. Debian's installer also activates the template's user-bin PATH. `plugin.sh`
+owns the plugin array and clones, while Debian's `theme.sh` owns the theme. After writing a non-empty `setup-env` plugin,
+`setup-env.plugin.zsh.sh` prepends the coupled array entry only afterwards, avoiding an enabled-but-missing warning at shell startup.
 
 | Configuration needed by | Owned destination |
 | --- | --- |
@@ -412,9 +412,9 @@ N independently generated 32-byte hex keys. The task assumes the service has alr
 
 ## macOS-specific constraints
 
-The macOS OMZ custom tree has `00-setup_env.zsh.sh` and the unconditional `01-update.zsh.sh`; it has no load-time settings writer or deferred interactive
-component. With `APP_VSCODE=1`, the `00` writer selects `code --wait` unconditionally. With all flags off, its output from `# zsh-autosuggestions` through
-`ZSHZ_TILDE=1` matches the Debian writer after Debian's Editor section. Keep that shared block byte-equivalent. Do not hoist it outside each tree because
+The macOS `command/omz/` tree has `00-setup_env.zsh.sh` and the unconditional `01-update.zsh.sh` alongside the installer and plugin writer; it has no
+load-time settings writer or deferred interactive component. With `APP_VSCODE=1`, the `00` writer selects `code --wait`
+unconditionally. With all flags off, its output from `# zsh-autosuggestions` through `ZSHZ_TILDE=1` matches the Debian writer after Debian's Editor section. Keep that shared block byte-equivalent. Do not hoist it outside each tree because
 the Debian-only Docker build context cannot see a root-level file.
 
 `macos/main.sh` evaluates `/opt/homebrew/bin/brew shellenv` in the provisioning Bash process so child installers can find Homebrew; interactive discovery
