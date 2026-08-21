@@ -24,6 +24,11 @@ function update-all-in-one() {
         && sudo apt-get autoremove -y \
         && sudo apt-get clean
 
+    # Homebrew
+    brew update \
+        && brew upgrade starship \
+        && brew cleanup
+
     # Oh My Zsh
     omz update
 EOF
@@ -40,22 +45,21 @@ EOF
         cat << 'EOF'
 
     # Go
-    local go_version go_tmp
-    go_version="$(curl -fsSL 'https://go.dev/dl/?mode=json' \
-        | jq -r 'first(.[] | select(.stable)).files[]
-                 | select(.os == "linux" and .arch == "amd64" and .kind == "archive")
-                 | .filename' \
-        | head -n 1)"
-    if [[ -z $go_version ]]; then
-        echo 'Failed to determine the latest Go version.' >&2
-        return 1
-    fi
-
-    go_tmp="$(mktemp)"
-    curl -fsSL "https://go.dev/dl/$go_version" -o "$go_tmp" \
-        && sudo rm -rf '/usr/local/go' \
-        && sudo tar -C '/usr/local' -xzf "$go_tmp" \
-        || return 1
+    local go_version go_tmp \
+        && go_version="$(curl -fsSL 'https://go.dev/dl/?mode=json' \
+            | jq -r 'first(.[] | select(.stable)).files[]
+                     | select(.os == "linux" and .arch == "amd64" and .kind == "archive")
+                     | .filename' \
+            | head -n 1)" \
+        && if [[ -z $go_version ]]; then
+            echo 'Failed to determine the latest Go version.' >&2
+            false
+        else
+            go_tmp="$(mktemp)" \
+                && curl -fsSL "https://go.dev/dl/$go_version" -o "$go_tmp" \
+                && sudo rm -rf '/usr/local/go' \
+                && sudo tar -C '/usr/local' -xzf "$go_tmp"
+        fi
 EOF
     fi
 
@@ -63,21 +67,20 @@ EOF
         cat << 'EOF'
 
     # protoc
-    local protoc_version protoc_tmp
-    protoc_version="$(curl -fsSIL -o /dev/null -w '%{url_effective}' \
-        'https://github.com/protocolbuffers/protobuf/releases/latest' \
-        | sed -E 's#.*/tag/v?([^/]+)$#\1#')"
-    if [[ -z $protoc_version ]]; then
-        echo 'Failed to determine the latest protoc version.' >&2
-        return 1
-    fi
-
-    protoc_tmp="$(mktemp)"
-    curl -fsSL "https://github.com/protocolbuffers/protobuf/releases/latest/download/protoc-$protoc_version-linux-x86_64.zip" \
-        -o "$protoc_tmp" \
-        && unzip -o "$protoc_tmp" -d "$HOME/.local" \
-        && rm -f "$HOME/.local/readme.txt" \
-        || return 1
+    local protoc_version protoc_tmp \
+        && protoc_version="$(curl -fsSIL -o /dev/null -w '%{url_effective}' \
+            'https://github.com/protocolbuffers/protobuf/releases/latest' \
+            | sed -E 's#.*/tag/v?([^/]+)$#\1#')" \
+        && if [[ -z $protoc_version ]]; then
+            echo 'Failed to determine the latest protoc version.' >&2
+            false
+        else
+            protoc_tmp="$(mktemp)" \
+                && curl -fsSL "https://github.com/protocolbuffers/protobuf/releases/latest/download/protoc-$protoc_version-linux-x86_64.zip" \
+                    -o "$protoc_tmp" \
+                && unzip -o "$protoc_tmp" -d "$HOME/.local" \
+                && rm -f "$HOME/.local/readme.txt"
+        fi
 EOF
     fi
 
@@ -85,8 +88,8 @@ EOF
         cat << 'EOF'
 
     # uv
-    uv self update
-    uv tool upgrade --all
+    uv self update \
+        && uv tool upgrade --all
 EOF
     fi
 

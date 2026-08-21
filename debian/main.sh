@@ -89,8 +89,10 @@ parse_args() {
 
 main() {
     bash './command/homebrew.sh' "$@"
+    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv bash)" # export brew PATH for child scripts
+
     bash './command/omz/main.sh' "$@"
-    bash './command/omz_custom/main.sh' "$@"
+    bash './command/starship.sh' "$@"
     bash './command/classic_cli/main.sh' "$@"
 
     if [[ $COMMAND_MODERN_CLI == '1' ]]; then
