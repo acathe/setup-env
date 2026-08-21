@@ -30,7 +30,6 @@ main() {
 
     install_omz
     bash './plugin.sh' "$@"
-    bash './theme.sh' "$@"
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then

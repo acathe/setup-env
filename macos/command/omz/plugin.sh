@@ -40,6 +40,7 @@ main() {
     append_plugin 'macos'
     append_plugin 'magic-enter'
     append_plugin 'safe-paste'
+    append_plugin 'starship'
     append_plugin 'sudo'
     append_plugin 'universalarchive'
     append_plugin 'z'

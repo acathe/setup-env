@@ -36,12 +36,13 @@ main() {
 
     bash './command/omz/main.sh' "$@"
     bash './command/omz_custom/main.sh' "$@"
+    bash './command/starship.sh' "$@"
 
     if [[ $COMMAND_SSH == '1' ]]; then
         bash './command/ssh.sh' "$@"
     fi
 
-    bash './app/terminal.sh' "$@"
+    bash './app/ghostty.sh' "$@"
 
     if [[ $APP_VSCODE == '1' ]]; then
         bash './app/vscode.sh' "$@"
