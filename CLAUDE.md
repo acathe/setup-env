@@ -26,16 +26,16 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
 
 各配置树拥有独立的分发器，但并非完全独立：`container/dev-container` 使用 `debian/` 作为其 Docker 构建上下文。
 
-- `macos/` 配置终端客户端／跳板机：Homebrew、Starship、Oh My Zsh、SSH 支持，以及可选的 Ghostty 和 VS Code。它刻意不作为
+- `macos/` 配置终端客户端／跳板机：Homebrew、Starship、Oh My Zsh、SSH 支持，以及可选的 ChatGPT、Ghostty 和 VS Code。它刻意不作为
   开发机配置，不包含 Git 插件，也没有 classic CLI 组件。
-- `debian/` 配置主要开发环境。Homebrew、Zsh、Oh My Zsh 和 classic CLI 基线均无条件执行；Homebrew 最先运行，
+- `debian/` 配置主要开发环境。Homebrew、Zsh、Oh My Zsh、Starship 和 classic CLI 基线均无条件执行；Homebrew 最先运行，
   而 classic 层不安装任何工具，只管理平台提供的 less 和 Nano 的配置。其余 command、code 和 app 组件
   均为可选。
 - `container/` 分发到 `dev-container`、`copilot-api` 或一次性 `copilot-api-config` 任务。
 
 Debian 的 Homebrew 引导流程与 macOS 的 PATH 保护逻辑一致，并直接调用官方安装器；`--unattended` 只会添加 `NONINTERACTIVE=1`。
-配置父脚本不会求值 `brew shellenv`；Oh My Zsh 的 `brew` 插件会发现默认 Linux 前缀并配置交互式 Zsh。此
-集成不会为非交互式 shell 写入 `.zshenv`。
+配置父脚本不会求值 `brew shellenv`。Starship 叶脚本从当前 `PATH` 或标准 Linux 前缀解析 `brew`，并直接调用 formula 二进制文件，
+不会改变父进程环境。Oh My Zsh 的 `brew` 插件会独立发现这些前缀并配置交互式 Zsh；此集成不会为非交互式 shell 写入 `.zshenv`。
 
 `debian/vscode/` 仅作为参考数据。没有分发器会安装这些文件；`--app-vscode` 会启用 OMZ 插件。`README.md` 当前仍记录手动
 安装扩展的方式；根据前述文档边界，此类非参数内容不应继续保留或新增。Debian 的 `00-setup_env.zsh.sh` 会在未启用 modern CLI 时选择
@@ -71,7 +71,7 @@ ShellCheck 使用 `-x`，因为 `debian/app/docker.sh` 会动态 source `/etc/os
 
 直接运行分发器会执行真实的安装与配置。例如，`bash debian/main.sh --app-tmux` 会运行 `apt`、安装 Oh My Zsh，并
 修改当前 home。不要把普通账户用作冒烟测试沙箱。Debian 的 OMZ 安装器还会删除现有的 `.profile`、`.bashrc` 和
-`.bash_logout`。针对同一 home 重复生成文件的检查，并不意味着完整平台分发器是幂等的；OMZ 插件和主题安装器会克隆到
+`.bash_logout`。针对同一 home 重复生成文件的检查，并不意味着完整平台分发器是幂等的；第三方 OMZ 插件安装器会克隆到
 固定目标位置。
 
 受管理的 OMZ Zsh 由带引号的 Bash heredoc 生成，ShellCheck 不会检查其内容。手动验证按以下顺序进行：
@@ -82,12 +82,12 @@ ShellCheck 使用 `-x`，因为 `debian/app/docker.sh` 会动态 source `/etc/os
    `sed` 垫片。
 3. 设置并导出所有组件变量，包括 `APP_VSCODE`；Debian 的 `00-setup_env.zsh.sh` 没有该变量的本地默认值，遗漏会在 `set -u` 下中止并
    留下部分输出。
-4. macOS：从 `command/omz/` 调用 `plugin.sh`、`00-setup_env.zsh.sh` 和 `01-update.zsh.sh`。Debian：先从 `command/omz/` 调用
-   `plugin.sh` 和 `theme.sh`，再通过 `command/omz_custom/main.sh` 运行写入器。
+4. macOS：从 `command/omz/` 调用 `plugin.sh`、`00-setup_env.zsh.sh` 和 `01-update.zsh.sh`。Debian：从同一目录依次调用
+   `plugin.sh`、`setup-env.plugin.zsh.sh`、`00-setup_env.zsh.sh`、`01-update.zsh.sh` 和 `99-first_run.zsh.sh`。
 5. 对本次实际生成的 `setup-env.plugin.zsh`、`00-setup_env.zsh`、`01-update.zsh` 和 `99-first_run.zsh` 逐一运行 `zsh -n`。
 
-不要调用 `command/omz/main.sh`（会执行真实配置，Debian 上还会运行 `apt`），也不要调用 `update-all-in-one`（会执行真实的软件包和
-网络更新）。
+不要调用 `command/omz/main.sh`（会执行真实配置，Debian 上还会运行 `apt`）。若未提供 Homebrew 和 Starship 桩程序，也不要调用
+`command/starship.sh`：它会安装真实 formula 并替换 `starship.toml`。不要调用 `update-all-in-one`，它会执行真实的软件包和网络更新。
 
 对于 fzf shell 改动，请在 `zsh -f` 中检查 `${(z)FZF_CTRL_T_OPTS}` 和 `${(z)FZF_ALT_C_OPTS}`。插件顺序改动需要真实的 ZLE／PTY
 冒烟测试：普通 Tab 和 `**<Tab>` 必须各自只打开一次 fzf；`fzf_default_completion` 必须为 `fzf-tab-complete`；Ctrl-T 和 Alt-C 必须保持单次调用。
@@ -153,37 +153,42 @@ set -- "${POSITIONAL[@]+"${POSITIONAL[@]}"}"
 
 ## 配置所有权与落点
 
-每个共享配置片段只有一个逻辑所有者，但 `.zshrc` 由多个写入器协同管理。每棵配置树的 `command/omz/main.sh` 都会安装 Oh My Zsh
-并准备其模板。在 macOS 上，它随后编排 `plugin.sh`、`00-setup_env.zsh.sh` 和 `01-update.zsh.sh`；在 Debian 上，它编排 `plugin.sh`
-和 `theme.sh`，而 `command/omz_custom/main.sh` 编排各写入器。Debian 安装器还会启用模板中的用户 bin PATH。`plugin.sh`
-拥有插件数组和克隆，而 Debian 的 `theme.sh` 拥有主题。只有在写入非空 `setup-env` 插件之后，
-`setup-env.plugin.zsh.sh` 才会前置配套的数组条目，从而避免 shell 启动时出现“已启用但缺失”的警告。
+每个共享配置片段只有一个逻辑所有者，但 `.zshrc` 由多个写入器协同管理。每棵配置树的 `command/omz/main.sh` 都会安装 Oh My Zsh、
+准备其模板，然后编排插件和自定义文件写入器。macOS 运行 `plugin.sh`、`00-setup_env.zsh.sh` 和 `01-update.zsh.sh`；Debian 运行
+`plugin.sh`、`setup-env.plugin.zsh.sh`、`00-setup_env.zsh.sh`、`01-update.zsh.sh` 和 `99-first_run.zsh.sh`。Debian 安装器还会启用
+模板中的用户 bin PATH，`plugin.sh` 拥有插件数组和克隆。只有在写入非空 `setup-env` 插件之后，`setup-env.plugin.zsh.sh` 才会前置
+配套的数组条目，从而避免 shell 启动时出现“已启用但缺失”的警告。
 
 | 配置需求方 | 配置所属目标位置 |
 | --- | --- |
-| `compinit`、Oh My Zsh 库、插件列表、主题 | `.zshrc` |
+| `compinit`、Oh My Zsh 库、插件列表 | `.zshrc` |
+| Starship prompt 外观 | `$HOME/.config/starship.toml` |
 | 在 source 过程中需要此配置的另一个插件 | `$ZSH_CUSTOM/plugins/setup-env/setup-env.plugin.zsh` |
 | 别名、集成函数、`compdef`、运行时变量、编辑器选择 | `$ZSH_CUSTOM/00-setup_env.zsh` |
 | 用户调用的聚合更新函数 | `$ZSH_CUSTOM/01-update.zsh` |
 | 延迟执行的交互式登录或向导 | `$ZSH_CUSTOM/99-first_run.zsh` |
 | 非交互式 shell 命令 | `.zshenv` |
 
-决策依据是值被读取的时机，而不是它看起来是否像环境变量。`setup-env` 插件承载 eza 加载时 zstyle 和
-`PYTHON_AUTO_VRUN`；将它们移到 `00-setup_env.zsh` 会悄无声息地为时过晚。相反，`ZSH_HIGHLIGHT_HIGHLIGHTERS+=(brackets)` 必须保留在
-syntax-highlighting 插件之后；提前移动会阻止该插件安装其 `main` highlighter。
+决策依据是值被读取的时机，而不是它看起来是否像环境变量。`setup-env` 插件承载 eza 加载时 zstyle；将它们移到
+`00-setup_env.zsh` 会悄无声息地为时过晚。相反，`ZSH_HIGHLIGHT_HIGHLIGHTERS+=(brackets)` 必须保留在 syntax-highlighting 插件之后；
+提前移动会阻止该插件安装其 `main` highlighter。
+
+Debian 的 Python 集成会启用 Oh My Zsh 的 `python` 和 `uv` 插件，但刻意不设置 `PYTHON_AUTO_VRUN`。uv 无需该手动自动激活开关即可
+发现虚拟环境；不要重新引入它。
 
 由配置流程管理的运行时工具配置以制品形式随仓库提供，而不是由配置 shell 渲染。大多数写入器使用
 `install -m 644`，需要创建父目录时再加 `-D`。这包括 bat、Glow、less、micro、Nano、lazygit，以及 Yazi 的 `init.lua` 和
 `keymap.toml`；仓库本地 lint 配置和未部署的 VS Code 参考数据不受此规则约束。
 copilot-api 设置模板是随仓库提供、由 `jq` 补全的 JSON 制品，直接写入时目录权限为 700，文件权限为 600。外部
-例外是 `code/python.sh` 从 BesLogic 的 `main` 分支下载的 Ruff 基线。Yazi 的 `yazi.toml` 是生成式例外：
-`app/yazi/yazi.toml.sh` 会创建目标目录，并通过一次完整渲染替换目标，因为 previewer 依赖组件标志。macOS Starship 是另一生成式
-例外：`command/starship.sh` 调用上游 preset 命令生成 `~/.config/starship.toml`，重复配置会覆盖该文件中的用户修改。此处自行设计的
-生成文件均采用完整渲染；仅向上游拥有的文件追加内容，而全局 Git 配置使用 `git config`。
+例外是 `code/python.sh` 从 BesLogic 的 `main` 分支下载的 Ruff 基线。Starship 和 Yazi 使用生成式配置：`command/starship.sh` 通过
+已安装二进制文件的 `nerd-font-symbols` preset 替换 `$HOME/.config/starship.toml`；`app/yazi/yazi.toml.sh` 会创建目标目录，并通过
+一次完整渲染替换 `yazi.toml`，因为 previewer 依赖组件标志。重复配置会覆盖这两个文件中的用户修改。此处自行设计的生成文件均采用
+完整渲染；仅向上游拥有的文件追加内容，而全局 Git 配置使用 `git config`。
 
-重新运行会覆盖仍有写入器的受管理静态配置。删除随仓库提供的制品，不会删除早期版本已经安装的副本；
-清理必须显式执行。当执行到 `yazi.toml.sh` 时，它会完整重新渲染 `yazi.toml`，因此完成的渲染会反映当前集成
-标志。
+重新运行会覆盖仍有写入器的受管理静态配置，并完整重建 Starship 和 Yazi 的生成配置。删除随仓库提供的制品，不会删除早期版本
+已经安装的副本；清理必须显式执行。Starship 迁移同样会保留早期的 `$ZSH_CUSTOM/themes/powerlevel10k` 克隆，且不会删除 Debian
+并未管理的 `.p10k.zsh`。官方 Starship 插件会在 Oh My Zsh 的主题阶段前清除陈旧的 `ZSH_THEME`，因此两者均不会生效。当执行到
+`yazi.toml.sh` 时，完成的渲染会反映当前集成标志。
 Yazi 的 `package.toml` 不同：`ya pkg add` 拥有这份可变运行时清单，因此仓库从不提供、覆盖或垃圾回收它。只
 配置与软件包默认值有实质差异的值。`ya pkg add` 会拒绝已列出的依赖。它用完整的
 `owner/repository` 标识来源，但按插件名部署，因此替换同名插件的所有者时，必须先对旧来源执行 `ya pkg delete`，再添加新
@@ -208,14 +213,16 @@ Yazi 的 `package.toml` 不同：`ya pkg add` 拥有这份可变运行时清单�
 
 `01-update.zsh.sh` 在两个平台上都有无条件区段，并完整重建 `01-update.zsh`；生成的文件被 source 时必须只定义
 `update-all-in-one`。Debian 写入器在可选安装器之前运行，并根据导出的配置标志选择区块，而不是在渲染时探测命令
-是否可用。因此，禁用组件标志会移除之前的可选更新区块，而不是保留陈旧输出。
+是否可用。因此，禁用组件标志会移除之前的可选更新区块，而不是保留陈旧输出。生成函数中的每个更新模块必须是一个顶层命令；
+同一模块的多步操作用 `&&` 连接，模块不得用 `return` 退出聚合函数。这样模块失败只会停止自身，后续模块仍会继续更新。
 
 在 macOS 上，`update-all-in-one` 依次运行 `brew update`、`brew upgrade --greedy` 和 `brew cleanup`，并将 `omz update` 保持为最后一个动作。Homebrew 会覆盖
 其 formula 和 cask，因此 `APP_VSCODE` 不需要专用更新区块。
 
-在 Debian 上，APT 负责更新由 APT 安装的工具；专用区块覆盖 tealdeer 缓存数据、Go 和 protoc 归档、uv 工具、rustup、Claude Code、
-lazydocker 和 Yazi 软件包。Go 区块只更新工具链：不要扫描 `$GOBIN`/`$GOPATH/bin`，不要添加全局 Go 工具更新器，也不要在此更新 `gopls`。
-Go 和 protoc 的临时下载刻意依赖临时存储清理。
+在 Debian 上，APT 负责更新由 APT 安装的工具。无条件 Homebrew 区块会更新 formula metadata、只升级受管理的 Starship formula，并
+执行 cleanup；专用区块覆盖 tealdeer 缓存数据、Go 和 protoc 归档、uv 工具、rustup、Claude Code、lazydocker 和 Yazi 软件包。Go 区块
+只更新工具链：不要扫描 `$GOBIN`/`$GOPATH/bin`，不要添加全局 Go 工具更新器，也不要在此更新 `gopls`。Go 和 protoc 的临时下载刻意
+依赖临时存储清理。
 
 ## Oh My Zsh 加载与插件顺序
 
@@ -231,8 +238,10 @@ Oh My Zsh 会先于插件初始化补全和库，随后按 `plugins=()` 顺序 s
 - 在本仓库中，`fzf-tab` 也位于 `fzf` 之前。fzf 会将当前 Tab 绑定捕获为 `fzf_default_completion`；颠倒两者会嵌套两个 fzf
   补全界面。
 - 第三方克隆插件在 `ohmyzsh-full-autoupdate` 之后加载，后者的更新是同步的。
-- 两个平台上，`brew` 都紧跟在 `aliases` 之后，以便在后续插件前建立 Homebrew 环境。在 macOS 上，它还位于
-  `command-not-found` 之前，后者的 Homebrew handler 期望 `brew` 已在 `PATH` 中。
+- 两个平台上，`brew` 都紧跟在 `aliases` 之后，以便在后续插件前建立 Homebrew 环境。它必须位于 `starship` 之前；在 macOS 上，
+  它还位于 `command-not-found` 之前，后者的 Homebrew handler 期望 `brew` 已在 `PATH` 中。
+- 官方 `starship` 插件会在插件加载阶段清除 `ZSH_THEME` 并初始化 prompt，时机早于自定义 `*.zsh` 文件和主题阶段。不要添加第二次
+  `starship init` 或主题写入器。
 
 Atuin 是刻意安排在插件之后的例外。它从 `00-setup_env.zsh` 初始化，以便在 fzf 加载后接管 Ctrl-R 和 Up；软件包提供的 Zsh 与
 syntax-highlighting 组合仍可高亮此时新增的 widget。不要为了遵循通用顺序规则而将它提前。
@@ -318,8 +327,8 @@ Debian 仅在未启用 modern CLI 时选择 `nano -/`；启用 modern CLI 时改
 
 ## Classic CLI
 
-只有 Debian 会在其 OMZ 自定义写入器之后无条件运行 `command/classic_cli/main.sh`。它不安装软件包，只使用 `install -Dm 644` 将随仓库提供的
-`lesskey` 和 `nanorc` 制品复制到 `$HOME/.config/lesskey` 和 `$HOME/.config/nano/nanorc`；less 和 Nano 来自平台基线。
+只有 Debian 会在统一 OMZ 流程和 Starship 之后无条件运行 `command/classic_cli/main.sh`。它不安装软件包，只使用 `install -Dm 644` 将
+随仓库提供的 `lesskey` 和 `nanorc` 制品复制到 `$HOME/.config/lesskey` 和 `$HOME/.config/nano/nanorc`；less 和 Nano 来自平台基线。
 macOS 没有 classic CLI 组件。
 
 ## Debian modern CLI

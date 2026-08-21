@@ -20,6 +20,7 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
 |                 | `--command-ssh-identity-file <v>` |
 |                 | `--command-ssh-comment <v>`       |
 |                 | `--command-ssh-no-copy-key`       |
+| `--app-chatgpt` |                                   |
 | `--app-ghostty` |                                   |
 | `--app-vscode`  |                                   |
 

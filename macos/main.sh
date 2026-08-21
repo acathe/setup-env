@@ -4,6 +4,7 @@ set -euo pipefail
 
 export COMMAND_SSH="${COMMAND_SSH:-0}"
 
+export APP_CHATGPT="${APP_CHATGPT:-0}"
 export APP_GHOSTTY="${APP_GHOSTTY:-0}"
 export APP_VSCODE="${APP_VSCODE:-0}"
 
@@ -13,6 +14,10 @@ parse_args() {
         case "$1" in
             --command-ssh)
                 COMMAND_SSH=1
+                shift # shift once since flags have no values
+                ;;
+            --app-chatgpt)
+                APP_CHATGPT=1
                 shift # shift once since flags have no values
                 ;;
             --app-ghostty)
@@ -37,13 +42,17 @@ main() {
     fi
 
     bash './command/homebrew.sh' "$@"
-    eval "$(/opt/homebrew/bin/brew shellenv)" # export brew PATH for child scripts
+    eval "$(/opt/homebrew/bin/brew shellenv)"
 
     bash './command/omz/main.sh' "$@"
     bash './command/starship.sh' "$@"
 
     if [[ $COMMAND_SSH == '1' ]]; then
         bash './command/ssh.sh' "$@"
+    fi
+
+    if [[ $APP_CHATGPT == '1' ]]; then
+        bash './app/chatgpt.sh' "$@"
     fi
 
     if [[ $APP_GHOSTTY == '1' ]]; then

@@ -4,8 +4,6 @@ set -euo pipefail
 
 COMMAND_MODERN_CLI="${COMMAND_MODERN_CLI:-0}"
 
-CODE_PYTHON="${CODE_PYTHON:-0}"
-
 ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
 
 render_blocks() {
@@ -18,14 +16,6 @@ zstyle ":omz:plugins:eza" "git-status" yes
 zstyle ":omz:plugins:eza" "header" yes
 zstyle ":omz:plugins:eza" "icons" yes
 zstyle ":omz:plugins:eza" "time-style" "relative"
-EOF
-    fi
-
-    if [[ $CODE_PYTHON == '1' ]]; then
-        cat << 'EOF'
-
-# Python
-PYTHON_AUTO_VRUN=true
 EOF
     fi
 }

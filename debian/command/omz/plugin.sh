@@ -45,6 +45,7 @@ main() {
     append_plugin 'fancy-ctrl-z'
     append_plugin 'magic-enter'
     append_plugin 'safe-paste'
+    append_plugin 'starship'
     append_plugin 'sudo'
     append_plugin 'universalarchive'
     [[ $COMMAND_MODERN_CLI != '1' ]] && append_plugin 'z'
