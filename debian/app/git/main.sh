@@ -35,10 +35,6 @@ parse_args() {
     done
 }
 
-install_tools() {
-    brew install 'gh' 'git-delta' 'lazygit'
-}
-
 setup_git() {
     if [[ -n $APP_GIT_USER_NAME ]]; then
         git config --global user.name "$APP_GIT_USER_NAME"
@@ -60,12 +56,7 @@ setup_git() {
 }
 
 main() {
-    if ! command -v git > /dev/null 2>&1; then
-        echo 'git is not installed.' >&2
-        return 1
-    fi
-
-    install_tools
+    brew install 'gh' 'git-delta' 'lazygit'
     setup_git
 }
 

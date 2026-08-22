@@ -24,9 +24,6 @@ function update-all-in-one() {
     brew update \
         && brew upgrade --greedy \
         && brew cleanup
-
-    # Oh My Zsh
-    omz update
 EOF
 
     if [[ $COMMAND_MODERN_CLI == '1' ]]; then
@@ -62,6 +59,9 @@ EOF
     fi
 
     cat << 'EOF'
+
+    # Oh My Zsh
+    omz update
 }
 EOF
 }

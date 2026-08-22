@@ -8,11 +8,6 @@ main() {
         return 0
     fi
 
-    if ! command -v curl > /dev/null 2>&1; then
-        echo 'curl is not installed.' >&2
-        return 1
-    fi
-
     # Ref. https://brew.sh/zh-cn/
     /bin/bash -c "$(curl -fsSL 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh')"
 }

@@ -26,12 +26,10 @@ main() {
         return 0
     fi
 
-    if ! command -v curl > /dev/null 2>&1; then
-        echo 'curl is not installed.' >&2
-        return 1
-    fi
+    sudo apt-get update
+    sudo apt-get install -y build-essential procps curl file git
 
-    # Ref. https://brew.sh/zh-cn/
+    # Ref. https://docs.brew.sh/Homebrew-on-Linux
     if [[ $UNATTENDED == '1' ]]; then
         NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh')"
     else

@@ -33,11 +33,13 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
   均为可选。
 - `container/` 分发到 `dev-container`、`copilot-api` 或一次性 `copilot-api-config` 任务。
 
-Debian 的 Homebrew 引导流程与 macOS 的 PATH 保护逻辑一致，并直接调用官方安装器；`--unattended` 只会添加 `NONINTERACTIVE=1`。
-配置父脚本随后求值 `/home/linuxbrew/.linuxbrew/bin/brew shellenv bash`，使后代安装器可直接调用 `brew` 及其 formula 二进制文件。
-Oh My Zsh 的 `brew` 插件会独立配置交互式 Zsh；此集成不会为非交互式 shell 写入 `.zshenv`。
+Debian 的 Homebrew 引导流程与 macOS 的 PATH 保护逻辑一致。首次安装前，它会通过 APT 安装 Homebrew 官方为 Debian/Ubuntu
+列出的 `build-essential`、`procps`、`curl`、`file` 和 `git`，再调用官方安装器；`--unattended` 只会添加 `NONINTERACTIVE=1`。
+配置父脚本随后求值 `/home/linuxbrew/.linuxbrew/bin/brew shellenv bash`，使后代安装器可直接调用 `brew` 及非 keg-only formula
+二进制文件。Oh My Zsh 的 `brew` 插件会独立配置交互式 Zsh；此集成不会为非交互式 shell 写入 `.zshenv`。
 Go 组件使用 Linuxbrew 的 `go` formula；formula 可执行文件的发现沿用上述 Homebrew PATH 契约，不由 Go 组件重复配置。
-启用 `CODE_GO` 时，Debian 的 `00-setup_env.zsh.sh` 会在交互式 Zsh 中前置默认的 `$HOME/go/bin`，以发现 `go install` 产物。
+启用 `CODE_GO` 时，Debian 的 `00-setup_env.zsh.sh` 会在交互式 Zsh 中前置默认的 `$HOME/go/bin`，以发现 `go install` 产物；启用
+`CODE_PROTOBUF` 时，同一写入器会前置 `$HOMEBREW_PREFIX/opt/clang-format/bin`，以发现 keg-only `clang-format` formula 的命令。
 
 `debian/vscode/` 仅作为参考数据。没有分发器会安装这些文件；`--app-vscode` 会启用 OMZ 插件。`README.md` 当前仍记录手动
 安装扩展的方式；根据前述文档边界，此类非参数内容不应继续保留或新增。Debian 的 `00-setup_env.zsh.sh` 会在未启用 modern CLI 时选择
@@ -84,12 +86,16 @@ ShellCheck 使用 `-x`，因为 `debian/app/docker.sh` 会动态 source `/etc/os
 3. 设置并导出所有组件变量，包括 `APP_VSCODE`；Debian 的 `00-setup_env.zsh.sh` 没有该变量的本地默认值，遗漏会在 `set -u` 下中止并
    留下部分输出。
 4. macOS：从 `command/omz/` 调用 `plugin.sh`、`00-setup_env.zsh.sh` 和 `01-update.zsh.sh`。Debian：从同一目录开始；若
-   `CODE_RUST=1`，先 source `main.sh` 并调用 `install_brew_rustup`，再依次调用 `plugin.sh`、`setup-env.plugin.zsh.sh`、
-   `00-setup_env.zsh.sh`、`01-update.zsh.sh` 和 `99-first_run.zsh.sh`。
-5. 对本次实际生成的 `setup-env.plugin.zsh`、`00-setup_env.zsh`、`01-update.zsh` 和 `99-first_run.zsh` 逐一运行 `zsh -n`。
+   `CODE_RUST=1`，先使用 `install -Dm 644 './brew-rustup.plugin.zsh' "$ZSH_CUSTOM/plugins/brew-rustup/brew-rustup.plugin.zsh"`
+   部署 Rust 插件，再依次调用 `plugin.sh`、`setup-env.plugin.zsh.sh`、`00-setup_env.zsh.sh`、`01-update.zsh.sh` 和
+   `99-first_run.zsh.sh`。
+5. 确认 `$HOME/.zshrc` 恰有一个 `plugins=(...)` 行，且完整内容和顺序符合当前组件变量。
+6. 对 `$HOME/.zshrc`、本次实际生成的 `setup-env.plugin.zsh`、`00-setup_env.zsh`、`01-update.zsh` 和 `99-first_run.zsh`
+   逐一运行 `zsh -n`；`CODE_RUST=1` 时还要检查部署的 `brew-rustup.plugin.zsh`。
 
-不要执行 `command/omz/main.sh`（会执行真实配置，Debian 上还会运行 `apt`）；仅 source 它以调用上述安装函数是安全的。若未提供 Homebrew 和 Starship 桩程序，也不要调用
-`command/starship.sh`：它会安装真实 formula 并替换 `starship.toml`。不要调用 `update-all-in-one`，它会执行真实的软件包和网络更新。
+不要执行 `command/omz/main.sh`：它会执行真实配置，Debian 上还会运行 `apt`；也不要调用其中的 `install_omz`，它会安装
+Oh My Zsh 并修改当前 home。若未提供 Homebrew 和 Starship 桩程序，也不要调用 `command/starship.sh`：它会安装真实 formula 并替换
+`starship.toml`。不要调用 `update-all-in-one`，它会执行真实的软件包和网络更新。
 
 对于 fzf shell 改动，请在 `zsh -f` 中检查 `${(z)FZF_CTRL_T_OPTS}` 和 `${(z)FZF_ALT_C_OPTS}`。插件顺序改动需要真实的 ZLE／PTY
 冒烟测试：普通 Tab 和 `**<Tab>` 必须各自只打开一次 fzf；`fzf_default_completion` 必须为 `fzf-tab-complete`；Ctrl-T 和 Alt-C 必须保持单次调用。
@@ -117,8 +123,8 @@ Debian 的 `APP_VSCODE` 是明确的纯集成例外：它有导出、解析器 c
 `command/modern_cli/main.sh` 聚合可选工具和固定的子安装器。
 
 标志会刻意通过导出变量和转发参数向下级联。OMZ `main.sh` 读取 `CODE_RUST` 以安装 `brew-rustup` 插件，
-`00-setup_env.zsh.sh` 读取 `CODE_GO` 以配置用户 Go bin PATH；`01-update.zsh.sh` 读取拥有专用更新区块的组件标志；Claude app 从 Debian 读取
-`CODE_GO`、`CODE_PYTHON`、`CODE_RUST` 和 `APP_GIT`；
+`00-setup_env.zsh.sh` 读取 `CODE_GO` 和 `CODE_PROTOBUF` 以配置对应的用户工具 PATH；`01-update.zsh.sh` 读取拥有专用更新区块的组件标志；
+Claude app 从 Debian 读取 `CODE_GO`、`CODE_PYTHON`、`CODE_RUST` 和 `APP_GIT`；
 tmux 读取 `APP_CLAUDE`；Yazi 读取
 `COMMAND_MODERN_CLI` 和 `CODE_MARKDOWN`。OMZ 写入器读取组件标志，是因为它们实际拥有共享 shell 落点。跨组件读取仅在两个关注点都
 启用时增加集成行为，因而是有效的。
@@ -169,6 +175,7 @@ set -- "${POSITIONAL[@]+"${POSITIONAL[@]}"}"
 | Starship prompt 外观 | `$HOME/.config/starship.toml` |
 | eza 在 source 过程中需要的 zstyle | `$ZSH_CUSTOM/plugins/setup-env/setup-env.plugin.zsh` |
 | Rust 插件在 source 前需要的 rustup 代理 PATH | `$ZSH_CUSTOM/plugins/brew-rustup/brew-rustup.plugin.zsh` |
+| keg-only `clang-format` 的交互式 PATH | `$ZSH_CUSTOM/00-setup_env.zsh` |
 | 别名、集成函数、`compdef`、运行时变量、编辑器选择 | `$ZSH_CUSTOM/00-setup_env.zsh` |
 | 用户调用的聚合更新函数 | `$ZSH_CUSTOM/01-update.zsh` |
 | 延迟执行的交互式登录或向导 | `$ZSH_CUSTOM/99-first_run.zsh` |
@@ -178,9 +185,9 @@ set -- "${POSITIONAL[@]+"${POSITIONAL[@]}"}"
 `00-setup_env.zsh` 会悄无声息地为时过晚。相反，`ZSH_HIGHLIGHT_HIGHLIGHTERS+=(brackets)` 必须保留在 syntax-highlighting 插件之后；
 提前移动会阻止该插件安装其 `main` highlighter。
 
-`--code-python` 使用 Linuxbrew 管理 `uv` 和 `py-spy` formula；Debian 系统 `python3` 仍是平台基线，项目使用的 Python 运行时则由 `uv`
-安装和管理，不额外安装 Homebrew `python` formula。Python 集成会启用 Oh My Zsh 的 `python` 和 `uv` 插件，但刻意不设置
-`PYTHON_AUTO_VRUN`。uv 无需该手动自动激活开关即可发现虚拟环境；不要重新引入它。
+`--code-python` 使用 Linuxbrew 管理 `uv` formula，并由 `uv tool` 隔离安装 `py-spy`；Debian 系统 `python3` 仍是平台基线，项目使用的
+Python 运行时则由 `uv` 安装和管理，不额外安装 Homebrew `python` formula。Python 集成会启用 Oh My Zsh 的 `python` 和 `uv` 插件，
+但刻意不设置 `PYTHON_AUTO_VRUN`。uv 无需该手动自动激活开关即可发现虚拟环境；不要重新引入它。
 
 由配置流程管理的运行时工具配置以制品形式随仓库提供，而不是由配置 shell 渲染。大多数写入器使用
 `install -m 644`，需要创建父目录时再加 `-D`。这包括 `brew-rustup` 插件、bat、Glow、less、micro、Nano、lazygit，以及 Yazi 的
@@ -227,8 +234,8 @@ Yazi 的 `package.toml` 不同：`ya pkg add` 拥有这份可变运行时清单�
 
 在 Debian 上，APT 负责更新由 APT 安装的工具。无条件 Homebrew 区块会更新 formula metadata、以 `--greedy` 升级所有已安装的 formula 和 cask，并
 执行 cleanup；它也覆盖由 Homebrew 管理的 Claude Code、Node、Go，以及 protobuf 组件的 `clang-format` 和 `protobuf`。专用区块覆盖
-tealdeer 缓存数据、`uv tool` 安装的工具、rustup 和 Yazi 插件。不要为 Go 恢复专用更新区块、扫描 `$GOBIN`/`$GOPATH/bin`、添加全局 Go
-工具更新器或在此更新 `gopls`。
+tealdeer 缓存数据、包括 `py-spy` 在内的 `uv tool`、rustup 和 Yazi 插件；`omz update` 保持为最后一个动作。不要为 Go 恢复专用更新区块、
+扫描 `$GOBIN`/`$GOPATH/bin`、添加全局 Go 工具更新器或在此更新 `gopls`。
 
 ## Oh My Zsh 加载与插件顺序
 
@@ -253,9 +260,10 @@ Atuin 是刻意安排在插件之后的例外。它从 `00-setup_env.zsh` 初始
 syntax-highlighting 组合仍可高亮此时新增的 widget。不要为了遵循通用顺序规则而将它提前。
 
 Debian 启用 Rust 时会安装自定义 `brew-rustup` 插件，并按 `brew`、`brew-rustup`、官方 `rust` 的先后顺序加载。
-Homebrew 的 keg-only `rustup` formula 将 `cargo`、`rustc` 和其他代理保留在 `$HOMEBREW_PREFIX/opt/rustup/bin`；`brew-rustup`
-负责先将该目录前置到 `PATH`。不要把它移到 `brew` 之前或 `rust` 之后：官方 `rust` 插件会在 source 时检查 `cargo`，路径尚未
-生效时会直接退出。Claude 集成也不得重新添加上游安装器使用的 `$HOME/.cargo/bin`。
+Homebrew 的 keg-only `rustup` formula 会在 post-install 中仅将 `rustup` 本体强制链接到 `$HOMEBREW_PREFIX/bin`，所以配置脚本可在
+`brew shellenv` 后直接调用它；`cargo`、`rustc` 和其他工具链代理仍保留在 `$HOMEBREW_PREFIX/opt/rustup/bin`。`brew-rustup` 负责先将
+该目录前置到 `PATH`。不要把它移到 `brew` 之前或 `rust` 之后：官方 `rust` 插件会在 source 时检查 `cargo`，路径尚未生效时会直接退出。
+Claude 集成也不得重新添加上游安装器使用的 `$HOME/.cargo/bin`。
 
 可选插件由提供相应命令的组件控制。启用 modern CLI 时，使用 Oh My Zsh 的 `zoxide` 插件并省略 `z`；未启用时，使用
 `z` 并输出 zsh-z 设置。modern CLI 的 Homebrew 补全必须通过 `$ZSH_CUSTOM/completions` 在 `compinit` 前可见；不要依赖稍后才加载的
@@ -349,10 +357,10 @@ Nano 制品，也从不选择 Nano。
 
 ## Debian modern CLI
 
-`command/modern_cli/main.sh` 是可选的聚合叶脚本。APT 只提供其他组件也会独立使用的 `jq` 和 `unzip`；Linuxbrew 安装
-`atuin`、`bat`、`btop`、`eza`、`fd`、`fzf`、`hyperfine`、`micro`、`ripgrep`、`tealdeer` 和 `zoxide` formula。聚合器还拥有
-bat、fd 和 tldr 的 Homebrew completion 链接及 tealdeer 缓存预热，然后运行只管理静态配置或插件的 bat 和 Micro 子脚本。`man-db`
-是平台基线：完整的 Debian 主机应当提供它，而 `container/dev-container/Dockerfile` 会显式安装它。
+`command/modern_cli/main.sh` 是可选的聚合叶脚本。Linuxbrew 安装 `atuin`、`bat`、`btop`、`eza`、`fd`、`fzf`、`hyperfine`、
+`micro`、`ripgrep`、`tealdeer` 和 `zoxide` formula。聚合器还拥有 bat、fd 和 tldr 的 Homebrew completion 链接及 tealdeer 缓存预热，
+并直接安装 bat、Micro 的静态配置与 Micro 的 `detectindent` 插件。`man-db` 是平台基线：完整的 Debian 主机应当提供它，而
+`container/dev-container/Dockerfile` 会显式安装它。
 
 Atuin 由 Linuxbrew 安装，没有仓库拥有的配置。全新 home 使用软件包默认值，但早期版本安装的 `~/.config/atuin/config.toml`
 会保留到显式删除为止。配置流程不会导入历史记录，也不会配置账户／同步。它的延迟初始化会接管 Ctrl-R 和 Up，而 fzf
@@ -361,9 +369,9 @@ Atuin 由 Linuxbrew 安装，没有仓库拥有的配置。全新 home 使用软
 fzf 使用 formula 提供的 shell 集成默认值，没有仓库拥有的静态配置。`setup-env` 插件不定义 fzf 引导变量。
 插件加载后，`00-setup_env.zsh.sh` 从当前 `FZF_DEFAULT_COMMAND` 派生 `FZF_CTRL_T_COMMAND` 和 `FZF_ALT_C_COMMAND`，并添加 bat/eza 预览。
 fzf-tab 区块使用五字段 `:completion:*:*:*:*:*` 模式，使其优先级高于 Oh My Zsh 的 menu 默认值，同时恢复颜色、保持 Git checkout 顺序，
-并绑定分组导航。Bat 子脚本只拥有受管理配置；fd 没有独立配置脚本，eza 别名来自早期 zstyle，zoxide 恰好通过其 OMZ 插件初始化一次。
+并绑定分组导航。Bat 配置由聚合器直接安装；fd 没有独立配置脚本，eza 别名来自早期 zstyle，zoxide 恰好通过其 OMZ 插件初始化一次。
 
-Micro 子脚本拥有 `detectindent` 插件和受管理设置，真彩色保持为 `MICRO_TRUECOLOR=1`，modern CLI 选择 Micro 作为默认编辑器。
+聚合器直接安装 Micro 的 `detectindent` 插件和受管理设置，真彩色保持为 `MICRO_TRUECOLOR=1`，modern CLI 选择 Micro 作为默认编辑器。
 tealdeer 的 formula 版本由无条件 Homebrew 区块升级；聚合器和专用更新区块仍会以非致命方式预热其缓存。Markdown code 组件通过
 Linuxbrew 安装 `glow` 和提供 `markdownlint` 命令的 `markdownlint-cli`，拥有 Glow 的受管理配置并启用 TUI 鼠标支持；两个 formula
 同样由无条件 Homebrew 区块统一升级，不需要专用更新区块。zoxide 不拥有静态配置或第二次初始化。
@@ -438,10 +446,11 @@ bash /mnt/setup/main.sh --unattended "${setup_args[@]}"
 ```
 
 构建上下文是 `debian/`，因此镜像配置无法使用移到该树之外的文件。Debian 宿主把系统 `python3` 视为平台基线；它独立于
-`debian/code/python.sh` 可选安装的 Linuxbrew `uv` 和 `py-spy`。精简的 dev-container 镜像必须在 Dockerfile 的基础包列表显式补齐。launcher 当前假定宿主为提供
+`debian/code/python.sh` 可选安装的 Linuxbrew `uv` 和由 `uv tool` 管理的 `py-spy`。精简的 dev-container 镜像必须在 Dockerfile 的基础包列表显式补齐。launcher 当前假定宿主为提供
 `timedatectl` 的 Linux/systemd 环境，并要求 `LANG` 采用 `<locale>.<encoding>` 格式；现有检查只验证其非空。若要支持 macOS 宿主或
 `LANG=C`，必须同步更新宿主预检、拆分逻辑和 Dockerfile 的 `localedef` 调用。无人值守模式安装 Oh My Zsh 但不启动它，且会更改
-登录 shell；launcher 将主机的 `~/Projects` 挂载到具有特权的持久容器中。
+登录 shell；dev-container 预期通过 `docker exec` 进入交互式 Zsh，不保证直接执行的非交互命令能发现 Homebrew；launcher 将主机的
+`~/Projects` 挂载到具有特权的持久容器中。
 
 `container/copilot-api/main.sh` 解析最新 release 以获取 Git ref 和镜像标签，从该 ref 构建，可选地通过 `/dev/tty` 运行交互式
 认证，然后替换指定名称的服务容器、发布 4141 端口，并将主机的 `~/.copilot-api` 挂载为服务状态。
