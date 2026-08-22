@@ -47,21 +47,13 @@ main() {
     bash './command/omz/main.sh' "$@"
     bash './command/starship.sh' "$@"
 
-    if [[ $COMMAND_SSH == '1' ]]; then
-        bash './command/ssh.sh' "$@"
-    fi
+    [[ $COMMAND_SSH == '1' ]] && bash './command/ssh.sh' "$@"
 
-    if [[ $APP_CHATGPT == '1' ]]; then
-        bash './app/chatgpt.sh' "$@"
-    fi
+    [[ $APP_CHATGPT == '1' ]] && bash './app/chatgpt.sh' "$@"
+    [[ $APP_GHOSTTY == '1' ]] && bash './app/ghostty/main.sh' "$@"
+    [[ $APP_VSCODE == '1' ]] && bash './app/vscode.sh' "$@"
 
-    if [[ $APP_GHOSTTY == '1' ]]; then
-        bash './app/ghostty/main.sh' "$@"
-    fi
-
-    if [[ $APP_VSCODE == '1' ]]; then
-        bash './app/vscode.sh' "$@"
-    fi
+    return 0
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
