@@ -81,17 +81,15 @@ ShellCheck 使用 `-x`，因为 `debian/app/docker.sh` 会动态 source `/etc/os
 
 1. 创建一次性目录树，将 `HOME` 和 `ZSH_CUSTOM` 显式指向同一棵树，并使用受控的 `PATH`；只修改 `HOME` 不够，因为写入器会沿用
    继承的 `ZSH_CUSTOM`。
-2. 使用 Oh My Zsh 模板初始化 `$HOME/.zshrc`，在 `PATH` 中放置 `git` 桩程序；在 Linux 上验证 macOS 时，再为 `plugin.sh` 提供 BSD
-   `sed` 垫片。
+2. 使用 Oh My Zsh 模板初始化 `$HOME/.zshrc`，在 `PATH` 中放置供 `install_plugin.sh` 使用的 `git` 桩程序；在 Linux 上验证
+   macOS 时，再为 `plugin.sh` 提供 BSD `sed` 垫片。
 3. 设置并导出所有组件变量，包括 `APP_VSCODE`；Debian 的 `00-setup_env.zsh.sh` 没有该变量的本地默认值，遗漏会在 `set -u` 下中止并
    留下部分输出。
-4. macOS：从 `command/omz/` 调用 `plugin.sh`、`00-setup_env.zsh.sh` 和 `01-update.zsh.sh`。Debian：从同一目录开始；若
-   `CODE_RUST=1`，先使用 `install -Dm 644 './brew-rustup.plugin.zsh' "$ZSH_CUSTOM/plugins/brew-rustup/brew-rustup.plugin.zsh"`
-   部署 Rust 插件，再依次调用 `plugin.sh`、`setup-env.plugin.zsh.sh`、`00-setup_env.zsh.sh`、`01-update.zsh.sh` 和
-   `99-first_run.zsh.sh`。
+4. macOS：从 `command/omz/` 依次调用 `install_plugin.sh`、`plugin.sh`、`00-setup_env.zsh.sh` 和 `01-update.zsh.sh`。Debian：
+   从同一目录依次调用 `install_plugin.sh`、`plugin.sh`、`00-setup_env.zsh.sh`、`01-update.zsh.sh` 和 `99-first_run.zsh.sh`。
 5. 确认 `$HOME/.zshrc` 恰有一个 `plugins=(...)` 行，且完整内容和顺序符合当前组件变量。
-6. 对 `$HOME/.zshrc`、本次实际生成的 `setup-env.plugin.zsh`、`00-setup_env.zsh`、`01-update.zsh` 和 `99-first_run.zsh`
-   逐一运行 `zsh -n`；`CODE_RUST=1` 时还要检查部署的 `brew-rustup.plugin.zsh`。
+6. 对 `$HOME/.zshrc`、`00-setup_env.zsh`、`01-update.zsh` 和 `99-first_run.zsh` 逐一运行 `zsh -n`；`COMMAND_MODERN_CLI=1`
+   时还要检查部署的 `pre-eza.plugin.zsh`，`CODE_RUST=1` 时还要检查部署的 `brew-rustup.plugin.zsh`。
 
 不要执行 `command/omz/main.sh`：它会执行真实配置，Debian 上还会运行 `apt`；也不要调用其中的 `install_omz`，它会安装
 Oh My Zsh 并修改当前 home。若未提供 Homebrew 和 Starship 桩程序，也不要调用 `command/starship.sh`：它会安装真实 formula 并替换
@@ -122,8 +120,9 @@ Debian 的 `APP_VSCODE` 是明确的纯集成例外：它有导出、解析器 c
 两个 CLI 入口点都是无解析器的叶脚本：`command/classic_cli/main.sh` 只拥有平台提供的 CLI 工具的无条件配置，而
 `command/modern_cli/main.sh` 聚合可选工具和固定的子安装器。
 
-标志会刻意通过导出变量和转发参数向下级联。OMZ `main.sh` 读取 `CODE_RUST` 以安装 `brew-rustup` 插件，
-`00-setup_env.zsh.sh` 读取 `CODE_GO` 和 `CODE_PROTOBUF` 以配置对应的用户工具 PATH；`01-update.zsh.sh` 读取拥有专用更新区块的组件标志；
+标志会刻意通过导出变量和转发参数向下级联。Debian 的 OMZ `install_plugin.sh` 读取 `CODE_RUST` 和
+`COMMAND_MODERN_CLI` 以部署 `brew-rustup` 和 `pre-eza` 插件，`plugin.sh` 读取组件标志以重建插件数组；`00-setup_env.zsh.sh`
+读取 `CODE_GO` 和 `CODE_PROTOBUF` 以配置对应的用户工具 PATH；`01-update.zsh.sh` 读取拥有专用更新区块的组件标志；
 Claude app 从 Debian 读取 `CODE_GO`、`CODE_PYTHON`、`CODE_RUST` 和 `APP_GIT`；
 tmux 读取 `APP_CLAUDE`；Yazi 读取
 `COMMAND_MODERN_CLI` 和 `CODE_MARKDOWN`。OMZ 写入器读取组件标志，是因为它们实际拥有共享 shell 落点。跨组件读取仅在两个关注点都
@@ -164,16 +163,16 @@ set -- "${POSITIONAL[@]+"${POSITIONAL[@]}"}"
 ## 配置所有权与落点
 
 每个共享配置片段只有一个逻辑所有者，但 `.zshrc` 由多个写入器协同管理。每棵配置树的 `command/omz/main.sh` 都会安装 Oh My Zsh、
-准备其模板，然后编排插件和自定义文件写入器。macOS 运行 `plugin.sh`、`00-setup_env.zsh.sh` 和 `01-update.zsh.sh`；Debian 运行
-`plugin.sh`、`setup-env.plugin.zsh.sh`、`00-setup_env.zsh.sh`、`01-update.zsh.sh` 和 `99-first_run.zsh.sh`。Debian 安装器还会启用
-模板中的用户 bin PATH；Debian `main.sh` 拥有 `brew-rustup` 插件制品安装，`plugin.sh` 拥有插件数组和克隆。只有在写入非空
-`setup-env` 插件之后，`setup-env.plugin.zsh.sh` 才会前置配套的数组条目，从而避免 shell 启动时出现“已启用但缺失”的警告。
+准备其模板，然后先运行 `install_plugin.sh`，再编排 `plugin.sh` 和自定义文件写入器。macOS 随后运行 `00-setup_env.zsh.sh` 和
+`01-update.zsh.sh`；Debian 随后运行 `00-setup_env.zsh.sh`、`01-update.zsh.sh` 和 `99-first_run.zsh.sh`。Debian 安装器还会启用模板中的
+用户 bin PATH。两平台的 `install_plugin.sh` 拥有第三方插件克隆，Debian 版本还按组件标志复制仓库内的 `pre-eza` 和
+`brew-rustup` 插件目录；`plugin.sh` 只拥有插件数组，并仅启用本次安装流程已经物化的条件插件。
 
 | 配置需求方 | 配置所属目标位置 |
 | --- | --- |
 | `compinit`、Oh My Zsh 库、插件列表 | `.zshrc` |
 | Starship prompt 外观 | `$HOME/.config/starship.toml` |
-| eza 在 source 过程中需要的 zstyle | `$ZSH_CUSTOM/plugins/setup-env/setup-env.plugin.zsh` |
+| eza 在 source 过程中需要的 zstyle | `$ZSH_CUSTOM/plugins/pre-eza/pre-eza.plugin.zsh` |
 | Rust 插件在 source 前需要的 rustup 代理 PATH | `$ZSH_CUSTOM/plugins/brew-rustup/brew-rustup.plugin.zsh` |
 | keg-only `clang-format` 的交互式 PATH | `$ZSH_CUSTOM/00-setup_env.zsh` |
 | 别名、集成函数、`compdef`、运行时变量、编辑器选择 | `$ZSH_CUSTOM/00-setup_env.zsh` |
@@ -181,8 +180,9 @@ set -- "${POSITIONAL[@]+"${POSITIONAL[@]}"}"
 | 延迟执行的交互式登录或向导 | `$ZSH_CUSTOM/99-first_run.zsh` |
 | 非交互式 shell 命令 | `.zshenv` |
 
-决策依据是值被读取的时机，而不是它看起来是否像环境变量。`setup-env` 插件承载 eza 加载时 zstyle；将它们移到
-`00-setup_env.zsh` 会悄无声息地为时过晚。相反，`ZSH_HIGHLIGHT_HIGHLIGHTERS+=(brackets)` 必须保留在 syntax-highlighting 插件之后；
+决策依据是值被读取的时机，而不是它看起来是否像环境变量。`pre-eza` 插件承载 eza 加载时 zstyle，并紧邻官方 `eza` 插件之前
+加载；将这些设置移到 `00-setup_env.zsh` 会悄无声息地为时过晚。相反，`ZSH_HIGHLIGHT_HIGHLIGHTERS+=(brackets)` 必须保留在
+syntax-highlighting 插件之后；
 提前移动会阻止该插件安装其 `main` highlighter。
 
 `--code-python` 使用 Linuxbrew 管理 `uv` formula，并由 `uv tool` 隔离安装 `py-spy`；Debian 系统 `python3` 仍是平台基线，项目使用的
@@ -190,8 +190,9 @@ Python 运行时则由 `uv` 安装和管理，不额外安装 Homebrew `python` 
 但刻意不设置 `PYTHON_AUTO_VRUN`。uv 无需该手动自动激活开关即可发现虚拟环境；不要重新引入它。
 
 由配置流程管理的运行时工具配置以制品形式随仓库提供，而不是由配置 shell 渲染。大多数写入器使用
-`install -m 644`，需要创建父目录时再加 `-D`。这包括 `brew-rustup` 插件、bat、Glow、less、micro、Nano、lazygit，以及 Yazi 的
-`init.lua` 和 `keymap.toml`；仓库本地 lint 配置和未部署的 VS Code 参考数据不受此规则约束。
+`install -m 644`，需要创建父目录时再加 `-D`。这包括 bat、Glow、less、micro、Nano、lazygit，以及 Yazi 的 `init.lua` 和
+`keymap.toml`。OMZ 自定义插件是目录制品；Debian 的 `install_plugin.sh` 使用 `cp -R` 整体部署 `pre-eza` 和 `brew-rustup`，以保留插件
+后续增加辅助文件的能力。仓库本地 lint 配置和未部署的 VS Code 参考数据不受此规则约束。
 copilot-api 设置模板是随仓库提供、由 `jq` 补全的 JSON 制品，直接写入时目录权限为 700，文件权限为 600。外部
 例外是 `code/python.sh` 从 BesLogic 的 `main` 分支下载的 Ruff 基线。Starship 和 Yazi 使用生成式配置：`command/starship.sh` 通过
 已安装二进制文件的 `nerd-font-symbols` preset 替换 `$HOME/.config/starship.toml`；`app/yazi/yazi.toml.sh` 会创建目标目录，并通过
@@ -209,16 +210,16 @@ Yazi 的 `package.toml` 不同：`ya pkg add` 拥有这份可变运行时清单�
 
 ### 空渲染不会撤回先前输出
 
-`setup-env.plugin.zsh.sh` 和 `99-first_run.zsh.sh` 会在接触当前目标之前捕获 `render_blocks()`。空渲染会成功返回，
-但不会写入或删除当前目标。在全新 home 上不会创建制品；在重复配置时，则让早期制品逐字节保持
-不变。这是刻意设计的配置契约：禁用标志不等于卸载或垃圾回收。
+`99-first_run.zsh.sh` 会在接触当前目标之前捕获 `render_blocks()`。空渲染会成功返回，但不会写入或删除当前目标。在全新 home 上
+不会创建制品；在重复配置时，则让早期制品逐字节保持不变。这是刻意设计的配置契约：禁用标志不等于卸载或垃圾回收。
 
 重命名写入器不会删除早期版本已安装的 `$ZSH_CUSTOM/01-first_run.zsh`。这个已退役文件仍会被 Oh My Zsh 的
 自定义 `*.zsh` glob 匹配，并可能与 `99-first_run.zsh` 同时运行。迁移现有 home 时应显式删除它；不要假定当前写入器会
 垃圾回收已退役目标。
 
-当 Debian 的 OMZ `plugin.sh` 从 `plugins=(aliases)` 重建数组且未加入 `setup-env` 后，陈旧的 `setup-env.plugin.zsh` 不会生效。但待执行的
-`99-first_run.zsh` 并非如此：在它被 source 前关闭 `APP_GIT`，仍会使其被 Oh My Zsh 的自定义 `*.zsh` glob 匹配。被 source 时，它会
+Debian 的 OMZ `plugin.sh` 会从 `plugins=(aliases)` 重建数组；旧 home 中残留的 `setup-env` 插件，以及当前标志未启用的
+`pre-eza` 或 `brew-rustup` 目录都不会出现在数组中，因此不会生效。待执行的 `99-first_run.zsh` 并非如此：在它被 source 前关闭
+`APP_GIT`，仍会使其被 Oh My Zsh 的自定义 `*.zsh` glob 匹配。被 source 时，它会
 先删除自身，再检查命令或启动交互工作，因此失败或取消的提示不会在每个新 shell 中重试。后续配置若产生
 非空 first-run 渲染，会重新创建该文件，并允许新流程再次执行一次。
 
@@ -242,7 +243,7 @@ tealdeer 缓存数据、包括 `py-spy` 在内的 `uv tool`、rustup 和 Yazi �
 Oh My Zsh 会先于插件初始化补全和库，随后按 `plugins=()` 顺序 source 插件，再按字母顺序 source `$ZSH_CUSTOM/*.zsh`，最后
 加载主题。必须保持以下约束：
 
-- 生成后，`setup-env` 会被前置，并保持为第一个插件。
+- 启用 modern CLI 时，`pre-eza` 紧邻并位于官方 `eza` 插件之前。
 - `01-update.zsh` 在 `00-setup_env.zsh` 之后、`99-first_run.zsh` 之前加载；source 它时绝不能运行更新。
 - 生成后，`99-first_run.zsh` 保持为最后一个由配置流程管理的自定义 Zsh 文件，使延迟交互工作在受管理的运行时
   配置之后启动。
@@ -259,7 +260,7 @@ Oh My Zsh 会先于插件初始化补全和库，随后按 `plugins=()` 顺序 s
 Atuin 是刻意安排在插件之后的例外。它从 `00-setup_env.zsh` 初始化，以便在 fzf 加载后接管 Ctrl-R 和 Up；软件包提供的 Zsh 与
 syntax-highlighting 组合仍可高亮此时新增的 widget。不要为了遵循通用顺序规则而将它提前。
 
-Debian 启用 Rust 时会安装自定义 `brew-rustup` 插件，并按 `brew`、`brew-rustup`、官方 `rust` 的先后顺序加载。
+Debian 启用 Rust 时会安装自定义 `brew-rustup` 插件；`brew` 先建立 Homebrew 环境，`brew-rustup` 再紧邻并位于官方 `rust` 插件之前。
 Homebrew 的 keg-only `rustup` formula 会在 post-install 中仅将 `rustup` 本体强制链接到 `$HOMEBREW_PREFIX/bin`，所以配置脚本可在
 `brew shellenv` 后直接调用它；`cargo`、`rustc` 和其他工具链代理仍保留在 `$HOMEBREW_PREFIX/opt/rustup/bin`。`brew-rustup` 负责先将
 该目录前置到 `PATH`。不要把它移到 `brew` 之前或 `rust` 之后：官方 `rust` 插件会在 source 时检查 `cargo`，路径尚未生效时会直接退出。
@@ -366,7 +367,7 @@ Atuin 由 Linuxbrew 安装，没有仓库拥有的配置。全新 home 使用软
 会保留到显式删除为止。配置流程不会导入历史记录，也不会配置账户／同步。它的延迟初始化会接管 Ctrl-R 和 Up，而 fzf
 保留 Ctrl-T、Alt-C 和 `**` 补全。
 
-fzf 使用 formula 提供的 shell 集成默认值，没有仓库拥有的静态配置。`setup-env` 插件不定义 fzf 引导变量。
+fzf 使用 formula 提供的 shell 集成默认值，没有仓库拥有的静态配置。`pre-eza` 插件只定义 eza 加载前需要的 zstyle，不定义 fzf 引导变量。
 插件加载后，`00-setup_env.zsh.sh` 从当前 `FZF_DEFAULT_COMMAND` 派生 `FZF_CTRL_T_COMMAND` 和 `FZF_ALT_C_COMMAND`，并添加 bat/eza 预览。
 fzf-tab 区块使用五字段 `:completion:*:*:*:*:*` 模式，使其优先级高于 Oh My Zsh 的 menu 默认值，同时恢复颜色、保持 Git checkout 顺序，
 并绑定分组导航。Bat 配置由聚合器直接安装；fd 没有独立配置脚本，eza 别名来自早期 zstyle，zoxide 恰好通过其 OMZ 插件初始化一次。
@@ -466,8 +467,9 @@ N 个独立生成的 32 字节十六进制密钥；`--add-api-key <v>` 原样追
 
 ## macOS 特有约束
 
-macOS 的 `command/omz/` 树在安装器和插件写入器之外，还包含 `00-setup_env.zsh.sh` 和无条件的 `01-update.zsh.sh`；它没有
-加载时设置写入器或延迟交互组件。`APP_VSCODE=1` 时，`00` 写入器会无条件选择 `code --wait`。
+macOS 的 `command/omz/main.sh` 安装 Oh My Zsh 后，先由 `install_plugin.sh` 克隆第三方插件，再由 `plugin.sh` 重建插件数组；
+随后运行 `00-setup_env.zsh.sh` 和无条件的 `01-update.zsh.sh`。它没有仓库内自定义插件、加载时设置写入器或延迟交互组件。
+`APP_VSCODE=1` 时，`00` 写入器会无条件选择 `code --wait`。
 关闭所有标志时，其从 `# zsh-autosuggestions` 到 `ZSHZ_TILDE=1` 的输出，与 Debian 写入器中 Debian Editor 区段之后的内容一致。应保持该共享区块逐字节等同。不要将该共享区块抽离到两棵配置树之外，因为
 仅使用 Debian 的 Docker 构建上下文看不到根级文件。
 
