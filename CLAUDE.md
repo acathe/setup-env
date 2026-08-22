@@ -173,8 +173,9 @@ set -- "${POSITIONAL[@]+"${POSITIONAL[@]}"}"
 `00-setup_env.zsh` 会悄无声息地为时过晚。相反，`ZSH_HIGHLIGHT_HIGHLIGHTERS+=(brackets)` 必须保留在 syntax-highlighting 插件之后；
 提前移动会阻止该插件安装其 `main` highlighter。
 
-`--code-python` 使用 Linuxbrew 管理 `python`、`uv` 和 `py-spy` formula；Debian 系统 `python3` 仍是平台基线。Python 集成会启用
-Oh My Zsh 的 `python` 和 `uv` 插件，但刻意不设置 `PYTHON_AUTO_VRUN`。uv 无需该手动自动激活开关即可发现虚拟环境；不要重新引入它。
+`--code-python` 使用 Linuxbrew 管理 `uv` 和 `py-spy` formula；Debian 系统 `python3` 仍是平台基线，项目使用的 Python 运行时则由 `uv`
+安装和管理，不额外安装 Homebrew `python` formula。Python 集成会启用 Oh My Zsh 的 `python` 和 `uv` 插件，但刻意不设置
+`PYTHON_AUTO_VRUN`。uv 无需该手动自动激活开关即可发现虚拟环境；不要重新引入它。
 
 由配置流程管理的运行时工具配置以制品形式随仓库提供，而不是由配置 shell 渲染。大多数写入器使用
 `install -m 644`，需要创建父目录时再加 `-D`。这包括 bat、Glow、less、micro、Nano、lazygit，以及 Yazi 的 `init.lua` 和
@@ -426,7 +427,7 @@ bash /mnt/setup/main.sh --unattended "${setup_args[@]}"
 ```
 
 构建上下文是 `debian/`，因此镜像配置无法使用移到该树之外的文件。Debian 宿主把系统 `python3` 视为平台基线；它独立于
-`debian/code/python.sh` 可选安装的 Linuxbrew Python 工具链。精简的 dev-container 镜像必须在 Dockerfile 的基础包列表显式补齐。launcher 当前假定宿主为提供
+`debian/code/python.sh` 可选安装的 Linuxbrew `uv` 和 `py-spy`。精简的 dev-container 镜像必须在 Dockerfile 的基础包列表显式补齐。launcher 当前假定宿主为提供
 `timedatectl` 的 Linux/systemd 环境，并要求 `LANG` 采用 `<locale>.<encoding>` 格式；现有检查只验证其非空。若要支持 macOS 宿主或
 `LANG=C`，必须同步更新宿主预检、拆分逻辑和 Dockerfile 的 `localedef` 调用。无人值守模式安装 Oh My Zsh 但不启动它，且会更改
 登录 shell；launcher 将主机的 `~/Projects` 挂载到具有特权的持久容器中。
