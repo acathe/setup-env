@@ -3,9 +3,6 @@
 set -euo pipefail
 
 UNATTENDED="${UNATTENDED:-0}"
-CODE_RUST="${CODE_RUST:-0}"
-
-ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
 
 parse_args() {
     POSITIONAL=()
@@ -58,13 +55,8 @@ main() {
 
     install_omz
 
-    if [[ $CODE_RUST == '1' ]]; then
-        install -Dm 644 './brew-rustup.plugin.zsh' \
-            "$ZSH_CUSTOM/plugins/brew-rustup/brew-rustup.plugin.zsh"
-    fi
-
+    bash './install_plugin.sh' "$@"
     bash './plugin.sh' "$@"
-    bash './setup-env.plugin.zsh.sh' "$@"
     bash './00-setup_env.zsh.sh' "$@"
     bash './01-update.zsh.sh' "$@"
     bash './99-first_run.zsh.sh' "$@"
