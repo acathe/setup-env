@@ -35,23 +35,8 @@ parse_args() {
     done
 }
 
-add_repo() {
-    # Ref. https://github.com/cli/cli/blob/trunk/docs/install_linux.md
-    (type -p wget > /dev/null || (sudo apt-get update && sudo apt-get install wget -y)) \
-        && sudo mkdir -p -m 755 '/etc/apt/keyrings' \
-        && out=$(mktemp) && wget -nv "-O$out" 'https://cli.github.com/packages/githubcli-archive-keyring.gpg' \
-        && sudo cp "$out" '/etc/apt/keyrings/githubcli-archive-keyring.gpg' \
-        && sudo chmod go+r '/etc/apt/keyrings/githubcli-archive-keyring.gpg' \
-        && sudo mkdir -p -m 755 '/etc/apt/sources.list.d' \
-        && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee '/etc/apt/sources.list.d/github-cli.list' > /dev/null
-}
-
 install_tools() {
-    sudo apt-get update
-    sudo apt-get install -y \
-        gh \
-        git-delta \
-        lazygit
+    brew install 'gh' 'git-delta' 'lazygit'
 }
 
 setup_git() {
@@ -80,7 +65,6 @@ main() {
         return 1
     fi
 
-    add_repo
     install_tools
     setup_git
 }
