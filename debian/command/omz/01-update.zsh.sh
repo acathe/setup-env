@@ -5,7 +5,6 @@ set -euo pipefail
 COMMAND_MODERN_CLI="${COMMAND_MODERN_CLI:-0}"
 
 CODE_GO="${CODE_GO:-0}"
-CODE_PROTOBUF="${CODE_PROTOBUF:-0}"
 CODE_PYTHON="${CODE_PYTHON:-0}"
 CODE_RUST="${CODE_RUST:-0}"
 
@@ -57,27 +56,6 @@ EOF
                 && curl -fsSL "https://go.dev/dl/$go_version" -o "$go_tmp" \
                 && sudo rm -rf '/usr/local/go' \
                 && sudo tar -C '/usr/local' -xzf "$go_tmp"
-        fi
-EOF
-    fi
-
-    if [[ $CODE_PROTOBUF == '1' ]]; then
-        cat << 'EOF'
-
-    # protoc
-    local protoc_version protoc_tmp \
-        && protoc_version="$(curl -fsSIL -o /dev/null -w '%{url_effective}' \
-            'https://github.com/protocolbuffers/protobuf/releases/latest' \
-            | sed -E 's#.*/tag/v?([^/]+)$#\1#')" \
-        && if [[ -z $protoc_version ]]; then
-            echo 'Failed to determine the latest protoc version.' >&2
-            false
-        else
-            protoc_tmp="$(mktemp)" \
-                && curl -fsSL "https://github.com/protocolbuffers/protobuf/releases/latest/download/protoc-$protoc_version-linux-x86_64.zip" \
-                    -o "$protoc_tmp" \
-                && unzip -o "$protoc_tmp" -d "$HOME/.local" \
-                && rm -f "$HOME/.local/readme.txt"
         fi
 EOF
     fi

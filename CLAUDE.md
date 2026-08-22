@@ -43,7 +43,7 @@ Oh My Zsh 的 `brew` 插件会独立配置交互式 Zsh；此集成不会为非�
 它不会输出 `VISUAL`。应通过 `bash` 调用脚本，而不是依赖可执行位。
 
 根目录 `main.sh` 和 `macos/` 必须保持与 Apple Bash 3.2 兼容；Debian 和容器代码可使用更新的 Bash。下载 Go
-或 protoc 资产的 Debian 组件目前选择 `amd64`/`x86_64`；在同时更新两者之前，不要声称支持 arm64。
+资产的 Debian 组件目前固定选择 `amd64`；在同步添加其他架构分支之前，不要声称支持 arm64。
 
 ## 检查与安全验证
 
@@ -114,8 +114,8 @@ Debian 的 `APP_VSCODE` 是明确的纯集成例外：它有导出、解析器 c
 两个 CLI 入口点都是无解析器的叶脚本：`command/classic_cli/main.sh` 只拥有平台提供的 CLI 工具的无条件配置，而
 `command/modern_cli/main.sh` 聚合可选工具和固定的子安装器。
 
-标志会刻意通过导出变量和转发参数向下级联。`01-update.zsh.sh` 读取对应组件标志，包括控制 protoc 更新区块的 `CODE_PROTOBUF`；
-Claude app 从 Debian 读取 `CODE_GO`、`CODE_PYTHON`、`CODE_RUST` 和 `APP_GIT`；tmux 读取 `APP_CLAUDE`；Yazi 读取
+标志会刻意通过导出变量和转发参数向下级联。`01-update.zsh.sh` 读取拥有专用更新区块的组件标志；Claude app 从 Debian 读取
+`CODE_GO`、`CODE_PYTHON`、`CODE_RUST` 和 `APP_GIT`；tmux 读取 `APP_CLAUDE`；Yazi 读取
 `COMMAND_MODERN_CLI` 和 `CODE_MARKDOWN`。OMZ 写入器读取组件标志，是因为它们实际拥有共享 shell 落点。跨组件读取仅在两个关注点都
 启用时增加集成行为，因而是有效的。
 
@@ -221,9 +221,9 @@ Yazi 的 `package.toml` 不同：`ya pkg add` 拥有这份可变运行时清单�
 其 formula 和 cask，因此 `APP_VSCODE` 不需要专用更新区块。
 
 在 Debian 上，APT 负责更新由 APT 安装的工具。无条件 Homebrew 区块会更新 formula metadata、以 `--greedy` 升级所有已安装的 formula 和 cask，并
-执行 cleanup；它也覆盖由 Homebrew 管理的 Claude Code 和 Node。专用区块覆盖 tealdeer 缓存数据、Go 和 protoc 归档、`uv tool`
-安装的工具、rustup 和 Yazi 插件。Go 区块只更新工具链：不要扫描 `$GOBIN`/`$GOPATH/bin`，不要添加全局 Go 工具更新器，也不要在此更新
-`gopls`。Go 和 protoc 的临时下载刻意依赖临时存储清理。
+执行 cleanup；它也覆盖由 Homebrew 管理的 Claude Code、Node，以及 protobuf 组件的 `clang-format` 和 `protobuf`。专用区块覆盖
+tealdeer 缓存数据、Go 归档、`uv tool` 安装的工具、rustup 和 Yazi 插件。Go 区块只更新工具链：不要扫描 `$GOBIN`/`$GOPATH/bin`，
+不要添加全局 Go 工具更新器，也不要在此更新 `gopls`。Go 的临时下载刻意依赖临时存储清理。
 
 ## Oh My Zsh 加载与插件顺序
 
