@@ -86,12 +86,16 @@ ShellCheck 使用 `-x`，因为 `debian/app/docker.sh` 会动态 source `/etc/os
 3. 设置并导出所有组件变量，包括 `APP_VSCODE`；Debian 的 `00-setup_env.zsh.sh` 没有该变量的本地默认值，遗漏会在 `set -u` 下中止并
    留下部分输出。
 4. macOS：从 `command/omz/` 调用 `plugin.sh`、`00-setup_env.zsh.sh` 和 `01-update.zsh.sh`。Debian：从同一目录开始；若
-   `CODE_RUST=1`，先 source `main.sh` 并调用 `install_brew_rustup`，再依次调用 `plugin.sh`、`setup-env.plugin.zsh.sh`、
-   `00-setup_env.zsh.sh`、`01-update.zsh.sh` 和 `99-first_run.zsh.sh`。
-5. 对本次实际生成的 `setup-env.plugin.zsh`、`00-setup_env.zsh`、`01-update.zsh` 和 `99-first_run.zsh` 逐一运行 `zsh -n`。
+   `CODE_RUST=1`，先使用 `install -Dm 644 './brew-rustup.plugin.zsh' "$ZSH_CUSTOM/plugins/brew-rustup/brew-rustup.plugin.zsh"`
+   部署 Rust 插件，再依次调用 `plugin.sh`、`setup-env.plugin.zsh.sh`、`00-setup_env.zsh.sh`、`01-update.zsh.sh` 和
+   `99-first_run.zsh.sh`。
+5. 确认 `$HOME/.zshrc` 恰有一个 `plugins=(...)` 行，且完整内容和顺序符合当前组件变量。
+6. 对 `$HOME/.zshrc`、本次实际生成的 `setup-env.plugin.zsh`、`00-setup_env.zsh`、`01-update.zsh` 和 `99-first_run.zsh`
+   逐一运行 `zsh -n`；`CODE_RUST=1` 时还要检查部署的 `brew-rustup.plugin.zsh`。
 
-不要执行 `command/omz/main.sh`（会执行真实配置，Debian 上还会运行 `apt`）；仅 source 它以调用上述安装函数是安全的。若未提供 Homebrew 和 Starship 桩程序，也不要调用
-`command/starship.sh`：它会安装真实 formula 并替换 `starship.toml`。不要调用 `update-all-in-one`，它会执行真实的软件包和网络更新。
+不要执行 `command/omz/main.sh`：它会执行真实配置，Debian 上还会运行 `apt`；也不要调用其中的 `install_omz`，它会安装
+Oh My Zsh 并修改当前 home。若未提供 Homebrew 和 Starship 桩程序，也不要调用 `command/starship.sh`：它会安装真实 formula 并替换
+`starship.toml`。不要调用 `update-all-in-one`，它会执行真实的软件包和网络更新。
 
 对于 fzf shell 改动，请在 `zsh -f` 中检查 `${(z)FZF_CTRL_T_OPTS}` 和 `${(z)FZF_ALT_C_OPTS}`。插件顺序改动需要真实的 ZLE／PTY
 冒烟测试：普通 Tab 和 `**<Tab>` 必须各自只打开一次 fzf；`fzf_default_completion` 必须为 `fzf-tab-complete`；Ctrl-T 和 Alt-C 必须保持单次调用。
@@ -354,9 +358,9 @@ Nano 制品，也从不选择 Nano。
 ## Debian modern CLI
 
 `command/modern_cli/main.sh` 是可选的聚合叶脚本。Linuxbrew 安装 `atuin`、`bat`、`btop`、`eza`、`fd`、`fzf`、`hyperfine`、
-`micro`、`ripgrep`、`tealdeer` 和 `zoxide` formula。聚合器还拥有
-bat、fd 和 tldr 的 Homebrew completion 链接及 tealdeer 缓存预热，然后运行只管理静态配置或插件的 bat 和 Micro 子脚本。`man-db`
-是平台基线：完整的 Debian 主机应当提供它，而 `container/dev-container/Dockerfile` 会显式安装它。
+`micro`、`ripgrep`、`tealdeer` 和 `zoxide` formula。聚合器还拥有 bat、fd 和 tldr 的 Homebrew completion 链接及 tealdeer 缓存预热，
+并直接安装 bat、Micro 的静态配置与 Micro 的 `detectindent` 插件。`man-db` 是平台基线：完整的 Debian 主机应当提供它，而
+`container/dev-container/Dockerfile` 会显式安装它。
 
 Atuin 由 Linuxbrew 安装，没有仓库拥有的配置。全新 home 使用软件包默认值，但早期版本安装的 `~/.config/atuin/config.toml`
 会保留到显式删除为止。配置流程不会导入历史记录，也不会配置账户／同步。它的延迟初始化会接管 Ctrl-R 和 Up，而 fzf
@@ -365,9 +369,9 @@ Atuin 由 Linuxbrew 安装，没有仓库拥有的配置。全新 home 使用软
 fzf 使用 formula 提供的 shell 集成默认值，没有仓库拥有的静态配置。`setup-env` 插件不定义 fzf 引导变量。
 插件加载后，`00-setup_env.zsh.sh` 从当前 `FZF_DEFAULT_COMMAND` 派生 `FZF_CTRL_T_COMMAND` 和 `FZF_ALT_C_COMMAND`，并添加 bat/eza 预览。
 fzf-tab 区块使用五字段 `:completion:*:*:*:*:*` 模式，使其优先级高于 Oh My Zsh 的 menu 默认值，同时恢复颜色、保持 Git checkout 顺序，
-并绑定分组导航。Bat 子脚本只拥有受管理配置；fd 没有独立配置脚本，eza 别名来自早期 zstyle，zoxide 恰好通过其 OMZ 插件初始化一次。
+并绑定分组导航。Bat 配置由聚合器直接安装；fd 没有独立配置脚本，eza 别名来自早期 zstyle，zoxide 恰好通过其 OMZ 插件初始化一次。
 
-Micro 子脚本拥有 `detectindent` 插件和受管理设置，真彩色保持为 `MICRO_TRUECOLOR=1`，modern CLI 选择 Micro 作为默认编辑器。
+聚合器直接安装 Micro 的 `detectindent` 插件和受管理设置，真彩色保持为 `MICRO_TRUECOLOR=1`，modern CLI 选择 Micro 作为默认编辑器。
 tealdeer 的 formula 版本由无条件 Homebrew 区块升级；聚合器和专用更新区块仍会以非致命方式预热其缓存。Markdown code 组件通过
 Linuxbrew 安装 `glow` 和提供 `markdownlint` 命令的 `markdownlint-cli`，拥有 Glow 的受管理配置并启用 TUI 鼠标支持；两个 formula
 同样由无条件 Homebrew 区块统一升级，不需要专用更新区块。zoxide 不拥有静态配置或第二次初始化。
