@@ -58,7 +58,6 @@ main() {
     bash './install_plugin.sh' "$@"
     bash './plugin.sh' "$@"
     bash './custom.sh' "$@"
-    bash './01-update.zsh.sh' "$@"
     bash './99-first_run.zsh.sh' "$@"
 }
 
