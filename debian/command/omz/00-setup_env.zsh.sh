@@ -17,7 +17,7 @@ EOF
 
     if [[ $COMMAND_MODERN_CLI != '1' ]]; then
         cat << 'EOF'
-export EDITOR='nano -/'
+export EDITOR=nanom
 EOF
     fi
 
@@ -36,9 +36,6 @@ EOF
     fi
 
     cat << 'EOF'
-
-# nano
-alias nano='nano -/'
 
 # zsh-autosuggestions
 ZSH_AUTOSUGGEST_STRATEGY=(history completion)

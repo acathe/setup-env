@@ -4,6 +4,7 @@ set -euo pipefail
 
 main() {
     install -Dm 644 './lesskey' "$HOME/.config/lesskey"
+    install -Dm 755 './nanom' "$HOME/.local/bin/nanom"
     install -Dm 644 './nanorc' "$HOME/.config/nano/nanorc"
 }
 
