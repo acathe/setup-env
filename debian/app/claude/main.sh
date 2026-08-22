@@ -37,7 +37,6 @@ install_plugin() {
     fi
 
     if [[ $CODE_GO == '1' ]]; then
-        export PATH="$HOME/go/bin:/usr/local/go/bin:$PATH"
         go install 'golang.org/x/tools/gopls@latest'
         claude plugin install 'gopls-lsp@claude-plugins-official'
     fi
