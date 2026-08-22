@@ -31,8 +31,7 @@ EOF
 }
 
 main() {
-    sudo apt-get update
-    sudo apt-get install -y tmux
+    brew install 'tmux'
 
     install_oh_my_tmux
     configure_tmux
