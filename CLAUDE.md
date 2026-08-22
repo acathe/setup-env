@@ -258,7 +258,8 @@ Homebrew 的 keg-only `rustup` formula 将 `cargo`、`rustc` 和其他代理保�
 生效时会直接退出。Claude 集成也不得重新添加上游安装器使用的 `$HOME/.cargo/bin`。
 
 可选插件由提供相应命令的组件控制。启用 modern CLI 时，使用 Oh My Zsh 的 `zoxide` 插件并省略 `z`；未启用时，使用
-`z` 并输出 zsh-z 设置。优先使用 Debian 供应商补全，而不是每次 shell 启动都重新生成补全的插件。
+`z` 并输出 zsh-z 设置。modern CLI 的 Homebrew 补全必须通过 `$ZSH_CUSTOM/completions` 在 `compinit` 前可见；不要依赖稍后才加载的
+`brew` 插件追加 Homebrew `site-functions`。
 
 不要使用 `\<z\>` 删除插件名。连字符不是单词字符，因此该模式可能匹配 `fancy-ctrl-z` 的尾部、吞掉分隔符，并
 将两个名称粘连。如果必须删除，请用空格和括号划定边界。在 macOS 上使用 BSD `sed -i ''`，在 Debian 上使用 GNU `sed -i`。
@@ -313,17 +314,17 @@ GitHub release 资产使用 `releases/latest/download/<asset>`。无版本资产
 ## 补全与配置陷阱
 
 `compinit` 会发现名为 `_*` 的文件，然后注册文件第一个 `#compdef` 声明的命令；可执行文件名和符号链接文件名不会
-改变该声明。
+改变该声明。Homebrew formula 会将以下规范命令的补全放入 `$(brew --prefix)/share/zsh/site-functions`：
 
-| 命令 | 软件包提供的补全 | 必需操作 |
+| 命令 | Homebrew 提供的补全 | 受管理目标 |
 | --- | --- | --- |
-| `bat` | `_batcat` 声明 `batcat` | 链接二进制文件；在 `compinit` 后运行 `compdef bat=batcat` |
-| `fd` | `_fd` 声明 `fd` | 将 `fd` 链接到 `fdfind`；无需 `compdef` |
-| `tldr` | `tldr.zsh` 声明 `tldr` | 将其链接为 `$ZSH_CUSTOM/completions/_tldr` |
+| `bat` | `_bat` 声明 `bat` | `$ZSH_CUSTOM/completions/_bat` |
+| `fd` | `_fd` 声明 `fd` | `$ZSH_CUSTOM/completions/_fd` |
+| `tldr` | `_tldr` 声明 `tldr` | `$ZSH_CUSTOM/completions/_tldr` |
 
-对于重命名的二进制文件，优先使用可执行符号链接而不是别名；子 shell、fzf 预览、`command -v` 和 Zsh 的 `$commands` 能看到 `PATH`，
-但看不到别名。Oh My Zsh 模板在 `.zshrc` 中加入 `~/.local/bin`，这足以用于交互式插件探测，但不适用于非交互式 `zsh -c`；需要
-非交互式路径的语言组件会写入 `.zshenv`。
+Oh My Zsh 会在 `compinit` 前将 `$ZSH_CUSTOM/completions` 加入 `fpath`，但 `brew` 插件直到插件加载阶段才追加 Homebrew
+`site-functions`。因此 modern CLI 聚合器会通过动态 `brew --prefix` 找到这些源文件，先确认三个源都存在，再按原名创建受管理的
+符号链接。不要硬编码 Linuxbrew 前缀，不要产生部分链接，也不要为此向 `.zshenv` 写入交互式补全路径。
 
 应针对软件包提供的工具验证配置语义，而不是针对当前上游 master。Lazygit 和 micro 会静默忽略未知键，因此语法验证
 无法发现失效配置。添加 lazygit 键之前，请检查该软件包版本的迁移列表：可迁移键会使 lazygit 重写
@@ -348,24 +349,24 @@ Nano 制品，也从不选择 Nano。
 
 ## Debian modern CLI
 
-`command/modern_cli/main.sh` 是可选的聚合叶脚本。它批量安装面向用户的现代工具，包括 `jq`、`unzip`、Atuin 和 fzf，然后运行
-bat、fd、Micro 和 tealdeer 的固定子脚本。子脚本拥有各软件包专属链接、补全和静态配置；都没有独立标志。
-`man-db` 是平台基线：完整的 Debian 主机应当提供它，而 `container/dev-container/Dockerfile` 会显式
-安装它。
+`command/modern_cli/main.sh` 是可选的聚合叶脚本。APT 只提供其他组件也会独立使用的 `jq` 和 `unzip`；Linuxbrew 安装
+`atuin`、`bat`、`btop`、`eza`、`fd`、`fzf`、`hyperfine`、`micro`、`ripgrep`、`tealdeer` 和 `zoxide` formula。聚合器还拥有
+bat、fd 和 tldr 的 Homebrew completion 链接及 tealdeer 缓存预热，然后运行只管理静态配置或插件的 bat 和 Micro 子脚本。`man-db`
+是平台基线：完整的 Debian 主机应当提供它，而 `container/dev-container/Dockerfile` 会显式安装它。
 
-Atuin 从 Debian 批量安装，没有仓库拥有的配置。全新 home 使用软件包默认值，但早期版本安装的 `~/.config/atuin/config.toml`
+Atuin 由 Linuxbrew 安装，没有仓库拥有的配置。全新 home 使用软件包默认值，但早期版本安装的 `~/.config/atuin/config.toml`
 会保留到显式删除为止。配置流程不会导入历史记录，也不会配置账户／同步。它的延迟初始化会接管 Ctrl-R 和 Up，而 fzf
 保留 Ctrl-T、Alt-C 和 `**` 补全。
 
-fzf 使用软件包提供的 shell 集成默认值，没有仓库拥有的静态配置。`setup-env` 插件不定义 fzf 引导变量。
+fzf 使用 formula 提供的 shell 集成默认值，没有仓库拥有的静态配置。`setup-env` 插件不定义 fzf 引导变量。
 插件加载后，`00-setup_env.zsh.sh` 从当前 `FZF_DEFAULT_COMMAND` 派生 `FZF_CTRL_T_COMMAND` 和 `FZF_ALT_C_COMMAND`，并添加 bat/eza 预览。
 fzf-tab 区块使用五字段 `:completion:*:*:*:*:*` 模式，使其优先级高于 Oh My Zsh 的 menu 默认值，同时恢复颜色、保持 Git checkout 顺序，
-并绑定分组导航。Bat 子脚本拥有受管理配置和规范链接；fd 拥有其链接，eza 别名来自早期 zstyle，zoxide
-恰好通过其 OMZ 插件初始化一次。
+并绑定分组导航。Bat 子脚本只拥有受管理配置；fd 没有独立配置脚本，eza 别名来自早期 zstyle，zoxide 恰好通过其 OMZ 插件初始化一次。
 
-Micro 真彩色保持为 `MICRO_TRUECOLOR=1`，modern CLI 选择 Micro 作为默认编辑器；tealdeer 拥有带保护条件的补全符号链接和一个
-非致命缓存预热。Markdown code 组件通过 Linuxbrew 安装 `glow` 和提供 `markdownlint` 命令的 `markdownlint-cli`，拥有 Glow 的受管理配置并启用 TUI
-鼠标支持；两个 formula 由无条件 Homebrew 区块统一升级，不需要专用更新区块。zoxide 不拥有静态配置或第二次初始化。
+Micro 子脚本拥有 `detectindent` 插件和受管理设置，真彩色保持为 `MICRO_TRUECOLOR=1`，modern CLI 选择 Micro 作为默认编辑器。
+tealdeer 的 formula 版本由无条件 Homebrew 区块升级；聚合器和专用更新区块仍会以非致命方式预热其缓存。Markdown code 组件通过
+Linuxbrew 安装 `glow` 和提供 `markdownlint` 命令的 `markdownlint-cli`，拥有 Glow 的受管理配置并启用 TUI 鼠标支持；两个 formula
+同样由无条件 Homebrew 区块统一升级，不需要专用更新区块。zoxide 不拥有静态配置或第二次初始化。
 
 ## Yazi 应用
 
