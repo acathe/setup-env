@@ -34,8 +34,8 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
 - `container/` 分发到 `dev-container`、`copilot-api` 或一次性 `copilot-api-config` 任务。
 
 Debian 的 Homebrew 引导流程与 macOS 的 PATH 保护逻辑一致，并直接调用官方安装器；`--unattended` 只会添加 `NONINTERACTIVE=1`。
-配置父脚本不会求值 `brew shellenv`。Starship 叶脚本从当前 `PATH` 或标准 Linux 前缀解析 `brew`，并直接调用 formula 二进制文件，
-不会改变父进程环境。Oh My Zsh 的 `brew` 插件会独立发现这些前缀并配置交互式 Zsh；此集成不会为非交互式 shell 写入 `.zshenv`。
+配置父脚本随后求值 `/home/linuxbrew/.linuxbrew/bin/brew shellenv bash`，使后代安装器可直接调用 `brew` 及其 formula 二进制文件。
+Oh My Zsh 的 `brew` 插件会独立配置交互式 Zsh；此集成不会为非交互式 shell 写入 `.zshenv`。
 
 `debian/vscode/` 仅作为参考数据。没有分发器会安装这些文件；`--app-vscode` 会启用 OMZ 插件。`README.md` 当前仍记录手动
 安装扩展的方式；根据前述文档边界，此类非参数内容不应继续保留或新增。Debian 的 `00-setup_env.zsh.sh` 会在未启用 modern CLI 时选择
@@ -220,7 +220,7 @@ Yazi 的 `package.toml` 不同：`ya pkg add` 拥有这份可变运行时清单�
 其 formula 和 cask，因此 `APP_VSCODE` 不需要专用更新区块。
 
 在 Debian 上，APT 负责更新由 APT 安装的工具。无条件 Homebrew 区块会更新 formula metadata、以 `--greedy` 升级所有已安装的 formula 和 cask，并
-执行 cleanup；专用区块覆盖 tealdeer 缓存数据、Go 和 protoc 归档、uv 工具、rustup、Claude Code 和 Yazi 软件包。Go 区块
+执行 cleanup；专用区块覆盖 tealdeer 缓存数据、Go 和 protoc 归档、uv 工具、rustup、Claude Code 和 Yazi 插件。Go 区块
 只更新工具链：不要扫描 `$GOBIN`/`$GOPATH/bin`，不要添加全局 Go 工具更新器，也不要在此更新 `gopls`。Go 和 protoc 的临时下载刻意
 依赖临时存储清理。
 
@@ -353,8 +353,8 @@ Micro 真彩色保持为 `MICRO_TRUECOLOR=1`，modern CLI 选择 Micro 作为默
 
 ## Yazi 应用
 
-`--app-yazi` 添加 Yazi 官方签名的稳定 APT 仓库，然后安装 `file` 和 `yazi`；软件包拥有 `yazi`、`ya` 二进制文件及 Bash
-补全。Git fetcher 和 Git/keymap 插件为无条件安装。启用 modern CLI 时，app 会添加两个 Bat previewer 和官方 `piper`；
+`--app-yazi` 使用 Linuxbrew 安装 `yazi` formula；formula 拥有 `yazi`、`ya` 二进制文件。Yazi 依赖的 `file` 来自 Debian 基线，
+`dev-container` 也会显式预装。Git fetcher 和 Git/keymap 插件为无条件安装。启用 modern CLI 时，app 会添加两个 Bat previewer 和官方 `piper`；
 启用 Markdown 时，它会添加 Glow previewer 和第三方 `alberti42/faster-piper`，后者要求 Yazi 26.8.15 或更高版本。它会暴露 `$w`、`$h` 和
 终端主题 `$t`；Glow 将
 `$t` 作为 `dark` 或 `light` 使用，runner 保留 `-- "$1"`。command 和 code 组件会先运行，因此每个条件预览命令此时都已
