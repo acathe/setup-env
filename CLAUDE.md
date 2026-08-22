@@ -219,8 +219,8 @@ Yazi 的 `package.toml` 不同：`ya pkg add` 拥有这份可变运行时清单�
 在 macOS 上，`update-all-in-one` 依次运行 `brew update`、`brew upgrade --greedy` 和 `brew cleanup`，并将 `omz update` 保持为最后一个动作。Homebrew 会覆盖
 其 formula 和 cask，因此 `APP_VSCODE` 不需要专用更新区块。
 
-在 Debian 上，APT 负责更新由 APT 安装的工具。无条件 Homebrew 区块会更新 formula metadata、只升级受管理的 Starship formula，并
-执行 cleanup；专用区块覆盖 tealdeer 缓存数据、Go 和 protoc 归档、uv 工具、rustup、Claude Code、lazydocker 和 Yazi 软件包。Go 区块
+在 Debian 上，APT 负责更新由 APT 安装的工具。无条件 Homebrew 区块会更新 formula metadata、以 `--greedy` 升级所有已安装的 formula 和 cask，并
+执行 cleanup；专用区块覆盖 tealdeer 缓存数据、Go 和 protoc 归档、uv 工具、rustup、Claude Code 和 Yazi 软件包。Go 区块
 只更新工具链：不要扫描 `$GOBIN`/`$GOPATH/bin`，不要添加全局 Go 工具更新器，也不要在此更新 `gopls`。Go 和 protoc 的临时下载刻意
 依赖临时存储清理。
 
