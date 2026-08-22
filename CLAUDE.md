@@ -236,7 +236,7 @@ Oh My Zsh 会先于插件初始化补全和库，随后按 `plugins=()` 顺序 s
 - `01-update.zsh` 在 `00-setup_env.zsh` 之后、`99-first_run.zsh` 之前加载；source 它时绝不能运行更新。
 - 生成后，`99-first_run.zsh` 保持为最后一个由配置流程管理的自定义 Zsh 文件，使延迟交互工作在受管理的运行时
   配置之后启动。
-- `zsh-syntax-highlighting` 保持在最后。
+- `zsh-syntax-highlighting` 保持为 `plugins=()` 中的最后一项。
 - `fzf-tab` 位于 `zsh-autosuggestions` 和 syntax highlighting 等包装器之前。
 - 在本仓库中，`fzf-tab` 也位于 `fzf` 之前。fzf 会将当前 Tab 绑定捕获为 `fzf_default_completion`；颠倒两者会嵌套两个 fzf
   补全界面。
@@ -248,6 +248,11 @@ Oh My Zsh 会先于插件初始化补全和库，随后按 `plugins=()` 顺序 s
 
 Atuin 是刻意安排在插件之后的例外。它从 `00-setup_env.zsh` 初始化，以便在 fzf 加载后接管 Ctrl-R 和 Up；软件包提供的 Zsh 与
 syntax-highlighting 组合仍可高亮此时新增的 widget。不要为了遵循通用顺序规则而将它提前。
+
+Rust 是另一个刻意安排在插件数组之后的例外。Homebrew 的 keg-only `rustup` formula 将 `cargo`、`rustc` 和其他代理保留在
+`$HOMEBREW_PREFIX/opt/rustup/bin`；`00-setup_env.zsh` 必须先将该目录前置到 `PATH`，再 source 官方 `rust` 插件。不要把 `rust`
+重新加入 `plugins=()`：该插件会在 source 时检查 `cargo`，因早于 `00-setup_env.zsh` 加载而直接退出。Claude 集成也不得重新添加
+上游安装器使用的 `$HOME/.cargo/bin`。
 
 可选插件由提供相应命令的组件控制。启用 modern CLI 时，使用 Oh My Zsh 的 `zoxide` 插件并省略 `z`；未启用时，使用
 `z` 并输出 zsh-z 设置。优先使用 Debian 供应商补全，而不是每次 shell 启动都重新生成补全的插件。

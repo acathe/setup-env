@@ -11,7 +11,6 @@ APP_VSCODE="${APP_VSCODE:-0}"
 
 CODE_GO="${CODE_GO:-0}"
 CODE_PYTHON="${CODE_PYTHON:-0}"
-CODE_RUST="${CODE_RUST:-0}"
 
 ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
 
@@ -62,7 +61,6 @@ main() {
     [[ $CODE_GO == '1' ]] && append_plugin 'golang'
     [[ $CODE_PYTHON == '1' ]] && append_plugin 'python'
     [[ $CODE_PYTHON == '1' ]] && append_plugin 'uv'
-    [[ $CODE_RUST == '1' ]] && append_plugin 'rust'
 
     append_plugin 'ohmyzsh-full-autoupdate'
     append_plugin 'you-should-use'
