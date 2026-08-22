@@ -108,7 +108,7 @@ main() {
     [[ $APP_DOCKER == '1' ]] && bash './app/docker.sh' "$@"
     [[ $APP_GIT == '1' ]] && bash './app/git/main.sh' "$@"
     [[ $APP_NEOVIM == '1' ]] && bash './app/neovim.sh' "$@"
-    [[ $APP_TMUX == '1' ]] && bash './app/tmux.sh' "$@"
+    [[ $APP_TMUX == '1' ]] && bash './app/tmux/main.sh' "$@"
     [[ $APP_YAZI == '1' ]] && bash './app/yazi/main.sh' "$@"
 
     return 0

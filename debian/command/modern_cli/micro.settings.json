@@ -1,13 +1,18 @@
 {
+  "clipboard": "terminal",
   "colorscheme": "one-dark",
   "diffgutter": true,
+  "ft:markdown": {
+    "softwrap": true,
+    "wordwrap": true
+  },
   "hlsearch": true,
+  "hltaberrors": true,
   "hltrailingws": true,
   "matchbracestyle": "highlight",
-  "mkparents": true,
   "parsecursor": true,
-  "rmtrailingws": true,
   "savecursor": true,
   "saveundo": true,
-  "scrollbar": true
+  "scrollbar": true,
+  "truecolor": "on"
 }

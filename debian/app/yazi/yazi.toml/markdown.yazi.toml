@@ -1,0 +1,3 @@
+[[plugin.prepend_previewers]]
+url = "*.md"
+run = 'faster-piper -- CLICOLOR_FORCE=1 glow -w=$w -s=$t -- "$1"'
