@@ -9,7 +9,6 @@ CODE_PROTOBUF="${CODE_PROTOBUF:-0}"
 CODE_PYTHON="${CODE_PYTHON:-0}"
 CODE_RUST="${CODE_RUST:-0}"
 
-APP_CLAUDE="${APP_CLAUDE:-0}"
 APP_YAZI="${APP_YAZI:-0}"
 
 ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
@@ -97,14 +96,6 @@ EOF
 
     # Rust
     rustup update
-EOF
-    fi
-
-    if [[ $APP_CLAUDE == '1' ]]; then
-        cat << 'EOF'
-
-    # Claude Code
-    claude update
 EOF
     fi
 

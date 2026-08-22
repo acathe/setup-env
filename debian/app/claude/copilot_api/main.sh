@@ -81,12 +81,7 @@ install_settings() {
 }
 
 install_plugins() {
-    if ! command -v node > /dev/null 2>&1; then
-        curl -fsSL 'https://deb.nodesource.com/setup_lts.x' | sudo -E bash -
-        sudo apt-get install -y nodejs
-    fi
-
-    export PATH="$HOME/.local/bin:$PATH"
+    brew install 'node'
 
     claude plugin marketplace add 'https://github.com/caozhiyuan/copilot-api.git'
     claude plugin install 'agent-inject@copilot-api-marketplace'
@@ -94,11 +89,6 @@ install_plugins() {
 }
 
 main() {
-    if ! command -v jq > /dev/null 2>&1; then
-        sudo apt-get update
-        sudo apt-get install -y jq
-    fi
-
     install_settings
     install_plugins
 }
