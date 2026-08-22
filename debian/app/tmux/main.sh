@@ -19,13 +19,8 @@ configure_tmux() {
 
     if [[ $APP_CLAUDE == '1' ]]; then
         {
-            cat << 'EOF'
-
-# Claude Code
-set -g allow-passthrough on
-set -s extended-keys on
-set -as terminal-features "xterm*:extkeys"
-EOF
+            echo
+            cat './claude.tmux.conf'
         } >> "$HOME/.config/tmux/tmux.conf.local"
     fi
 }
