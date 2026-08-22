@@ -2,23 +2,33 @@
 
 set -euo pipefail
 
-RESET_API_KEY="${RESET_API_KEY:-0}"
-API_KEYS="${API_KEYS:-0}"
+CLEAR_API_KEYS="${CLEAR_API_KEYS:-0}"
+API_KEY_GENERATION_COUNT="${API_KEY_GENERATION_COUNT:-0}"
+API_KEY_TO_ADD="${API_KEY_TO_ADD:-}"
 
 parse_args() {
     POSITIONAL=()
     while (($# > 0)); do
         case "$1" in
-            --reset-api-key)
-                RESET_API_KEY=1
+            --clear-api-keys | --reset-api-key)
+                CLEAR_API_KEYS=1
                 shift
                 ;;
-            --api-keys)
+            --generate-api-keys | --api-keys)
                 numOfArgs=1 # number of switch arguments
                 if (($# < numOfArgs + 1)); then
                     shift $#
                 else
-                    API_KEYS="$2"
+                    API_KEY_GENERATION_COUNT="$2"
+                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
+                fi
+                ;;
+            --add-api-key)
+                numOfArgs=1 # number of switch arguments
+                if (($# < numOfArgs + 1)); then
+                    shift $#
+                else
+                    API_KEY_TO_ADD="$2"
                     shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
                 fi
                 ;;
@@ -42,8 +52,9 @@ main() {
 
     docker run \
         --rm \
-        -e "RESET_API_KEY=$RESET_API_KEY" \
-        -e "API_KEYS=$API_KEYS" \
+        -e "CLEAR_API_KEYS=$CLEAR_API_KEYS" \
+        -e "API_KEY_GENERATION_COUNT=$API_KEY_GENERATION_COUNT" \
+        -e "API_KEY_TO_ADD=$API_KEY_TO_ADD" \
         -v "$HOME/.copilot-api:/root/.copilot-api" \
         'copilot-api-config:latest'
 }

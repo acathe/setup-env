@@ -67,11 +67,14 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
         [--flag]
 ```
 
-| main args                    | script args             |
-| ---------------------------- | ----------------------- |
-| `--image dev-container`      | `--container <v>`       |
-|                              | `--image-tag <v>`       |
-|                              | `(debian-flag)`         |
-| `--image copilot-api`        | `--copilot-api-auth`    |
-| `--image copilot-api-config` | `--reset-api-key`       |
-|                              | `--api-keys <N>`        |
+| main args                    | script args                    |
+| ---------------------------- | ------------------------------ |
+| `--image dev-container`      | `--container <v>`              |
+|                              | `--image-tag <v>`              |
+|                              | `(debian-flag)`                |
+| `--image copilot-api`        | `--copilot-api-auth`           |
+| `--image copilot-api-config` | `--clear-api-keys`             |
+|                              | `--generate-api-keys <N>`      |
+|                              | `--add-api-key <v>`            |
+
+`--reset-api-key` and `--api-keys <N>` remain aliases for `--clear-api-keys` and `--generate-api-keys <N>`, respectively.
