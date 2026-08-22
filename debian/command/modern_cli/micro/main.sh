@@ -3,9 +3,6 @@
 set -euo pipefail
 
 main() {
-    sudo apt-get update
-    sudo apt-get install -y micro
-
     micro -plugin install detectindent
 
     install -Dm 644 './settings.json' "$HOME/.config/micro/settings.json"

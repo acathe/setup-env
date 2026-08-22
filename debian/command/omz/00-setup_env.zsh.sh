@@ -77,9 +77,6 @@ eval "$(atuin init zsh)"
 # eza
 alias tree='eza --tree'
 
-# bat
-compdef bat=batcat
-
 # fzf
 export FZF_CTRL_T_COMMAND="${FZF_DEFAULT_COMMAND/ --type f/}"
 export FZF_ALT_C_COMMAND="${FZF_DEFAULT_COMMAND/--type f/--type d}"
