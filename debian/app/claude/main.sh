@@ -25,17 +25,7 @@ parse_args() {
     done
 }
 
-install_claude_code() {
-    if ! command -v curl > /dev/null 2>&1; then
-        echo 'curl is required to install Claude Code.' >&2
-        return 1
-    fi
-
-    curl -fsSL 'https://claude.ai/install.sh' | bash
-}
-
 install_plugin() {
-    export PATH="$HOME/.local/bin:$PATH"
     claude plugin marketplace add 'anthropics/claude-plugins-official'
     claude plugin install 'claude-code-setup@claude-plugins-official'
     claude plugin install 'claude-md-management@claude-plugins-official'
@@ -64,11 +54,6 @@ install_plugin() {
         claude plugin install 'rust-analyzer-lsp@claude-plugins-official'
     fi
 
-    if ! command -v jq > /dev/null 2>&1; then
-        sudo apt-get update
-        sudo apt-get install -y jq
-    fi
-
     local tmp
     tmp="$(mktemp)"
     jq 'del(.extraKnownMarketplaces["claude-plugins-official"])
@@ -79,9 +64,9 @@ install_plugin() {
 
 main() {
     sudo apt-get update
-    sudo apt-get install -y bubblewrap socat
+    sudo apt-get install -y bubblewrap jq socat
 
-    install_claude_code
+    brew install --cask 'claude-code'
 
     if [[ $APP_CLAUDE_COPILOT_API == '1' ]]; then
         bash './copilot_api/main.sh' "$@"

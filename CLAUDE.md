@@ -220,9 +220,9 @@ Yazi 的 `package.toml` 不同：`ya pkg add` 拥有这份可变运行时清单�
 其 formula 和 cask，因此 `APP_VSCODE` 不需要专用更新区块。
 
 在 Debian 上，APT 负责更新由 APT 安装的工具。无条件 Homebrew 区块会更新 formula metadata、以 `--greedy` 升级所有已安装的 formula 和 cask，并
-执行 cleanup；专用区块覆盖 tealdeer 缓存数据、Go 和 protoc 归档、uv 工具、rustup、Claude Code 和 Yazi 插件。Go 区块
-只更新工具链：不要扫描 `$GOBIN`/`$GOPATH/bin`，不要添加全局 Go 工具更新器，也不要在此更新 `gopls`。Go 和 protoc 的临时下载刻意
-依赖临时存储清理。
+执行 cleanup；它也覆盖由 Homebrew 管理的 Claude Code 和 Node。专用区块覆盖 tealdeer 缓存数据、Go 和 protoc 归档、uv 工具、rustup 和
+Yazi 插件。Go 区块只更新工具链：不要扫描 `$GOBIN`/`$GOPATH/bin`，不要添加全局 Go 工具更新器，也不要在此更新 `gopls`。Go 和 protoc
+的临时下载刻意依赖临时存储清理。
 
 ## Oh My Zsh 加载与插件顺序
 
@@ -387,8 +387,9 @@ GitHub 登录通过 `99-first_run.zsh` 延迟执行，以兼容不会启动交�
 
 ## Claude Code 与 copilot-api
 
-`debian/app/claude/main.sh` 通过官方安装器安装 Claude Code。如果启用了 `--app-claude-copilot-api`，会先运行该子脚本，因为它会
-替换 `~/.claude/settings.json`；通用插件安装在之后进行，以免清除 `enabledPlugins`。
+`debian/app/claude/main.sh` 通过 Linuxbrew 的 `claude-code` stable cask 安装 Claude Code，并由 APT 提供 `bubblewrap`、`jq` 和 `socat`。
+`update-all-in-one` 通过 Homebrew 更新该 cask，不再调用 `claude update`。如果启用了 `--app-claude-copilot-api`，会先运行该子脚本，因为
+它会替换 `~/.claude/settings.json`；通用插件安装在之后进行，以免清除 `enabledPlugins`。
 
 通用官方插件为 `claude-code-setup`、`claude-md-management`、`claude-security` 和 `hookify`；`APP_GIT` 会增加 `commit-commands`。语言
 集成始终与对应的语言服务器配对：Go 安装最新 `gopls` 和 `gopls-lsp`，Python 安装隔离的 `pyright[nodejs]` 和 `pyright-lsp`，
@@ -412,8 +413,7 @@ copilot-api 子脚本会将提供的三个模型值原样写入设置，不查�
 
 copilot marketplace 会安装 `agent-inject` 和 `tool-search`。使用这个非第一方 `ANTHROPIC_BASE_URL` 时，应保持原生 `ENABLE_TOOL_SEARCH` 未设置，使
 Claude Code 使用其文档说明的预先加载 fallback。仅当 gateway 会转发 `tool_reference` 区块时才将其设为 `true`。两个插件都需要
-Node/npm/npx。仅在缺少 `node` 时引导安装 NodeSource LTS；如果已有不兼容的 runtime，则交由插件安装报告。Node
-仅服务于此集成，不是独立的 Debian 组件。
+Node/npm/npx；启用该集成时，子脚本通过 Homebrew 安装 `node` formula。Node 仅服务于此集成，不是独立的 Debian 组件。
 
 ## 容器流程
 
