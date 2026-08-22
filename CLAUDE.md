@@ -370,9 +370,10 @@ Micro 真彩色保持为 `MICRO_TRUECOLOR=1`，modern CLI 选择 Micro 作为默
 
 ## Git 应用
 
-`--app-git` 拥有完整的 Git 关注点：GitHub CLI 仓库设置、`gh`、delta、lazygit、全局 Git 设置、lazygit 配置、跟随 cwd 的 `lg()`
-函数，以及延迟的 `gh auth login`。实际写入器仍遵循共享所有权规则：Git 叶脚本写入工具和 Git 配置，
-`00-setup_env.zsh.sh` 写入 `lg()`，`99-first_run.zsh.sh` 写入一次性登录区块。不要将 delta 或 lazygit 拆分到 modern CLI 中。
+`--app-git` 通过 Homebrew 安装 `gh`、提供 `delta` 的 `git-delta` 和 `lazygit`，并拥有全局 Git 设置、lazygit 配置、跟随 cwd 的
+`lg()` 函数，以及延迟的 `gh auth login`。系统 Git 是仓库引导和安装 Oh My Zsh 所需的前置依赖；Git 叶脚本会保护但不会安装它。
+实际写入器仍遵循共享所有权规则：Git 叶脚本写入工具和 Git 配置，`00-setup_env.zsh.sh` 写入 `lg()`，`99-first_run.zsh.sh` 写入一次性
+登录区块。不要将 delta 或 lazygit 拆分到 modern CLI 中。
 
 lazygit 配置面向软件包提供的 schema。它将 Nerd Fonts 版本 `"3"` 保持为字符串，并显式使用 `delta --paging=never`；lazygit 不会继承全局
 `core.pager=delta`。`lg()` 函数使用 `LAZYGIT_NEW_DIR_FILE`，将父 shell 移动到 lazygit 退出时所在目录。
