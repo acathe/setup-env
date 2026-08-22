@@ -2,23 +2,12 @@
 
 set -euo pipefail
 
-install_uv() {
-    export PATH="$HOME/.local/bin:$PATH"
-    curl -LsSf 'https://astral.sh/uv/install.sh' | sh
-}
-
-install_tools() {
-    export PATH="$HOME/.local/bin:$PATH"
-    uv tool install py-spy
+main() {
+    brew install 'uv' 'py-spy'
 
     mkdir -p "$HOME/.config/Beslogic"
     curl -fsSL 'https://raw.githubusercontent.com/BesLogic/Beslogic-Ruff-Config/refs/heads/main/ruff.toml' \
         -o "$HOME/.config/Beslogic/ruff.toml"
-}
-
-main() {
-    install_uv
-    install_tools
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then

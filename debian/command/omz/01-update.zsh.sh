@@ -85,9 +85,8 @@ EOF
     if [[ $CODE_PYTHON == '1' ]]; then
         cat << 'EOF'
 
-    # uv
-    uv self update \
-        && uv tool upgrade --all
+    # uv tools
+    uv tool upgrade --all
 EOF
     fi
 
