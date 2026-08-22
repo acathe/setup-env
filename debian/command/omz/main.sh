@@ -3,6 +3,9 @@
 set -euo pipefail
 
 UNATTENDED="${UNATTENDED:-0}"
+CODE_RUST="${CODE_RUST:-0}"
+
+ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
 
 parse_args() {
     POSITIONAL=()
@@ -49,6 +52,11 @@ install_omz() {
     rm -f "$HOME/.bash_logout"
 }
 
+install_brew_rustup() {
+    install -Dm 644 './brew-rustup.plugin.zsh' \
+        "$ZSH_CUSTOM/plugins/brew-rustup/brew-rustup.plugin.zsh"
+}
+
 main() {
     if ! command -v git > /dev/null 2>&1; then
         echo 'git is not installed.' >&2
@@ -64,6 +72,11 @@ main() {
     sudo apt-get install -y zsh
 
     install_omz
+
+    if [[ $CODE_RUST == '1' ]]; then
+        install_brew_rustup
+    fi
+
     bash './plugin.sh' "$@"
     bash './setup-env.plugin.zsh.sh' "$@"
     bash './00-setup_env.zsh.sh' "$@"

@@ -3,13 +3,8 @@
 set -euo pipefail
 
 install_rust() {
-    if [[ -s "$HOME/.zshenv" ]]; then
-        echo >> "$HOME/.zshenv"
-    fi
-
-    echo '# Rust' >> "$HOME/.zshenv"
-    curl --proto '=https' --tlsv1.2 -sSf 'https://sh.rustup.rs' | sh -s -- -y
-    rm -f "$HOME/.profile"
+    brew install 'rustup'
+    rustup default stable
 }
 
 main() {

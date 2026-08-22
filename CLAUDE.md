@@ -83,11 +83,12 @@ ShellCheck 使用 `-x`，因为 `debian/app/docker.sh` 会动态 source `/etc/os
    `sed` 垫片。
 3. 设置并导出所有组件变量，包括 `APP_VSCODE`；Debian 的 `00-setup_env.zsh.sh` 没有该变量的本地默认值，遗漏会在 `set -u` 下中止并
    留下部分输出。
-4. macOS：从 `command/omz/` 调用 `plugin.sh`、`00-setup_env.zsh.sh` 和 `01-update.zsh.sh`。Debian：从同一目录依次调用
-   `plugin.sh`、`setup-env.plugin.zsh.sh`、`00-setup_env.zsh.sh`、`01-update.zsh.sh` 和 `99-first_run.zsh.sh`。
+4. macOS：从 `command/omz/` 调用 `plugin.sh`、`00-setup_env.zsh.sh` 和 `01-update.zsh.sh`。Debian：从同一目录开始；若
+   `CODE_RUST=1`，先 source `main.sh` 并调用 `install_brew_rustup`，再依次调用 `plugin.sh`、`setup-env.plugin.zsh.sh`、
+   `00-setup_env.zsh.sh`、`01-update.zsh.sh` 和 `99-first_run.zsh.sh`。
 5. 对本次实际生成的 `setup-env.plugin.zsh`、`00-setup_env.zsh`、`01-update.zsh` 和 `99-first_run.zsh` 逐一运行 `zsh -n`。
 
-不要调用 `command/omz/main.sh`（会执行真实配置，Debian 上还会运行 `apt`）。若未提供 Homebrew 和 Starship 桩程序，也不要调用
+不要执行 `command/omz/main.sh`（会执行真实配置，Debian 上还会运行 `apt`）；仅 source 它以调用上述安装函数是安全的。若未提供 Homebrew 和 Starship 桩程序，也不要调用
 `command/starship.sh`：它会安装真实 formula 并替换 `starship.toml`。不要调用 `update-all-in-one`，它会执行真实的软件包和网络更新。
 
 对于 fzf shell 改动，请在 `zsh -f` 中检查 `${(z)FZF_CTRL_T_OPTS}` 和 `${(z)FZF_ALT_C_OPTS}`。插件顺序改动需要真实的 ZLE／PTY
@@ -115,8 +116,9 @@ Debian 的 `APP_VSCODE` 是明确的纯集成例外：它有导出、解析器 c
 两个 CLI 入口点都是无解析器的叶脚本：`command/classic_cli/main.sh` 只拥有平台提供的 CLI 工具的无条件配置，而
 `command/modern_cli/main.sh` 聚合可选工具和固定的子安装器。
 
-标志会刻意通过导出变量和转发参数向下级联。`00-setup_env.zsh.sh` 读取 `CODE_GO` 以配置用户 Go bin PATH；
-`01-update.zsh.sh` 读取拥有专用更新区块的组件标志；Claude app 从 Debian 读取 `CODE_GO`、`CODE_PYTHON`、`CODE_RUST` 和 `APP_GIT`；
+标志会刻意通过导出变量和转发参数向下级联。OMZ `main.sh` 读取 `CODE_RUST` 以安装 `brew-rustup` 插件，
+`00-setup_env.zsh.sh` 读取 `CODE_GO` 以配置用户 Go bin PATH；`01-update.zsh.sh` 读取拥有专用更新区块的组件标志；Claude app 从 Debian 读取
+`CODE_GO`、`CODE_PYTHON`、`CODE_RUST` 和 `APP_GIT`；
 tmux 读取 `APP_CLAUDE`；Yazi 读取
 `COMMAND_MODERN_CLI` 和 `CODE_MARKDOWN`。OMZ 写入器读取组件标志，是因为它们实际拥有共享 shell 落点。跨组件读取仅在两个关注点都
 启用时增加集成行为，因而是有效的。
@@ -158,14 +160,15 @@ set -- "${POSITIONAL[@]+"${POSITIONAL[@]}"}"
 每个共享配置片段只有一个逻辑所有者，但 `.zshrc` 由多个写入器协同管理。每棵配置树的 `command/omz/main.sh` 都会安装 Oh My Zsh、
 准备其模板，然后编排插件和自定义文件写入器。macOS 运行 `plugin.sh`、`00-setup_env.zsh.sh` 和 `01-update.zsh.sh`；Debian 运行
 `plugin.sh`、`setup-env.plugin.zsh.sh`、`00-setup_env.zsh.sh`、`01-update.zsh.sh` 和 `99-first_run.zsh.sh`。Debian 安装器还会启用
-模板中的用户 bin PATH，`plugin.sh` 拥有插件数组和克隆。只有在写入非空 `setup-env` 插件之后，`setup-env.plugin.zsh.sh` 才会前置
-配套的数组条目，从而避免 shell 启动时出现“已启用但缺失”的警告。
+模板中的用户 bin PATH；Debian `main.sh` 拥有 `brew-rustup` 插件制品安装，`plugin.sh` 拥有插件数组和克隆。只有在写入非空
+`setup-env` 插件之后，`setup-env.plugin.zsh.sh` 才会前置配套的数组条目，从而避免 shell 启动时出现“已启用但缺失”的警告。
 
 | 配置需求方 | 配置所属目标位置 |
 | --- | --- |
 | `compinit`、Oh My Zsh 库、插件列表 | `.zshrc` |
 | Starship prompt 外观 | `$HOME/.config/starship.toml` |
-| 在 source 过程中需要此配置的另一个插件 | `$ZSH_CUSTOM/plugins/setup-env/setup-env.plugin.zsh` |
+| eza 在 source 过程中需要的 zstyle | `$ZSH_CUSTOM/plugins/setup-env/setup-env.plugin.zsh` |
+| Rust 插件在 source 前需要的 rustup 代理 PATH | `$ZSH_CUSTOM/plugins/brew-rustup/brew-rustup.plugin.zsh` |
 | 别名、集成函数、`compdef`、运行时变量、编辑器选择 | `$ZSH_CUSTOM/00-setup_env.zsh` |
 | 用户调用的聚合更新函数 | `$ZSH_CUSTOM/01-update.zsh` |
 | 延迟执行的交互式登录或向导 | `$ZSH_CUSTOM/99-first_run.zsh` |
@@ -180,8 +183,8 @@ set -- "${POSITIONAL[@]+"${POSITIONAL[@]}"}"
 `PYTHON_AUTO_VRUN`。uv 无需该手动自动激活开关即可发现虚拟环境；不要重新引入它。
 
 由配置流程管理的运行时工具配置以制品形式随仓库提供，而不是由配置 shell 渲染。大多数写入器使用
-`install -m 644`，需要创建父目录时再加 `-D`。这包括 bat、Glow、less、micro、Nano、lazygit，以及 Yazi 的 `init.lua` 和
-`keymap.toml`；仓库本地 lint 配置和未部署的 VS Code 参考数据不受此规则约束。
+`install -m 644`，需要创建父目录时再加 `-D`。这包括 `brew-rustup` 插件、bat、Glow、less、micro、Nano、lazygit，以及 Yazi 的
+`init.lua` 和 `keymap.toml`；仓库本地 lint 配置和未部署的 VS Code 参考数据不受此规则约束。
 copilot-api 设置模板是随仓库提供、由 `jq` 补全的 JSON 制品，直接写入时目录权限为 700，文件权限为 600。外部
 例外是 `code/python.sh` 从 BesLogic 的 `main` 分支下载的 Ruff 基线。Starship 和 Yazi 使用生成式配置：`command/starship.sh` 通过
 已安装二进制文件的 `nerd-font-symbols` preset 替换 `$HOME/.config/starship.toml`；`app/yazi/yazi.toml.sh` 会创建目标目录，并通过
@@ -236,7 +239,7 @@ Oh My Zsh 会先于插件初始化补全和库，随后按 `plugins=()` 顺序 s
 - `01-update.zsh` 在 `00-setup_env.zsh` 之后、`99-first_run.zsh` 之前加载；source 它时绝不能运行更新。
 - 生成后，`99-first_run.zsh` 保持为最后一个由配置流程管理的自定义 Zsh 文件，使延迟交互工作在受管理的运行时
   配置之后启动。
-- `zsh-syntax-highlighting` 保持在最后。
+- `zsh-syntax-highlighting` 保持为 `plugins=()` 中的最后一项。
 - `fzf-tab` 位于 `zsh-autosuggestions` 和 syntax highlighting 等包装器之前。
 - 在本仓库中，`fzf-tab` 也位于 `fzf` 之前。fzf 会将当前 Tab 绑定捕获为 `fzf_default_completion`；颠倒两者会嵌套两个 fzf
   补全界面。
@@ -248,6 +251,11 @@ Oh My Zsh 会先于插件初始化补全和库，随后按 `plugins=()` 顺序 s
 
 Atuin 是刻意安排在插件之后的例外。它从 `00-setup_env.zsh` 初始化，以便在 fzf 加载后接管 Ctrl-R 和 Up；软件包提供的 Zsh 与
 syntax-highlighting 组合仍可高亮此时新增的 widget。不要为了遵循通用顺序规则而将它提前。
+
+Debian 启用 Rust 时会安装自定义 `brew-rustup` 插件，并按 `brew`、`brew-rustup`、官方 `rust` 的先后顺序加载。
+Homebrew 的 keg-only `rustup` formula 将 `cargo`、`rustc` 和其他代理保留在 `$HOMEBREW_PREFIX/opt/rustup/bin`；`brew-rustup`
+负责先将该目录前置到 `PATH`。不要把它移到 `brew` 之前或 `rust` 之后：官方 `rust` 插件会在 source 时检查 `cargo`，路径尚未
+生效时会直接退出。Claude 集成也不得重新添加上游安装器使用的 `$HOME/.cargo/bin`。
 
 可选插件由提供相应命令的组件控制。启用 modern CLI 时，使用 Oh My Zsh 的 `zoxide` 插件并省略 `z`；未启用时，使用
 `z` 并输出 zsh-z 设置。优先使用 Debian 供应商补全，而不是每次 shell 启动都重新生成补全的插件。

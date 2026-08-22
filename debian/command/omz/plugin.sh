@@ -39,6 +39,7 @@ main() {
     sed -i 's/^plugins=(.*)/plugins=(aliases)/' "$HOME/.zshrc"
 
     append_plugin 'brew'
+    [[ $CODE_RUST == '1' ]] && append_plugin 'brew-rustup'
     append_plugin 'colored-man-pages'
     append_plugin 'dirhistory'
     append_plugin 'extract'

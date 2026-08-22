@@ -48,7 +48,6 @@ install_plugin() {
     fi
 
     if [[ $CODE_RUST == '1' ]]; then
-        export PATH="$HOME/.cargo/bin:$PATH"
         rustup component add rust-analyzer
         claude plugin install 'rust-analyzer-lsp@claude-plugins-official'
     fi
