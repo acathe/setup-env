@@ -5,16 +5,7 @@ set -euo pipefail
 COMMAND_MODERN_CLI="${COMMAND_MODERN_CLI:-0}"
 CODE_MARKDOWN="${CODE_MARKDOWN:-0}"
 
-add_repo() {
-    curl -fsSL 'https://yazi-rs.github.io/builds/yazi-keyring.gpg' \
-        | sudo tee '/usr/share/keyrings/yazi-keyring.gpg' > /dev/null
-    echo 'deb [signed-by=/usr/share/keyrings/yazi-keyring.gpg] https://yazi-rs.github.io/builds/ stable main' \
-        | sudo tee '/etc/apt/sources.list.d/yazi.list' > /dev/null
-}
-
 install_plugins() {
-    export PATH="$HOME/.local/bin:$PATH"
-
     if [[ $CODE_MARKDOWN == '1' ]]; then
         ya pkg add 'alberti42/faster-piper'
     fi
@@ -37,9 +28,7 @@ install_config() {
 }
 
 main() {
-    add_repo
-    sudo apt-get update
-    sudo apt-get install -y file yazi
+    brew install 'yazi'
 
     install_plugins
     install_config "$@"
