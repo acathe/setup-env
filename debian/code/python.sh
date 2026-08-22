@@ -20,9 +20,6 @@ install_tools() {
 }
 
 main() {
-    sudo apt-get update
-    sudo apt-get install -y build-essential
-
     install_python
     install_tools
 }

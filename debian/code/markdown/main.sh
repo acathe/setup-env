@@ -4,8 +4,6 @@ set -euo pipefail
 
 main() {
     sudo apt-get update
-    sudo apt-get install -y build-essential
-
     sudo apt-get install -y glow
 
     install -Dm 644 './glow.yml' "$HOME/.config/glow/glow.yml"
