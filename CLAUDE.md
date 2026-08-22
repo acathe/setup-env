@@ -39,7 +39,7 @@ Oh My Zsh 的 `brew` 插件会独立配置交互式 Zsh；此集成不会为非�
 
 `debian/vscode/` 仅作为参考数据。没有分发器会安装这些文件；`--app-vscode` 会启用 OMZ 插件。`README.md` 当前仍记录手动
 安装扩展的方式；根据前述文档边界，此类非参数内容不应继续保留或新增。Debian 的 `00-setup_env.zsh.sh` 会在未启用 modern CLI 时选择
-`nano -/`，启用时选择 Micro；启用 `--app-vscode` 后，同一写入器会增加运行时 `TERM_PROGRAM=vscode` 覆盖，将编辑器设为 `code --wait`。
+运行 `nano -/` 的 `nanom` wrapper，启用时选择 Micro；启用 `--app-vscode` 后，同一写入器会增加运行时 `TERM_PROGRAM=vscode` 覆盖，将编辑器设为 `code --wait`。
 它不会输出 `VISUAL`。应通过 `bash` 调用脚本，而不是依赖可执行位。
 
 根目录 `main.sh` 和 `macos/` 必须保持与 Apple Bash 3.2 兼容；Debian 和容器代码可使用更新的 Bash。下载 Go
@@ -320,16 +320,18 @@ GitHub release 资产使用 `releases/latest/download/<asset>`。无版本资产
 
 Debian 受管理的 Nano 配置依赖系统 nanorc 加载软件包提供的语法定义；不要添加重复的 include glob。其选项面向 Nano
 5.3 或更高版本，并避免会改变文件内容或与终端选择冲突的设置。classic CLI 会复制该制品，但不会安装 Nano。
-Debian 仅在未启用 modern CLI 时选择 `nano -/`；启用 modern CLI 时改选 Micro。macOS 没有受管理的 Nano 制品，也从不选择 Nano。
+Debian 仅在未启用 modern CLI 时选择运行 `nano -/` 的 `nanom` wrapper；启用 modern CLI 时改选 Micro。macOS 没有受管理的
+Nano 制品，也从不选择 Nano。
 
 新增插件或主题时，需要使用官方或积极维护的来源，默认值应来自官方设置或使用指南。不要因为部分工具使用 One Dark 覆盖，
 就推断每个工具都需要该覆盖。
 
 ## Classic CLI
 
-只有 Debian 会在统一 OMZ 流程和 Starship 之后无条件运行 `command/classic_cli/main.sh`。它不安装软件包，只使用 `install -Dm 644` 将
-随仓库提供的 `lesskey` 和 `nanorc` 制品复制到 `$HOME/.config/lesskey` 和 `$HOME/.config/nano/nanorc`；less 和 Nano 来自平台基线。
-macOS 没有 classic CLI 组件。
+只有 Debian 会在统一 OMZ 流程和 Starship 之后无条件运行 `command/classic_cli/main.sh`。它不安装软件包：使用 `install -Dm 644` 将
+随仓库提供的 `lesskey` 和 `nanorc` 制品复制到 `$HOME/.config/lesskey` 和 `$HOME/.config/nano/nanorc`，并以 `install -Dm 755` 将
+`nanom` wrapper 安装到 `$HOME/.local/bin/nanom`。该 wrapper 仅供 `EDITOR` 调用，不会通过 alias 改变 `nano` 命令；less 和 Nano
+来自平台基线。macOS 没有 classic CLI 组件。
 
 ## Debian modern CLI
 
