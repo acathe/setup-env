@@ -1,5 +1,20 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/jesseduffield/lazygit/refs/heads/master/schema/config.json
+
 gui:
   nerdFontsVersion: "3"
+  filterMode: fuzzy
+
 git:
-  paging:
-    pager: delta --paging=never
+  diffRenderers:
+    - command: >-
+        delta --paging=never --no-navigate--hyperlinks
+        --hyperlinks-file-link-format="lazygit-edit://{path}:{line}"
+      name: delta
+
+    - type: rawGit
+      args:
+        - --color-words
+      name: color-words
+
+    - type: rawGit
+      name: default

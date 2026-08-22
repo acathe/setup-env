@@ -22,10 +22,12 @@ main() {
     sed -i 's/^plugins=(.*)/plugins=(aliases)/' "$HOME/.zshrc"
 
     append_plugin 'brew'
+    append_plugin 'command-not-found'
     append_plugin 'colored-man-pages'
     append_plugin 'dirhistory'
     append_plugin 'extract'
     append_plugin 'fancy-ctrl-z'
+    [[ $COMMAND_MODERN_CLI != '1' ]] && append_plugin 'history-substring-search'
     append_plugin 'magic-enter'
     append_plugin 'safe-paste'
     append_plugin 'starship'
@@ -40,6 +42,9 @@ main() {
     [[ $APP_DOCKER == '1' ]] && append_plugin 'docker'
     [[ $APP_DOCKER == '1' ]] && append_plugin 'docker-compose'
     [[ $APP_GIT == '1' ]] && append_plugin 'git'
+    [[ $APP_GIT == '1' ]] && append_plugin 'gh'
+    [[ $APP_TMUX == '1' ]] && append_plugin 'copybuffer'
+    [[ $APP_TMUX == '1' ]] && append_plugin 'copyfile'
     [[ $APP_TMUX == '1' ]] && append_plugin 'tmux'
     [[ $APP_VSCODE == '1' ]] && append_plugin 'vscode'
 
