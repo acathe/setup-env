@@ -16,6 +16,8 @@ main() {
     install_community_plugin 'MichaelAquilina/zsh-you-should-use' 'you-should-use'
     install_community_plugin 'zsh-users/zsh-autosuggestions' 'zsh-autosuggestions'
     install_community_plugin 'zsh-users/zsh-syntax-highlighting' 'zsh-syntax-highlighting'
+
+    bash './update-all-in-one.sh' "$@"
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then

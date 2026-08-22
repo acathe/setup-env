@@ -49,6 +49,7 @@ main() {
     [[ $CODE_RUST == '1' ]] && append_plugin 'brew-rustup'
     [[ $CODE_RUST == '1' ]] && append_plugin 'rust'
 
+    append_plugin 'update-all-in-one'
     append_plugin 'ohmyzsh-full-autoupdate'
     append_plugin 'you-should-use'
     [[ $COMMAND_MODERN_CLI == '1' ]] && append_plugin 'fzf-tab'

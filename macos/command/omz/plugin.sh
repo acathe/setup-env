@@ -33,6 +33,7 @@ main() {
     [[ $COMMAND_SSH == '1' ]] && append_plugin 'ssh'
     [[ $APP_VSCODE == '1' ]] && append_plugin 'vscode'
 
+    append_plugin 'update-all-in-one'
     append_plugin 'ohmyzsh-full-autoupdate'
     append_plugin 'you-should-use'
     append_plugin 'zsh-autosuggestions'
