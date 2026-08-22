@@ -419,10 +419,11 @@ Node/npm/npx。仅在缺少 `node` 时引导安装 NodeSource LTS；如果已有
 bash /mnt/setup/main.sh --unattended "${setup_args[@]}"
 ```
 
-构建上下文是 `debian/`，因此镜像配置无法使用移到该树之外的文件。launcher 当前假定宿主为提供 `timedatectl` 的 Linux/systemd
-环境，并要求 `LANG` 采用 `<locale>.<encoding>` 格式；现有检查只验证其非空。若要支持 macOS 宿主或 `LANG=C`，必须同步更新宿主预检、
-拆分逻辑和 Dockerfile 的 `localedef` 调用。无人值守模式安装 Oh My Zsh 但不启动它，且会更改登录 shell；launcher 将主机的
-`~/Projects` 挂载到具有特权的持久容器中。
+构建上下文是 `debian/`，因此镜像配置无法使用移到该树之外的文件。Debian 宿主把 `python3` 视为平台基线，
+`debian/code/python.sh` 不安装它；精简的 dev-container 镜像必须在 Dockerfile 的基础包列表显式补齐。launcher 当前假定宿主为提供
+`timedatectl` 的 Linux/systemd 环境，并要求 `LANG` 采用 `<locale>.<encoding>` 格式；现有检查只验证其非空。若要支持 macOS 宿主或
+`LANG=C`，必须同步更新宿主预检、拆分逻辑和 Dockerfile 的 `localedef` 调用。无人值守模式安装 Oh My Zsh 但不启动它，且会更改
+登录 shell；launcher 将主机的 `~/Projects` 挂载到具有特权的持久容器中。
 
 `container/copilot-api/main.sh` 解析最新 release 以获取 Git ref 和镜像标签，从该 ref 构建，可选地通过 `/dev/tty` 运行交互式
 认证，然后替换指定名称的服务容器、发布 4141 端口，并将主机的 `~/.copilot-api` 挂载为服务状态。

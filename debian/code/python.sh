@@ -2,10 +2,7 @@
 
 set -euo pipefail
 
-install_python() {
-    sudo apt-get update
-    sudo apt-get install -y python3
-
+install_uv() {
     export PATH="$HOME/.local/bin:$PATH"
     curl -LsSf 'https://astral.sh/uv/install.sh' | sh
 }
@@ -20,10 +17,7 @@ install_tools() {
 }
 
 main() {
-    sudo apt-get update
-    sudo apt-get install -y build-essential
-
-    install_python
+    install_uv
     install_tools
 }
 

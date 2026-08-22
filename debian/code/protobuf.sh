@@ -8,8 +8,6 @@ get_protoc_latest() {
 
 main() {
     sudo apt-get update
-    sudo apt-get install -y build-essential
-
     sudo apt-get install -y clang-format unzip
 
     local version

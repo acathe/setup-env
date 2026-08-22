@@ -44,6 +44,7 @@ RUN sudo apt-get update \
         netcat-openbsd \
         procps \
         psmisc \
+        python3 \
         vim-tiny \
         xz-utils \
     && sudo rm -rf /var/lib/apt/lists/* /tmp/*
