@@ -254,7 +254,9 @@ syntax-highlighting 组合仍可高亮此时新增的 widget。不要为了遵�
 
 ## Bash 与生成内容约定
 
-每个脚本都以 `#!/usr/bin/env bash` 和 `set -euo pipefail` 开头。
+仓库中的配置脚本都以 `#!/usr/bin/env bash` 和 `set -euo pipefail` 开头。部署到目标环境作为独立命令的
+`debian/command/classic_cli/nanom` 是例外：它不是配置脚本，而是最小 POSIX wrapper，使用 `#!/bin/sh` 并通过
+`exec /usr/bin/nano --modernbindings "$@"` 透明替换自身。
 
 字面量使用单引号；只有 shell 必须展开美元符号、命令替换或转义时才使用双引号。`${VAR:-default}` 内的
 默认值不加引号，因为外层双引号已经保护了展开：
