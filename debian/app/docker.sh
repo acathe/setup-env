@@ -35,8 +35,7 @@ add_group() {
 }
 
 install_lazydocker() {
-    curl -fsSL 'https://raw.githubusercontent.com/jesseduffield/lazydocker/master/scripts/install_update_linux.sh' \
-        | bash
+    brew install 'lazydocker'
 }
 
 main() {

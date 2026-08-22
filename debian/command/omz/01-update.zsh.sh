@@ -10,7 +10,6 @@ CODE_PYTHON="${CODE_PYTHON:-0}"
 CODE_RUST="${CODE_RUST:-0}"
 
 APP_CLAUDE="${APP_CLAUDE:-0}"
-APP_DOCKER="${APP_DOCKER:-0}"
 APP_YAZI="${APP_YAZI:-0}"
 
 ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
@@ -26,7 +25,7 @@ function update-all-in-one() {
 
     # Homebrew
     brew update \
-        && brew upgrade starship \
+        && brew upgrade --greedy \
         && brew cleanup
 
     # Oh My Zsh
@@ -106,15 +105,6 @@ EOF
 
     # Claude Code
     claude update
-EOF
-    fi
-
-    if [[ $APP_DOCKER == '1' ]]; then
-        cat << 'EOF'
-
-    # lazydocker
-    curl -fsSL 'https://raw.githubusercontent.com/jesseduffield/lazydocker/master/scripts/install_update_linux.sh' \
-        | bash
 EOF
     fi
 
