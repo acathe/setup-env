@@ -84,7 +84,7 @@ ShellCheck 使用 `-x`，因为 `debian/app/docker.sh` 会动态 source `/etc/os
 2. 使用 Oh My Zsh 模板初始化 `$HOME/.zshrc`，在 `PATH` 中放置供 `install_plugin.sh` 使用的 `git` 桩程序；在 Linux 上验证
    macOS 时，再为 `plugin.sh` 提供 BSD `sed` 垫片。
 3. 设置并导出所有组件变量，包括 `APP_VSCODE`，以验证 `install_plugin.sh` 和 `custom.sh` 选择出的完整插件及片段集合。
-4. 两个平台都从 `command/omz/` 依次调用 `install_plugin.sh`、`plugin.sh` 和 `custom.sh`。
+4. 两个平台都从 `command/omz/` 依次调用 `install_plugin.sh`、`update.sh`、`plugin.sh` 和 `custom.sh`。
 5. 确认 `$HOME/.zshrc` 恰有一个 `plugins=(...)` 行，且完整内容和顺序符合当前组件变量；确认 `$ZSH_CUSTOM` 和
    `$ZSH_CUSTOM/plugins/update-all-in-one/custom` 中安装的片段 basename 集合与当前标志一致。
 6. 对 `$HOME/.zshrc`、所有已安装的 custom 片段、`update-all-in-one.plugin.zsh` 和更新片段逐一运行 `zsh -n`；
@@ -123,7 +123,7 @@ Debian 的 `APP_VSCODE` 是明确的纯集成例外：它有导出、解析器 c
 `command/modern_cli/main.sh` 聚合可选工具和固定的子安装器。
 
 标志会刻意通过导出变量和转发参数向下级联。Debian 的 OMZ `install_plugin.sh` 读取 `CODE_RUST` 和
-`COMMAND_MODERN_CLI` 以部署 `brew-rustup` 和 `pre-eza` 插件，并调用 `update-all-in-one.sh`；后者读取拥有专用更新片段的组件标志。
+`COMMAND_MODERN_CLI` 以部署 `brew-rustup` 和 `pre-eza` 插件；`update.sh` 读取拥有专用更新片段的组件标志。
 `plugin.sh` 读取组件标志以重建插件数组；`custom.sh` 读取 `CODE_GO` 和 `CODE_PROTOBUF` 以选择对应的用户工具 PATH 片段；
 Claude app 从 Debian 读取 `CODE_GO`、`CODE_PYTHON`、`CODE_RUST` 和 `APP_GIT`；
 tmux 读取 `APP_CLAUDE`；Yazi 读取
@@ -165,10 +165,9 @@ set -- "${POSITIONAL[@]+"${POSITIONAL[@]}"}"
 ## 配置所有权与落点
 
 每个共享配置片段只有一个逻辑所有者，但 `.zshrc` 由多个写入器协同管理。每棵配置树的 `command/omz/main.sh` 都会安装 Oh My Zsh、
-准备其模板，然后依次运行 `install_plugin.sh`、`plugin.sh` 和 `custom.sh`。Debian 安装器还会启用模板中的用户 bin PATH。两平台的
-`install_plugin.sh` 拥有第三方插件克隆并调用 `update-all-in-one.sh`，Debian 版本还按组件标志复制仓库内的 `pre-eza` 和
-`brew-rustup` 插件目录；`plugin.sh` 只拥有插件数组，并仅启用本次安装流程已经物化的条件插件。`update-all-in-one.sh` 拥有
-`update-all-in-one` 插件入口和更新片段安装。
+准备其模板，然后依次运行 `install_plugin.sh`、`update.sh`、`plugin.sh` 和 `custom.sh`。Debian 安装器还会启用模板中的用户 bin PATH。
+两平台的 `install_plugin.sh` 拥有第三方插件克隆，Debian 版本还按组件标志复制仓库内的 `pre-eza` 和 `brew-rustup` 插件目录；
+`update.sh` 拥有 `update-all-in-one` 插件入口和更新片段安装；`plugin.sh` 只拥有插件数组，并仅启用本次安装流程已经物化的条件插件。
 
 | 配置需求方 | 配置所属目标位置 |
 | --- | --- |
@@ -228,7 +227,7 @@ Debian 的 OMZ `plugin.sh` 会从 `plugins=(aliases)` 重建数组；旧 home �
 清理早期版本遗留文件；在重复配置中关闭标志不等于卸载之前安装的片段。因此，在尚未 source `99-gh-login.zsh` 前关闭 `APP_GIT`，
 已经安装的登录片段仍会保留并执行一次。
 
-两平台的 `update-all-in-one.sh` 都创建 `$ZSH_CUSTOM/plugins/update-all-in-one/custom`，并以 `0644` 安装插件入口和更新片段。
+两平台的 `update.sh` 都创建 `$ZSH_CUSTOM/plugins/update-all-in-one/custom`，并以 `0644` 安装插件入口和更新片段。
 安装器通过 `install_update()` 复制 `plugins/update-all-in-one/custom/` 中的片段；Debian 版本再根据导出的配置标志用条件调用选择可选片段，
 而不是在安装时探测命令是否可用。安装器只覆盖或添加当前声明的文件，不负责清理以前安装的可选片段或其他旧制品。
 
@@ -479,8 +478,8 @@ N 个独立生成的 32 字节十六进制密钥；`--add-api-key <v>` 原样追
 
 ## macOS 特有约束
 
-macOS 的 `command/omz/main.sh` 安装 Oh My Zsh 后，先由 `install_plugin.sh` 克隆第三方插件并调用 `update-all-in-one.sh`，再由
-`plugin.sh` 重建插件数组，随后运行 `custom.sh`。它没有加载时设置写入器或延迟交互组件。更新插件从
+macOS 的 `command/omz/main.sh` 安装 Oh My Zsh 后，先由 `install_plugin.sh` 克隆第三方插件，再由 `update.sh` 安装更新插件，之后由
+`plugin.sh` 重建插件数组并运行 `custom.sh`。它没有加载时设置写入器或延迟交互组件。更新插件从
 `plugins/update-all-in-one/custom/` 安装 `00-homebrew.zsh` 和 `01-oh-my-zsh.zsh`。`APP_VSCODE=1` 时，`custom.sh` 会安装无条件选择
 `code --wait` 的 `00-vscode.zsh`。
 macOS 的 `01-zsh-autosuggestions.zsh`、`02-zsh-syntax-highlighting.zsh`、`03-you-should-use.zsh` 和 `04-z.zsh` 必须分别与 Debian 的
