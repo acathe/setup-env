@@ -5,6 +5,7 @@ set -euo pipefail
 COMMAND_MODERN_CLI="${COMMAND_MODERN_CLI:-0}"
 
 CODE_GO="${CODE_GO:-0}"
+CODE_PROTOBUF="${CODE_PROTOBUF:-0}"
 
 APP_DOCKER="${APP_DOCKER:-0}"
 APP_GIT="${APP_GIT:-0}"
@@ -42,6 +43,14 @@ EOF
 
 # Go
 export PATH="$HOME/go/bin:$PATH"
+EOF
+    fi
+
+    if [[ $CODE_PROTOBUF == '1' ]]; then
+        cat << 'EOF'
+
+# clang-format
+export PATH="$HOMEBREW_PREFIX/opt/clang-format/bin:$PATH"
 EOF
     fi
 

@@ -24,11 +24,6 @@ set_completion() {
 }
 
 main() {
-    sudo apt-get update
-    sudo apt-get install -y \
-        jq \
-        unzip
-
     brew install \
         'atuin' \
         'bat' \
