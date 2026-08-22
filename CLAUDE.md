@@ -83,11 +83,12 @@ ShellCheck 使用 `-x`，因为 `debian/app/docker.sh` 会动态 source `/etc/os
    `sed` 垫片。
 3. 设置并导出所有组件变量，包括 `APP_VSCODE`；Debian 的 `00-setup_env.zsh.sh` 没有该变量的本地默认值，遗漏会在 `set -u` 下中止并
    留下部分输出。
-4. macOS：从 `command/omz/` 调用 `plugin.sh`、`00-setup_env.zsh.sh` 和 `01-update.zsh.sh`。Debian：从同一目录依次调用
-   `plugin.sh`、`setup-env.plugin.zsh.sh`、`00-setup_env.zsh.sh`、`01-update.zsh.sh` 和 `99-first_run.zsh.sh`。
+4. macOS：从 `command/omz/` 调用 `plugin.sh`、`00-setup_env.zsh.sh` 和 `01-update.zsh.sh`。Debian：从同一目录开始；若
+   `CODE_RUST=1`，先 source `main.sh` 并调用 `install_brew_rustup`，再依次调用 `plugin.sh`、`setup-env.plugin.zsh.sh`、
+   `00-setup_env.zsh.sh`、`01-update.zsh.sh` 和 `99-first_run.zsh.sh`。
 5. 对本次实际生成的 `setup-env.plugin.zsh`、`00-setup_env.zsh`、`01-update.zsh` 和 `99-first_run.zsh` 逐一运行 `zsh -n`。
 
-不要调用 `command/omz/main.sh`（会执行真实配置，Debian 上还会运行 `apt`）。若未提供 Homebrew 和 Starship 桩程序，也不要调用
+不要执行 `command/omz/main.sh`（会执行真实配置，Debian 上还会运行 `apt`）；仅 source 它以调用上述安装函数是安全的。若未提供 Homebrew 和 Starship 桩程序，也不要调用
 `command/starship.sh`：它会安装真实 formula 并替换 `starship.toml`。不要调用 `update-all-in-one`，它会执行真实的软件包和网络更新。
 
 对于 fzf shell 改动，请在 `zsh -f` 中检查 `${(z)FZF_CTRL_T_OPTS}` 和 `${(z)FZF_ALT_C_OPTS}`。插件顺序改动需要真实的 ZLE／PTY
@@ -115,8 +116,9 @@ Debian 的 `APP_VSCODE` 是明确的纯集成例外：它有导出、解析器 c
 两个 CLI 入口点都是无解析器的叶脚本：`command/classic_cli/main.sh` 只拥有平台提供的 CLI 工具的无条件配置，而
 `command/modern_cli/main.sh` 聚合可选工具和固定的子安装器。
 
-标志会刻意通过导出变量和转发参数向下级联。`00-setup_env.zsh.sh` 读取 `CODE_GO` 以配置用户 Go bin PATH；
-`01-update.zsh.sh` 读取拥有专用更新区块的组件标志；Claude app 从 Debian 读取 `CODE_GO`、`CODE_PYTHON`、`CODE_RUST` 和 `APP_GIT`；
+标志会刻意通过导出变量和转发参数向下级联。OMZ `main.sh` 读取 `CODE_RUST` 以安装 `brew-rustup` 插件，
+`00-setup_env.zsh.sh` 读取 `CODE_GO` 以配置用户 Go bin PATH；`01-update.zsh.sh` 读取拥有专用更新区块的组件标志；Claude app 从 Debian 读取
+`CODE_GO`、`CODE_PYTHON`、`CODE_RUST` 和 `APP_GIT`；
 tmux 读取 `APP_CLAUDE`；Yazi 读取
 `COMMAND_MODERN_CLI` 和 `CODE_MARKDOWN`。OMZ 写入器读取组件标志，是因为它们实际拥有共享 shell 落点。跨组件读取仅在两个关注点都
 启用时增加集成行为，因而是有效的。
@@ -158,8 +160,8 @@ set -- "${POSITIONAL[@]+"${POSITIONAL[@]}"}"
 每个共享配置片段只有一个逻辑所有者，但 `.zshrc` 由多个写入器协同管理。每棵配置树的 `command/omz/main.sh` 都会安装 Oh My Zsh、
 准备其模板，然后编排插件和自定义文件写入器。macOS 运行 `plugin.sh`、`00-setup_env.zsh.sh` 和 `01-update.zsh.sh`；Debian 运行
 `plugin.sh`、`setup-env.plugin.zsh.sh`、`00-setup_env.zsh.sh`、`01-update.zsh.sh` 和 `99-first_run.zsh.sh`。Debian 安装器还会启用
-模板中的用户 bin PATH，`plugin.sh` 拥有插件数组、克隆和专用插件制品安装。只有在写入非空 `setup-env` 插件之后，
-`setup-env.plugin.zsh.sh` 才会前置配套的数组条目，从而避免 shell 启动时出现“已启用但缺失”的警告。
+模板中的用户 bin PATH；Debian `main.sh` 拥有 `brew-rustup` 插件制品安装，`plugin.sh` 拥有插件数组和克隆。只有在写入非空
+`setup-env` 插件之后，`setup-env.plugin.zsh.sh` 才会前置配套的数组条目，从而避免 shell 启动时出现“已启用但缺失”的警告。
 
 | 配置需求方 | 配置所属目标位置 |
 | --- | --- |

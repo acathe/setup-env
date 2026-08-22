@@ -28,11 +28,6 @@ download_plugin() {
         "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting"
 }
 
-install_brew_rustup() {
-    install -Dm 644 './brew-rustup.plugin.zsh' \
-        "$ZSH_CUSTOM/plugins/brew-rustup/brew-rustup.plugin.zsh"
-}
-
 append_plugin() {
     local plugin="$1"
     sed -i "/^plugins=(/s/)/ $plugin)/" "$HOME/.zshrc"
@@ -40,10 +35,6 @@ append_plugin() {
 
 main() {
     download_plugin
-
-    if [[ $CODE_RUST == '1' ]]; then
-        install_brew_rustup
-    fi
 
     sed -i 's/^plugins=(.*)/plugins=(aliases)/' "$HOME/.zshrc"
 
