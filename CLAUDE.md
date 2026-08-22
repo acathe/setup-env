@@ -441,8 +441,8 @@ N 个独立生成的 32 字节十六进制密钥；`--add-api-key <v>` 原样追
 `--api-keys <N>` 分别是前两个参数的兼容别名。带值参数保持单值语义，重复时最后一个值生效；追加操作不去重。
 
 宿主 launcher 将参数映射到 `CLEAR_API_KEYS`、`API_KEY_GENERATION_COUNT` 和 `API_KEY_TO_ADD`，并传入容器。
-容器固定依次禁用 Responses API WebSocket、按需清空 key、追加随机 key，再追加固定 key；参数出现顺序不会改变该顺序。
-该任务假定服务已经生成有效的 `config.json`，并在每次运行时强制将 `useResponsesApiWebSocket=false`。
+容器固定依次按需清空 key、追加随机 key，再追加固定 key；参数出现顺序不会改变该顺序。
+该任务假定服务已经生成有效的 `config.json`。
 
 ## macOS 特有约束
 
