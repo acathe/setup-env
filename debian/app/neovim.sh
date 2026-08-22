@@ -3,8 +3,7 @@
 set -euo pipefail
 
 main() {
-    sudo apt-get update
-    sudo apt-get install -y neovim
+    brew install 'neovim'
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
