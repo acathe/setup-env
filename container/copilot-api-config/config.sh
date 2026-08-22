@@ -6,18 +6,6 @@ CLEAR_API_KEYS="${CLEAR_API_KEYS:-0}"
 API_KEY_GENERATION_COUNT="${API_KEY_GENERATION_COUNT:-0}"
 API_KEY_TO_ADD="${API_KEY_TO_ADD:-}"
 
-validate_options() {
-    if [[ ! $CLEAR_API_KEYS =~ ^[01]$ ]]; then
-        echo 'CLEAR_API_KEYS must be 0 or 1.' >&2
-        return 1
-    fi
-
-    if [[ ! $API_KEY_GENERATION_COUNT =~ ^(0|[1-9][0-9]?|100)$ ]]; then
-        echo 'API key generation count must be an integer from 0 to 100.' >&2
-        return 1
-    fi
-}
-
 clear_api_keys() {
     local tmp
     tmp="$(mktemp)"
@@ -32,10 +20,9 @@ add_api_key() {
     local tmp
     tmp="$(mktemp)"
 
-    printf '%s' "$api_key" \
-        | jq --rawfile api_key /dev/stdin \
-            '.auth.apiKeys += [$api_key]' \
-            "$HOME/.copilot-api/config.json" > "$tmp"
+    jq --arg api_key "$api_key" \
+        '.auth.apiKeys += [$api_key]' \
+        "$HOME/.copilot-api/config.json" > "$tmp"
     cp "$tmp" "$HOME/.copilot-api/config.json"
 }
 
@@ -49,10 +36,6 @@ disable_responses_api_websocket() {
 }
 
 main() {
-    if ! validate_options; then
-        return 1
-    fi
-
     disable_responses_api_websocket
 
     if [[ $CLEAR_API_KEYS == '1' ]]; then

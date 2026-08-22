@@ -437,15 +437,12 @@ bash /mnt/setup/main.sh --unattended "${setup_args[@]}"
 
 `container/copilot-api-config` 是包含 `jq` 和 `openssl` 的一次性镜像。它将同一主机目录挂载到 `/root/.copilot-api`，因此尽管容器内路径不同，
 仍会修改服务的持久 `config.json`。`--clear-api-keys` 清空整个 `auth.apiKeys` 数组；`--generate-api-keys <N>` 追加
-N 个独立生成的 32 字节十六进制密钥；`--add-api-key=<v>` 原样追加一个非空固定密钥。固定密钥使用单 token 形式，避免值被上层
-分发器误认为自己的参数；目标解析器仍兼容普通值的 `--add-api-key <v>` 形式。旧参数 `--reset-api-key` 和 `--api-keys <N>`
-分别是前两个参数的兼容别名。带值参数保持单值语义，重复时最后一个值生效；追加操作不去重。
+N 个独立生成的 32 字节十六进制密钥；`--add-api-key <v>` 原样追加一个非空固定密钥。旧参数 `--reset-api-key` 和
+`--api-keys <N>` 分别是前两个参数的兼容别名。带值参数保持单值语义，重复时最后一个值生效；追加操作不去重。
 
-宿主 launcher 将参数映射到 `CLEAR_API_KEYS`、`API_KEY_GENERATION_COUNT` 和 `API_KEY_TO_ADD`，并按环境变量名传入容器。
-宿主和容器都会在任何构建或配置写入前验证 clear 值为 `0` 或 `1`、生成数量为无前导零的十进制 `0` 至 `100`。
+宿主 launcher 将参数映射到 `CLEAR_API_KEYS`、`API_KEY_GENERATION_COUNT` 和 `API_KEY_TO_ADD`，并传入容器。
 容器固定依次禁用 Responses API WebSocket、按需清空 key、追加随机 key，再追加固定 key；参数出现顺序不会改变该顺序。
-追加 helper 通过标准输入和 `jq --rawfile` 传递密钥，避免密钥出现在 `jq` 的进程参数中。该任务假定服务已经生成有效的
-`config.json`，并在每次运行时强制将 `useResponsesApiWebSocket=false`。
+该任务假定服务已经生成有效的 `config.json`，并在每次运行时强制将 `useResponsesApiWebSocket=false`。
 
 ## macOS 特有约束
 
