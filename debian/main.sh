@@ -95,57 +95,23 @@ main() {
     bash './command/starship.sh' "$@"
     bash './command/classic_cli/main.sh' "$@"
 
-    if [[ $COMMAND_MODERN_CLI == '1' ]]; then
-        bash './command/modern_cli/main.sh' "$@"
-    fi
+    [[ $COMMAND_MODERN_CLI == '1' ]] && bash './command/modern_cli/main.sh' "$@"
 
-    if [[ $CODE_BASH == '1' ]]; then
-        bash './code/bash.sh' "$@"
-    fi
+    [[ $CODE_BASH == '1' ]] && bash './code/bash.sh' "$@"
+    [[ $CODE_GO == '1' ]] && bash './code/go.sh' "$@"
+    [[ $CODE_MARKDOWN == '1' ]] && bash './code/markdown/main.sh' "$@"
+    [[ $CODE_PROTOBUF == '1' ]] && bash './code/protobuf.sh' "$@"
+    [[ $CODE_PYTHON == '1' ]] && bash './code/python.sh' "$@"
+    [[ $CODE_RUST == '1' ]] && bash './code/rust.sh' "$@"
 
-    if [[ $CODE_GO == '1' ]]; then
-        bash './code/go.sh' "$@"
-    fi
+    [[ $APP_CLAUDE == '1' ]] && bash './app/claude/main.sh' "$@"
+    [[ $APP_DOCKER == '1' ]] && bash './app/docker.sh' "$@"
+    [[ $APP_GIT == '1' ]] && bash './app/git/main.sh' "$@"
+    [[ $APP_NEOVIM == '1' ]] && bash './app/neovim.sh' "$@"
+    [[ $APP_TMUX == '1' ]] && bash './app/tmux.sh' "$@"
+    [[ $APP_YAZI == '1' ]] && bash './app/yazi/main.sh' "$@"
 
-    if [[ $CODE_MARKDOWN == '1' ]]; then
-        bash './code/markdown/main.sh' "$@"
-    fi
-
-    if [[ $CODE_PROTOBUF == '1' ]]; then
-        bash './code/protobuf.sh' "$@"
-    fi
-
-    if [[ $CODE_PYTHON == '1' ]]; then
-        bash './code/python.sh' "$@"
-    fi
-
-    if [[ $CODE_RUST == '1' ]]; then
-        bash './code/rust.sh' "$@"
-    fi
-
-    if [[ $APP_CLAUDE == '1' ]]; then
-        bash './app/claude/main.sh' "$@"
-    fi
-
-    if [[ $APP_DOCKER == '1' ]]; then
-        bash './app/docker.sh' "$@"
-    fi
-
-    if [[ $APP_GIT == '1' ]]; then
-        bash './app/git/main.sh' "$@"
-    fi
-
-    if [[ $APP_NEOVIM == '1' ]]; then
-        bash './app/neovim.sh' "$@"
-    fi
-
-    if [[ $APP_TMUX == '1' ]]; then
-        bash './app/tmux.sh' "$@"
-    fi
-
-    if [[ $APP_YAZI == '1' ]]; then
-        bash './app/yazi/main.sh' "$@"
-    fi
+    return 0
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
