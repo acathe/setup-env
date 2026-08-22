@@ -46,10 +46,9 @@ main() {
         -t "copilot-api:$version" \
         "https://github.com/caozhiyuan/copilot-api.git#v$version" >&2
 
-    if [[ $COPILOT_API_AUTH == '1' ]]; then
-        mkdir -p "$HOME/.copilot-api"
-        chmod 700 "$HOME/.copilot-api"
+    sudo install -d -m 700 -o root -g root "$HOME/.copilot-api"
 
+    if [[ $COPILOT_API_AUTH == '1' ]]; then
         docker run \
             --rm \
             -it \
