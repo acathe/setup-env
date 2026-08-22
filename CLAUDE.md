@@ -2,51 +2,35 @@
 
 ## 适用环境与文档边界
 
-- 本仓库面向全新且运行环境明确、可预期的目标系统，例如刚完成初始化并首次进入 macOS 的 Mac 设备，或刚安装完成的 Debian 系统。无需为未知的旧环境、跨发行版差异或非目标平台引入过度兼容逻辑；但仍须遵守本文明确列出的 Bash 3.2、CPU 架构及其他具体兼容约束。
-- `README.md` 只用于记录公开参数。除说明参数所必需的调用格式和示例外，不得加入架构、实现细节、维护说明、测试流程或其他额外信息；这些内容应记录在 `CLAUDE.md` 中。
+- 本仓库只面向全新且环境明确的目标系统（macOS、Debian 及仓库定义的容器流程）；无需兼容未知旧环境、非目标发行版或非目标平台，但必须遵守本文明确列出的 Bash 3.2、CPU 架构等约束。
+- `README.md` 只记录公开参数和必要的调用示例，并必须覆盖根入口独有的 `--branch`；架构、维护、测试和手动安装说明属于本文件。当前 `README.md` 仍遗漏 `--branch`，且仍含手动安装 VS Code 扩展的命令；这是待修复偏差，不是先例。
 
-在修改本仓库时供 Claude Code 遵循的指南。此文件应聚焦于当前架构、可执行工作流、所有权边界，以及无法通过阅读单个脚本明显发现的
-故障模式。
+本文件只记录当前架构、可执行工作流、所有权边界，以及无法从单个脚本直接判断的故障模式。
 
 ## 项目结构
 
-本仓库由一组 Bash 配置脚本组成。仓库没有统一的构建目标或自动化测试套件；容器流程会在配置过程中构建
-Docker 镜像。公共入口点设计为通过 `curl` 管道执行：
+本仓库是一组 Bash 配置脚本，没有统一构建目标或自动化测试套件；容器流程会构建 Docker 镜像。公共入口通过管道执行：
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
-    | bash -s -- --setup <macos|debian|container> [flags]
+    | bash -s -- [--setup <macos|debian|container>] [flags]
 ```
 
-根目录的 `main.sh` 只识别 `--branch` 和 `--setup`。它会安装所选平台所需的最低限度 Git 前置依赖，使用
-`mktemp -du` 派生 `/tmp/setup_env.*` 克隆路径，将请求的分支浅克隆到该路径，分发到 `<setup>/main.sh`，并原样转发所有其他
-参数。之后不会删除该克隆。它是唯一没有 `BASH_SOURCE` 末尾保护条件的脚本：通过管道传入的入口点必须
-无条件执行。`README.md` 当前在各平台调用表中遗漏了仅根入口支持的 `--branch` 选项；根解析器仍是该选项的
-事实来源。
+根 `main.sh` 只消费 `--branch` 和默认值为 `macos` 的 `--setup`；它保证最低 Git 前置依赖，浅克隆请求分支后分发到 `<setup>/main.sh`，原样转发其余参数且不删除克隆。它是唯一无 `BASH_SOURCE` 末尾保护的配置脚本，必须在 `curl | bash` 中无条件执行，也是 `--branch` 的解析事实来源。
 
-各配置树拥有独立的分发器，但并非完全独立：`container/dev-container` 使用 `debian/` 作为其 Docker 构建上下文。
+- `macos/` 配置终端客户端／跳板机，不作为开发机配置，也不包含 Git 或 classic CLI 组件。
+- `debian/` 配置开发环境；Homebrew、Zsh、Oh My Zsh、Starship 和不安装外部软件包的 classic CLI 基线无条件执行，其余组件可选。
+- `container/` 分发到 `dev-container`、`copilot-api` 或一次性 `copilot-api-config`；`dev-container` 使用 `debian/` 作为构建上下文。
 
-- `macos/` 配置终端客户端／跳板机：Homebrew、Starship、Oh My Zsh、SSH 支持，以及可选的 ChatGPT、Ghostty 和 VS Code。它刻意不作为
-  开发机配置，不包含 Git 插件，也没有 classic CLI 组件。
-- `debian/` 配置主要开发环境。Homebrew、Zsh、Oh My Zsh、Starship 和 classic CLI 基线均无条件执行；Homebrew 最先运行，
-  而 classic 层不安装任何工具，只管理平台提供的 less 和 Nano 的配置。其余 command、code 和 app 组件
-  均为可选。
-- `container/` 分发到 `dev-container`、`copilot-api` 或一次性 `copilot-api-config` 任务。
+下文未带平台前缀的 `command/`、`code/` 和 `app/` 路径，均相对于所讨论的平台树。
 
-Debian 的 Homebrew 引导流程与 macOS 的 PATH 保护逻辑一致。首次安装前，它会通过 APT 安装 Homebrew 官方为 Debian/Ubuntu
-列出的 `build-essential`、`procps`、`curl`、`file` 和 `git`，再调用官方安装器；`--unattended` 只会添加 `NONINTERACTIVE=1`。
-配置父脚本随后求值 `/home/linuxbrew/.linuxbrew/bin/brew shellenv bash`，使后代安装器可直接调用 `brew` 及非 keg-only formula
-二进制文件。Oh My Zsh 的 `brew` 插件会独立配置交互式 Zsh；此集成不会为非交互式 shell 写入 `.zshenv`。
-Go 组件使用 Linuxbrew 的 `go` formula；formula 可执行文件的发现沿用上述 Homebrew PATH 契约，不由 Go 组件重复配置。
-启用 `CODE_GO` 时，Debian 的 OMZ `custom.sh` 会安装在交互式 Zsh 中前置默认 `$HOME/go/bin` 的片段，以发现 `go install` 产物；启用
-`CODE_PROTOBUF` 时，同一安装器会安装前置 `$HOMEBREW_PREFIX/opt/clang-format/bin` 的片段，以发现 keg-only `clang-format` formula 的命令。
+Debian 首次安装 Homebrew 前会通过 APT 安装官方前置依赖。根分发器刻意不消费 `--unattended`：`command/homebrew.sh` 用它设置 `NONINTERACTIVE=1`，`command/omz/main.sh` 将它传给安装器并以 `sudo -n` 更改登录 shell。配置父脚本随后求值 `/home/linuxbrew/.linuxbrew/bin/brew shellenv bash`，供后代安装器发现 formula；交互式 Zsh 则由 `brew` 插件配置，不写 `.zshenv`。
 
-`debian/vscode/` 仅作为参考数据。没有分发器会安装这些文件；`--app-vscode` 会启用 OMZ 插件。`README.md` 当前仍记录手动
-安装扩展的方式；根据前述文档边界，此类非参数内容不应继续保留或新增。Debian 的 OMZ `custom.sh` 会在未启用 modern CLI 时选择
-运行 `/usr/bin/nano --modernbindings`（`nano -/`）的 `nanom` wrapper，启用时选择 Micro；启用 `--app-vscode` 后，同一安装器会增加运行时 `TERM_PROGRAM=vscode` 覆盖，将编辑器设为 `code --wait`。
-它不会输出 `VISUAL`。应通过 `bash` 调用脚本，而不是依赖可执行位。
+Go 沿用该 PATH 契约；`CODE_GO` 和 `CODE_PROTOBUF` 分别让 OMZ `custom.sh` 安装 `$HOME/go/bin` 与 keg-only `clang-format` 的交互式 PATH 片段。
 
-根目录 `main.sh` 和 `macos/` 必须保持与 Apple Bash 3.2 兼容；Debian 和容器代码可使用更新的 Bash。
+`debian/vscode/` 仅为参考数据，不由分发器安装。`--app-vscode` 只启用 OMZ 集成：在 VS Code 运行时选择 `code --wait`，且不输出 `VISUAL`。编辑器的 Nano／Micro 选择见“补全与配置陷阱”。应通过 `bash` 调用脚本，不依赖可执行位。
+
+根 `main.sh` 和 `macos/` 必须兼容 Apple Bash 3.2；Debian 和容器代码可使用更新的 Bash。
 
 ## 检查与安全验证
 
@@ -55,10 +39,14 @@ Go 组件使用 Linuxbrew 的 `go` formula；formula 可执行文件的发现沿
 ```bash
 find . \( -path './.git' -o -path './.claude/worktrees' \) -prune -o \
     -type f -name '*.sh' -exec bash -n {} \;
+sh -n debian/command/classic_cli/nanom
 find . \( -path './.git' -o -path './.claude/worktrees' \) -prune -o -type f -name '*.sh' \
     -exec shellcheck -x --rcfile './.shellcheckrc' {} +
+shellcheck -s sh --rcfile './.shellcheckrc' debian/command/classic_cli/nanom
 find . \( -path './.git' -o -path './.claude/worktrees' \) -prune -o -type f -name '*.sh' \
     -exec shfmt -d -i 4 -bn -ci -s -sr {} +
+find . \( -path './.git' -o -path './.claude/worktrees' \) -prune -o -type f -name '*.zsh' \
+    -exec zsh -n {} +
 git diff --check
 git diff --cached --check
 ```
@@ -77,25 +65,15 @@ ShellCheck 使用 `-x`，因为 `debian/app/docker.sh` 会动态 source `/etc/os
 `.bash_logout`。针对同一 home 重复生成文件的检查，并不意味着完整平台分发器是幂等的；第三方 OMZ 插件安装器会克隆到
 固定目标位置。
 
-受管理的 OMZ Zsh 包含静态片段；ShellCheck 不会检查它们的 Zsh 正文。手动验证按以下顺序进行：
+上述 `zsh -n` 只覆盖仓库制品；OMZ 改动还要验证生成的 `.zshrc`、部署后文件集合和运行时 ZLE：
 
-1. 创建一次性目录树，将 `HOME` 和 `ZSH_CUSTOM` 显式指向同一棵树，并使用受控的 `PATH`；只修改 `HOME` 不够，因为写入器会沿用
-   继承的 `ZSH_CUSTOM`。
-2. 使用 Oh My Zsh 模板初始化 `$HOME/.zshrc`，在 `PATH` 中放置供 `install_plugin.sh` 使用的 `git` 桩程序；在 Linux 上验证
-   macOS 时，再为 `plugin.sh` 提供 BSD `sed` 垫片。
-3. 设置并导出所有组件变量，包括 `APP_VSCODE`，以验证 `install_plugin.sh` 和 `custom.sh` 选择出的完整插件及片段集合。
-4. 两个平台都从 `command/omz/` 依次调用 `install_plugin.sh`、`update.sh`、`plugin.sh` 和 `custom.sh`。
-5. 确认 `$HOME/.zshrc` 恰有一个 `plugins=(...)` 行，且完整内容和顺序符合当前组件变量；确认 `$ZSH_CUSTOM` 和
-   `$ZSH_CUSTOM/plugins/update-all-in-one/custom` 中安装的片段 basename 集合与当前标志一致。
-6. 对 `$HOME/.zshrc`、所有已安装的 custom 片段、`update-all-in-one.plugin.zsh` 和更新片段逐一运行 `zsh -n`；
-   `COMMAND_MODERN_CLI=1` 时还要检查部署的 `pre-eza.plugin.zsh`，`CODE_RUST=1` 时还要检查部署的 `brew-rustup.plugin.zsh`。
-7. 验证 `99-gh-login.zsh` 时，在 `zsh -f` 中为 `gh` 提供函数桩，确认已认证时不调用登录、未认证时仅调用一次，并确认两种分支都在
-   检查认证状态前删除片段自身。
+1. 创建一次性目录树，同时设置 `HOME`、`ZSH_CUSTOM` 和受控 `PATH`；用 Oh My Zsh 模板初始化 `.zshrc`，为 `git` 提供桩程序，在 Linux 上验证 macOS 时再提供 BSD `sed` 垫片。
+2. 导出所有组件变量（包括 `APP_VSCODE`），从 `command/omz/` 依次运行 `install_plugin.sh`、`update.sh`、`plugin.sh`、`custom.sh`。
+3. 断言 `.zshrc` 只有一个顺序正确的 `plugins=(...)`，且 `$ZSH_CUSTOM` 与更新插件目录中的 basename 集合符合标志。
+4. 对部署的 `.zshrc`、custom／更新片段及插件入口运行 `zsh -n`；启用 modern CLI 或 Rust 时还要检查 `pre-eza` 或 `brew-rustup` 插件。
+5. 在 `zsh -f` 中用 `gh` 桩验证 `99-gh-login.zsh` 的已认证和未认证分支：两者都先删除自身，后者只登录一次。
 
-不要执行 `command/omz/main.sh`：它会执行真实配置，Debian 上还会运行 `apt`；也不要调用其中的 `install_omz`，它会安装
-Oh My Zsh 并修改当前 home。若未提供 Homebrew 和 Starship 桩程序，也不要调用 `command/starship.sh`：它会安装真实 formula 并替换
-`starship.toml`。不要直接调用 `update-all-in-one`，它会执行真实的软件包和网络更新；调度验证必须在 `zsh -f` 中为 `sudo`、`brew`、
-`tldr`、`uv`、`rustup`、`ya` 和 `omz` 提供同名函数桩。
+不要运行会修改真实 home 的 `command/omz/main.sh` 或 `install_omz`。没有 Homebrew／Starship 桩时也不要运行 `command/starship.sh`；其目标文件语义见“配置所有权与落点”。不要直接调用会执行真实更新的 `update-all-in-one`；调度验证应在 `zsh -f` 中为 `sudo`、`brew`、`tldr`、`uv`、`rustup`、`ya` 和 `omz` 提供函数桩。
 
 对于 fzf shell 改动，请在 `zsh -f` 中检查 `${(z)FZF_CTRL_T_OPTS}` 和 `${(z)FZF_ALT_C_OPTS}`。插件顺序改动需要真实的 ZLE／PTY
 冒烟测试：普通 Tab 和 `**<Tab>` 必须各自只打开一次 fzf；`fzf_default_completion` 必须为 `fzf-tab-complete`；Ctrl-T 和 Alt-C 必须保持单次调用。
@@ -104,63 +82,34 @@ Oh My Zsh 并修改当前 home。若未提供 Homebrew 和 Starship 桩程序，
 
 平台根入口和真正的嵌套分发器遵循以下数据流：
 
-1. 以便于覆盖的默认值初始化自身拥有的每个标志。导出后代脚本会读取的值，例如
-   `export APP_GIT="${APP_GIT:-0}"`。Debian 当前还会导出 `CODE_BASH` 和 `APP_NEOVIM`，尽管只有其根入口读取它们；这些是冗余例外，而非
-   跨组件契约。
-2. `parse_args()` 消费自身拥有的标志，并将未知参数追加到 `POSITIONAL`。
-3. 布尔标志只 shift 一次。值标志使用 `numOfArgs` 保护条件，使缺失值时不会在 `set -u` 下读取未设置的 `$2`。
-4. 恢复转发的参数并调用 `main()`。
-5. 保持无条件引导组件显式声明的依赖顺序。按 `--command-*`、`--code-*`、`--app-*` 的顺序运行由可选标志控制的组件，
-   每组内部按字母排序。
-6. 每个可选组件都要安装或保护其所需的每个可执行文件。除非集成关系有明确文档，否则不要让一个可选标志依赖另一个标志。
+1. 以可覆盖的默认值初始化自身标志，并导出后代会读取的值。
+2. `parse_args()` 消费自身标志，将未知参数追加到 `POSITIONAL`；布尔标志只 shift 一次，值标志用 `numOfArgs` 防止在 `set -u` 下读取缺失的 `$2`。
+3. 恢复转发参数并调用 `main()`。
+4. 无条件基线按显式依赖顺序执行；可选组件按 command、code、app 分组且组内按字母排序。Docker → Distrobox 是 provider-before-consumer 例外，所有接口视图都保持两者相邻且 Docker 在前。
+5. 每个可选组件自行安装或保护其所需命令；除有明确集成契约外，不得依赖另一可选标志。`APP_DISTROBOX` 不隐式启用 `APP_DOCKER`，已有 Docker 的系统可单独启用前者。
 
-对于普通可运行组件，导出块、解析器 case、`main()` 保护条件和对应的 `README.md` 表，是同一接口的四个有序视图。
-Debian 的 `APP_VSCODE` 是明确的纯集成例外：它有导出、解析器 case 和 README 标志，但没有 Debian 叶脚本或 `main()`
-保护条件。OMZ 将它用于插件，以及 `custom.sh` 选择的 `02-vscode.zsh` 运行时编辑器分支。不要为了强求对称而虚构空保护条件。
+普通可运行组件的导出块、解析器 case、`main()` 保护条件和 `README.md` 表是同一接口的四个有序视图。Debian `APP_VSCODE` 是纯集成例外：它有导出、解析器和 README 标志，但没有叶脚本或 `main()` 保护；OMZ 用它选择插件和 `02-vscode.zsh`。不要为对称性虚构空保护条件。
 
-一个由多个部分组成的可运行关注点应拥有一个目录。`app/claude/main.sh` 是嵌套分发器，因为它拥有子参数。
-两个 CLI 入口点都是无解析器的叶脚本：`command/classic_cli/main.sh` 只拥有平台提供的 CLI 工具的无条件配置，而
-`command/modern_cli/main.sh` 聚合可选工具和固定的子安装器。
+标志通过导出变量和转发参数向下级联；跨组件读取只在双方启用时增加集成行为：
 
-标志会刻意通过导出变量和转发参数向下级联。Debian 的 OMZ `install_plugin.sh` 读取 `CODE_RUST` 和
-`COMMAND_MODERN_CLI` 以部署 `brew-rustup` 和 `pre-eza` 插件；`update.sh` 读取拥有专用更新片段的组件标志。
-`plugin.sh` 读取组件标志以重建插件数组；`custom.sh` 读取 `CODE_GO` 和 `CODE_PROTOBUF` 以选择对应的用户工具 PATH 片段；
-Claude app 从 Debian 读取 `CODE_GO`、`CODE_PYTHON`、`CODE_RUST` 和 `APP_GIT`；
-tmux 读取 `APP_CLAUDE`；Yazi 读取
-`COMMAND_MODERN_CLI` 和 `CODE_MARKDOWN`。OMZ 写入器读取组件标志，是因为它们实际拥有共享 shell 落点。跨组件读取仅在两个关注点都
-启用时增加集成行为，因而是有效的。
+| 消费者 | 读取的上游标志 |
+| --- | --- |
+| Debian OMZ 写入器 | `COMMAND_MODERN_CLI`、`CODE_GO`、`CODE_PROTOBUF`、`CODE_PYTHON`、`CODE_RUST` 及 app 标志 |
+| macOS OMZ 写入器 | `COMMAND_SSH`、`APP_VSCODE` |
+| Claude app | `CODE_GO`、`CODE_PYTHON`、`CODE_RUST`、`APP_GIT` |
+| tmux／Yazi | `APP_CLAUDE`／`COMMAND_MODERN_CLI`、`CODE_MARKDOWN` |
 
-拥有参数的分发器或叶脚本使用完整、可 source 的末尾保护：
+组件拥有安装和非 shell 配置，共享 shell 输出必须由相应 OMZ 写入器生成，不能由叶组件直接追加。
 
-```bash
-if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
-    cd "$(dirname "${BASH_SOURCE[0]}")"
-    parse_args "$@"
-    set -- "${POSITIONAL[@]}"
-    main "$@"
-fi
-```
-
-不接收参数的叶脚本没有解析器或 `POSITIONAL` 层：
-
-```bash
-if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
-    cd "$(dirname "${BASH_SOURCE[0]}")"
-    main "$@"
-fi
-```
-
-通过管道执行的根入口点和 macOS 保留与 Bash 3.2 兼容的空数组恢复形式：
+除根管道入口外，分发器和叶脚本必须可 source，并沿用相邻脚本的 `BASH_SOURCE` 末尾保护；无参数叶脚本不引入解析器或 `POSITIONAL`。根入口和 macOS 还必须保留 Bash 3.2 兼容的空数组恢复形式：
 
 ```bash
 set -- "${POSITIONAL[@]+"${POSITIONAL[@]}"}"
 ```
 
-不要将其规范化为 Debian 的 `"${POSITIONAL[@]}"`；Bash 3.2 配合 `set -u` 可能拒绝空数组展开。应匹配所属分发器的既有
-写法。
+不要将其规范化为 Debian 的 `"${POSITIONAL[@]}"`；Bash 3.2 配合 `set -u` 可能拒绝空数组展开。
 
-添加组件时，应同步所有适用的导出、解析器、保护条件和 README 条目；列出纯集成标志的所有读取者，并选择匹配的
-末尾保护。组件拥有安装和非 shell 配置，共享 shell 输出则通过适当的 OMZ 写入器生成。绝不要直接追加到共享的生成 shell 文件。
+添加组件时，同步所有适用的接口视图，列出纯集成标志的读取者，并选择与是否接收参数匹配的末尾保护。
 
 ## 配置所有权与落点
 
@@ -175,66 +124,50 @@ set -- "${POSITIONAL[@]+"${POSITIONAL[@]}"}"
 | Starship prompt 外观 | `$HOME/.config/starship.toml` |
 | eza 在 source 过程中需要的 zstyle | `$ZSH_CUSTOM/plugins/pre-eza/pre-eza.plugin.zsh` |
 | Rust 插件在 source 前需要的 rustup 代理 PATH | `$ZSH_CUSTOM/plugins/brew-rustup/brew-rustup.plugin.zsh` |
+| Distrobox 的容器 HOME 前缀 | `$HOME/.config/distrobox/distrobox.conf` |
+| Distrobox 的 Homebrew Zsh 补全 | `$ZSH_CUSTOM/completions/_distrobox*` |
 | keg-only `clang-format` 的交互式 PATH | `$ZSH_CUSTOM/04-clang-format.zsh` |
 | 别名、集成函数、`compdef`、运行时变量、编辑器选择 | `$ZSH_CUSTOM/<custom basename>` |
 | 用户调用的聚合更新函数及其更新片段 | `$ZSH_CUSTOM/plugins/update-all-in-one/` |
 | 延迟执行的 GitHub CLI 登录 | `$ZSH_CUSTOM/99-gh-login.zsh` |
-| 非交互式 shell 命令 | `.zshenv` |
 
-`custom.sh` 从各平台的 `command/omz/custom/` 选择静态 Zsh 片段，并使用源文件 basename 直接安装到 `$ZSH_CUSTOM`。Debian 的源文件按
-`00-nanom`、`01-micro`、`02-vscode`、`03-go`、`04-clang-format`、`05-zsh-autosuggestions`、`06-zsh-syntax-highlighting`、
-`07-you-should-use`、`08-z`、`09-atuin`、`10-eza`、`11-fzf`、`12-fzf-tab`、`13-docker`、`14-git`、`15-yazi`、`99-gh-login`
-排序；`01-micro.zsh` 同时拥有默认编辑器和 `MICRO_TRUECOLOR`。macOS 按自身原有顺序使用 `00-vscode`、`01-zsh-autosuggestions`、
-`02-zsh-syntax-highlighting`、`03-you-should-use` 和 `04-z`。文件名承担区块标识，片段正文不重复写入 `#` 标题。
-
-决策依据是值被读取的时机，而不是它看起来是否像环境变量。`pre-eza` 插件承载 eza 加载时 zstyle，并紧邻官方 `eza` 插件之前
-加载；将这些设置移到编号运行时片段会悄无声息地为时过晚。相反，`ZSH_HIGHLIGHT_HIGHLIGHTERS+=(brackets)` 必须保留在
-syntax-highlighting 插件之后；提前移动会阻止该插件安装其 `main` highlighter。
+`custom.sh` 从各平台的 `command/omz/custom/` 选择静态 Zsh 片段，保留源 basename 安装到 `$ZSH_CUSTOM`，由文件名字典序决定加载顺序；文件名已承担区块标识，正文不重复标题。读取时机决定设置应进入加载前的自定义插件还是加载后的编号 custom 片段，具体顺序约束见“Oh My Zsh 加载与插件顺序”。
 
 `--code-python` 使用 Linuxbrew 管理 `uv` formula，并由 `uv tool` 隔离安装 `py-spy`；Debian 系统 `python3` 仍是平台基线，项目使用的
 Python 运行时则由 `uv` 安装和管理，不额外安装 Homebrew `python` formula。Python 集成会启用 Oh My Zsh 的 `python` 和 `uv` 插件，
 但刻意不设置 `PYTHON_AUTO_VRUN`。uv 无需该手动自动激活开关即可发现虚拟环境；不要重新引入它。
 
-由配置流程管理的运行时工具配置以制品形式随仓库提供，而不是由配置 shell 渲染。大多数写入器使用
-`install -m 644`，需要创建父目录时再加 `-D`。这包括 OMZ 的编号 custom 片段、`update-all-in-one` 插件及其更新片段、bat、Glow、less、
-micro、Nano、lazygit，以及 Yazi 的 `init.lua` 和 `keymap.toml`。OMZ 自定义插件是目录制品；Debian 的 `install_plugin.sh` 使用 `cp -R`
-整体部署 `pre-eza` 和 `brew-rustup`，以保留插件后续增加辅助文件的能力。仓库本地 lint 配置和未部署的 VS Code 参考数据不受此规则约束。
-copilot-api 设置模板是随仓库提供、由 `jq` 补全的 JSON 制品，直接写入时目录权限为 700，文件权限为 600。外部
-例外是 `code/python.sh` 从 BesLogic 的 `main` 分支下载的 Ruff 基线。Starship 和 Yazi 使用生成式配置：`command/starship.sh` 通过
-已安装二进制文件的 `nerd-font-symbols` preset 替换 `$HOME/.config/starship.toml`；`app/yazi/yazi.toml.sh` 会创建目标目录，并通过
-一次完整渲染替换 `yazi.toml`，因为 previewer 依赖组件标志。重复配置会覆盖这两个文件中的用户修改。此处自行设计的生成文件均采用
-完整渲染；仅向上游拥有的文件追加内容，而全局 Git 配置使用 `git config`。
+运行时工具配置默认作为仓库制品部署，而不是由 shell 渲染；文件通常使用 `install -m 644`，需要创建父目录时加 `-D`。OMZ 自定义插件是目录制品，`install_plugin.sh` 使用 `cp -R` 部署，以便将来增加辅助文件。copilot-api 设置由 `jq` 补全模板；Python 的 Ruff 基线是从外部 `main` 分支下载的例外。
 
-重新运行会覆盖仍有写入器的受管理静态配置，并完整重建 Starship 和 Yazi 的生成配置。删除随仓库提供的制品，不会删除早期版本
-已经安装的副本；清理必须显式执行。Starship 迁移同样会保留早期的 `$ZSH_CUSTOM/themes/powerlevel10k` 克隆，且不会删除 Debian
-并未管理的 `.p10k.zsh`。官方 Starship 插件会在 Oh My Zsh 的主题阶段前清除陈旧的 `ZSH_THEME`，因此两者均不会生效。当执行到
-`yazi.toml.sh` 时，完成的渲染会反映当前集成标志。
-Yazi 的 `package.toml` 不同：`ya pkg add` 拥有这份可变运行时清单，因此仓库从不提供、覆盖或垃圾回收它。只
-配置与软件包默认值有实质差异的值。`ya pkg add` 会拒绝已列出的依赖。它用完整的
-`owner/repository` 标识来源，但按插件名部署，因此替换同名插件的所有者时，必须先对旧来源执行 `ya pkg delete`，再添加新
-来源；绝不要直接编辑 `package.toml`。
+重新运行会覆盖本次选中的静态制品，但不会删除未选中项或旧副本；关闭标志不等于卸载，清理必须显式执行。追加式上游集成不在此覆盖保证内。生成式配置则各有不同语义：
+
+- Starship 不传 `--force`，只在目标不存在时生成 `starship.toml`，存在即失败。
+- Distrobox 的目录创建和覆盖语义见“Distrobox 应用”。
+- Yazi 的配置写入和 `package.toml` 所有权见“Yazi 应用”。
+
+Starship 迁移不会删除旧 Powerlevel10k 克隆或 Debian 不管理的 `.p10k.zsh`；官方 Starship 插件会先清除旧 `ZSH_THEME`，因此它们不会生效。
 
 ### 一次性 GitHub 登录
 
 Debian 的 `custom.sh` 在 `APP_GIT=1` 时安装静态 `99-gh-login.zsh`。Oh My Zsh 通过自定义 `*.zsh` glob 加载它时，该片段先删除自身，
-再检查 `gh` 是否存在以及当前认证状态，必要时启动 `gh auth login`。因此登录失败或取消后不会在每个新 shell 中重试；后续以
-`APP_GIT=1` 重新运行配置会再次安装该片段，并允许新流程再执行一次。
+再检查 `gh` 是否存在以及当前认证状态，必要时启动 `gh auth login`。因此登录失败或取消后不会在每个新 shell 中重试；单独以
+`APP_GIT=1` 重跑 `command/omz/custom.sh` 会再次安装该片段。完整 Debian 流程是否能到达该写入器，仍受固定目标目录的第三方插件克隆
+非幂等性约束。
+
+### 重复运行与更新
 
 Debian 的 OMZ `plugin.sh` 会从 `plugins=(aliases)` 重建数组；旧 home 中残留的 `setup-env` 插件，以及当前标志未启用的
 `pre-eza` 或 `brew-rustup` 目录都不会出现在数组中，因此不会生效。
 
-两平台的 `custom.sh` 始终安装无条件片段，并通过 `install -m 644` 将当前选中项直接安装到 `$ZSH_CUSTOM`。它不会删除未选中项或
-清理早期版本遗留文件；在重复配置中关闭标志不等于卸载之前安装的片段。因此，在尚未 source `99-gh-login.zsh` 前关闭 `APP_GIT`，
-已经安装的登录片段仍会保留并执行一次。
+`custom.sh` 始终安装无条件片段和本次选中的条件片段。受上文不清理规则影响，关闭 `APP_GIT` 后，尚未 source 的残留 `99-gh-login.zsh` 仍会执行一次。
 
-两平台的 `update.sh` 都创建 `$ZSH_CUSTOM/plugins/update-all-in-one/custom`，并以 `0644` 安装插件入口和更新片段。
-安装器通过 `install_update()` 复制 `plugins/update-all-in-one/custom/` 中的片段；Debian 版本再根据导出的配置标志用条件调用选择可选片段，
-而不是在安装时探测命令是否可用。安装器只覆盖或添加当前声明的文件，不负责清理以前安装的可选片段或其他旧制品。
+两平台的 `update.sh` 都安装 `update-all-in-one` 入口和更新片段；Debian 根据导出标志选择可选片段，而不在安装时探测命令。受通用不清理规则影响，旧的可选更新片段会保留。
 
 `update-all-in-one.plugin.zsh` 被 source 时只定义 `update-all-in-one`，绝不能运行更新。函数使用 Zsh 默认字典序遍历
 `$ZSH_CUSTOM/plugins/update-all-in-one/custom` 中的全部 `*.zsh`，并在当前 Zsh 中逐一 source。仓库用 `00-...`、`01-...` 这类连续编号
 声明受管理片段的执行顺序，但运行器不要求文件名具有数字前缀。同一模块的多步操作用 `&&` 连接；受管理清单把 `omz update` 保持为
-最后一个更新片段。
+最后一个更新片段。运行器不会检查每次 `source` 的返回值；默认交互式 Zsh 会继续执行后续片段，最终成功可能掩盖前序失败。`&&` 只保证
+同一片段内的后续步骤在前一步失败时不执行。
 
 在 macOS 上，受管理片段依次运行 `brew update`、`brew upgrade --greedy`、`brew cleanup`，最后运行 `omz update`。Homebrew 会覆盖其
 formula 和 cask，因此 `APP_VSCODE` 不需要专用更新片段。
@@ -244,42 +177,25 @@ formula 和 cask，因此 `APP_VSCODE` 不需要专用更新片段。
 tealdeer 缓存数据、包括 `py-spy` 在内的 `uv tool`、rustup 和 Yazi 插件；对应命令是否可用已由安装这些片段的组件标志保证。`omz update`
 保持为最后一个动作。不要为 Go 恢复专用更新片段、扫描 `$GOBIN`/`$GOPATH/bin`、添加全局 Go 工具更新器或在此更新 `gopls`。
 
-`ohmyzsh-full-autoupdate` 没有公开的模块或 callback API，并会在 shell 初始化期间同步更新 `$ZSH_CUSTOM` 下具有实体 `.git` 目录的仓库。
-它继续独立负责 custom Git 插件和主题；不要调用其私有 `omzFullUpdate`、操作 `.zsh-update` 标签，或把需要权限和交互的系统更新接入其
-启动路径。聚合器也不重复扫描 custom Git 仓库；两者唯一共享的稳定边界是官方 `omz update` 命令。
+`ohmyzsh-full-autoupdate` 在 shell 初始化期间独立更新带实体 `.git` 目录的 custom 插件和主题。不要调用其私有实现、操作 `.zsh-update` 标签，或把需要权限和交互的系统更新接入启动路径；`update-all-in-one` 也不重复扫描这些仓库，两者只共享官方 `omz update` 边界。
 
 ## Oh My Zsh 加载与插件顺序
 
-Oh My Zsh 会先于插件初始化补全和库，随后按 `plugins=()` 顺序 source 插件，再按字母顺序 source `$ZSH_CUSTOM/*.zsh`，最后
-加载主题。必须保持以下约束：
+Oh My Zsh 先初始化补全和库，再按 `plugins=()` 顺序 source 插件、按字典序 source `$ZSH_CUSTOM/*.zsh`，最后加载主题。必须保持：
 
-- 启用 modern CLI 时，`pre-eza` 紧邻并位于官方 `eza` 插件之前。
-- custom 片段保留源文件 basename，并按 `$ZSH_CUSTOM/*.zsh` 的字典序加载。
-- `update-all-in-one` 在插件阶段加载，入口只定义函数；更新片段只能在用户调用该函数时 source，shell 启动时绝不能运行更新。
-- `99-gh-login.zsh` 保持为最后一个由配置流程管理的自定义 Zsh 文件，使延迟 GitHub CLI 登录在受管理的运行时配置之后启动。
-- `zsh-syntax-highlighting` 保持为 `plugins=()` 中的最后一项。
-- `fzf-tab` 位于 `zsh-autosuggestions` 和 syntax highlighting 等包装器之前。
-- 在本仓库中，`fzf-tab` 也位于 `fzf` 之前。fzf 会将当前 Tab 绑定捕获为 `fzf_default_completion`；颠倒两者会嵌套两个 fzf
-  补全界面。
-- `update-all-in-one` 是仓库管理的本地插件，位于 `ohmyzsh-full-autoupdate` 之前；它不接入后者的私有更新实现。
-- 第三方克隆插件在 `ohmyzsh-full-autoupdate` 之后加载，后者的更新是同步的。
-- 两个平台上，`brew` 都紧跟在 `aliases` 之后，以便在后续插件前建立 Homebrew 环境。它必须位于 `starship` 之前；在 macOS 上，
-  它还位于 `command-not-found` 之前，后者的 Homebrew handler 期望 `brew` 已在 `PATH` 中。
-- 官方 `starship` 插件会在插件加载阶段清除 `ZSH_THEME` 并初始化 prompt，时机早于自定义 `*.zsh` 文件和主题阶段。不要添加第二次
-  `starship init` 或主题写入器。
+- modern CLI 的 `pre-eza` 紧邻并位于 `eza` 前，使 source 期间读取的 zstyle 及时生效；不要移到编号 custom 片段。
+- custom 片段保留源 basename；`99-gh-login.zsh` 是最后一个受管理片段。`ZSH_HIGHLIGHT_HIGHLIGHTERS+=(brackets)` 必须留在 syntax-highlighting 加载后的 custom 片段，否则插件无法安装 `main` highlighter。
+- `update-all-in-one` 在插件阶段、`ohmyzsh-full-autoupdate` 之前加载；它只定义函数，执行语义见上一节。第三方克隆插件在同步更新它们的 `ohmyzsh-full-autoupdate` 之后加载。
+- `zsh-syntax-highlighting` 是 `plugins=()` 最后一项；`fzf-tab` 位于 autosuggestions、syntax highlighting 等包装器之前，也位于 `fzf` 前。fzf 会捕获当时的 Tab 绑定为 `fzf_default_completion`，颠倒后二者会嵌套打开补全界面。
+- `brew` 紧跟 `aliases`，位于 `starship` 前；macOS 上还要位于依赖 Homebrew handler 的 `command-not-found` 前。
+- 官方 `starship` 插件在 custom 片段和主题之前清除 `ZSH_THEME` 并初始化 prompt；不要添加第二次 `starship init` 或主题写入器。
 
 Atuin 是刻意安排在插件之后的例外。它从 `09-atuin.zsh` 初始化，以便在 fzf 加载后接管 Ctrl-R 和 Up；软件包提供的 Zsh 与
 syntax-highlighting 组合仍可高亮此时新增的 widget。不要为了遵循通用顺序规则而将它提前。
 
-Debian 启用 Rust 时会安装自定义 `brew-rustup` 插件；`brew` 先建立 Homebrew 环境，`brew-rustup` 再紧邻并位于官方 `rust` 插件之前。
-Homebrew 的 keg-only `rustup` formula 会在 post-install 中仅将 `rustup` 本体强制链接到 `$HOMEBREW_PREFIX/bin`，所以配置脚本可在
-`brew shellenv` 后直接调用它；`cargo`、`rustc` 和其他工具链代理仍保留在 `$HOMEBREW_PREFIX/opt/rustup/bin`。`brew-rustup` 负责先将
-该目录前置到 `PATH`。不要把它移到 `brew` 之前或 `rust` 之后：官方 `rust` 插件会在 source 时检查 `cargo`，路径尚未生效时会直接退出。
-Claude 集成也不得重新添加上游安装器使用的 `$HOME/.cargo/bin`。
+Debian 启用 Rust 时必须保持 `brew` → `brew-rustup` → `rust`：前者建立 Homebrew 环境，中间插件前置 keg-only 工具链代理路径，官方 `rust` 插件随后才能在 source 时发现 `cargo`。不要重排，也不要在 Claude 集成中重新添加上游安装器使用的 `$HOME/.cargo/bin`。
 
-可选插件由提供相应命令的组件控制。启用 modern CLI 时，使用 Oh My Zsh 的 `zoxide` 插件并省略 `z`；未启用时，使用
-`z` 并输出 zsh-z 设置。modern CLI 的 Homebrew 补全必须通过 `$ZSH_CUSTOM/completions` 在 `compinit` 前可见；不要依赖稍后才加载的
-`brew` 插件追加 Homebrew `site-functions`。
+可选插件由提供相应命令的组件控制。启用 modern CLI 时使用 `zoxide` 并省略 `z`，未启用时使用 `z` 并输出 zsh-z 设置；Homebrew completion 的加载时机见“补全与配置陷阱”。
 
 不要使用 `\<z\>` 删除插件名。连字符不是单词字符，因此该模式可能匹配 `fancy-ctrl-z` 的尾部、吞掉分隔符，并
 将两个名称粘连。如果必须删除，请用空格和括号划定边界。在 macOS 上使用 BSD `sed -i ''`，在 Debian 上使用 GNU `sed -i`。
@@ -298,23 +214,10 @@ BRANCH="${BRANCH:-master}"       # 正确
 # BRANCH="${BRANCH:-'master'}"   # 会展开为带有字面引号的值
 ```
 
-共享的生成 shell 文件具有第二层引号语义：配置流程中的 Bash 使用带引号的 heredoc 分隔符（`cat << 'EOF'`），而正文中的引号和转义
-属于生成的 Zsh。带引号的分隔符会阻止在配置时展开 `$PATH`、`$HOME`、`$EDITOR` 和 fzf 占位符。
-
-```bash
-cat << 'EOF'
-export PATH="$HOME/.local/bin:$PATH"
-alias tree="eza --tree"
-EOF
-```
-
-不要去掉 heredoc 分隔符的引号。fzf 预览字符串刻意包含经过转义的内层引号；扁平化任一层都会改变选项 tokenization。
-保留 `-- {}`，使以 `-` 开头的候选项不会被解析为选项。捕获的区块输出使用 `printf '%s\n' "$blocks"`；参数展开
-不会重新扫描值中的美元符号。对于追加到 `.zshenv` 等上游拥有的 shell 文件的字面行，使用单引号包裹的 `echo` 参数
-仍然正确；不要引入配置时展开。
-
-构造参数列表时使用数组，并引用 `"$@"`。路径、URL 和文件名应加引号；命令名和仓库既有的裸
-选项值保持不加引号。
+编号 custom 片段和 `update-all-in-one` 片段当前均作为仓库内静态 `.zsh` 制品维护，由 `custom.sh` 或 `update.sh` 直接部署；不存在
+heredoc、`$blocks` 或 `.zshenv` 生成层。直接编辑这些静态制品，并保留需要在 Zsh source 时展开的 `$PATH`、`$HOME`、`$EDITOR` 和 fzf
+占位符。fzf 预览字符串刻意包含
+嵌套引号；扁平化任一层都会改变选项 tokenization。保留 `-- {}`，使以 `-` 开头的候选项不会被解析为选项。
 
 将求值为 false 的 `[[ ... ]] && command` 用作函数最后一条语句，会使函数返回 1。在 `set -e` 下，正常调用随后会中止脚本。任何
 可能以可选 AND-list 结尾的函数，都必须使用 `if` 区块或显式 `return 0`；绝不要让成功与否取决于当前恰好排在最后的
@@ -324,33 +227,15 @@ EOF
 变成空操作。编辑前验证标记，之后检查或断言结果文件。同样，执行 `ln -sf` 前应检查符号链接来源：即使来源不存在，
 命令仍会成功，并产生悬空链接。
 
-GitHub release 资产使用 `releases/latest/download/<asset>`。无版本资产使用一个字面 URL；带版本文件名只通过 `releases/latest`
-解析版本来构造名称，拒绝空结果，并仍通过 `latest/download` 下载。`latest` 不是固定版本，两次请求之间可能发生竞争，并明确报出
-404。copilot-api 是例外，因为版本是 Git ref 和镜像标签，而不是资产 URL。
-
-可选工具执行前使用 `command -v` 保护条件。网络失败是致命错误，除非该操作被明确标为缓存预热；`tldr --update || true` 刻意
-不是致命错误。
+对未由当前组件或明确前置组件保证的外部命令，执行前使用 `command -v`。Bash 配置脚本中的网络失败默认致命；缓存预热 `tldr --update || true` 是例外。交互式 `update-all-in-one` 的跨片段失败语义见其专节。
 
 ## 补全与配置陷阱
 
-`compinit` 会发现名为 `_*` 的文件，然后注册文件第一个 `#compdef` 声明的命令；可执行文件名和符号链接文件名不会
-改变该声明。Homebrew formula 会将以下规范命令的补全放入 `$(brew --prefix)/share/zsh/site-functions`：
+`compinit` 只发现 `_*` 文件，并按文件首个 `#compdef` 注册命令；可执行文件名或符号链接名不会改变该声明。Oh My Zsh 在 `compinit` 前将 `$ZSH_CUSTOM/completions` 加入 `fpath`，而 `brew` 插件更晚才追加 Homebrew `site-functions`，因此 modern CLI 和 Distrobox 必须通过动态 `brew --prefix` 提前部署受管理链接。创建每个链接前分别验证来源；后续失败不会回滚已创建链接或中间配置。不要硬编码 Linuxbrew／Cellar 前缀、产生悬空链接，或为此写 `.zshenv`。
 
-| 命令 | Homebrew 提供的补全 | 受管理目标 |
-| --- | --- | --- |
-| `bat` | `_bat` 声明 `bat` | `$ZSH_CUSTOM/completions/_bat` |
-| `fd` | `_fd` 声明 `fd` | `$ZSH_CUSTOM/completions/_fd` |
-| `tldr` | `_tldr` 声明 `tldr` | `$ZSH_CUSTOM/completions/_tldr` |
+应使用软件包实际提供的工具验证配置，而不是针对上游 master。Lazygit 和 Micro 会静默忽略未知键，且迁移可能重写受管理文件；Lazygit 的具体 schema 约束见“Git 应用”。未知的 bat、fzf 或 delta 选项会使调用失败，也必须由已安装二进制逐项解析。
 
-Oh My Zsh 会在 `compinit` 前将 `$ZSH_CUSTOM/completions` 加入 `fpath`，但 `brew` 插件直到插件加载阶段才追加 Homebrew
-`site-functions`。因此 modern CLI 聚合器会通过动态 `brew --prefix` 找到这些源文件，先确认三个源都存在，再按原名创建受管理的
-符号链接。不要硬编码 Linuxbrew 前缀，不要产生部分链接，也不要为此向 `.zshenv` 写入交互式补全路径。
-
-应针对软件包提供的工具验证配置语义，而不是针对当前上游 master。Lazygit 和 micro 会静默忽略未知键，因此语法验证
-无法发现失效配置。添加 lazygit 键之前，请检查该软件包版本的迁移列表：可迁移键会使 lazygit 重写
-受管理文件。保持 `gui.nerdFontsVersion: "3"` 为字符串，保持 lazygit pager 为 `delta --paging=never`，并将 `MICRO_TRUECOLOR=1` 放在 shell 配置中，而
-不是虚构 micro 设置。未知的 bat 或 fzf 选项则会使每次调用都失败；应使用已安装的二进制文件解析这些配置。`BAT_THEME`
-会覆盖受管理的 bat 配置，因此不要同时设置两者。
+Micro 真彩色只由 `micro.settings.json` 的 `"truecolor": "on"` 管理，不要恢复 `MICRO_TRUECOLOR`。`BAT_THEME` 会覆盖受管理 bat 配置，因此不要同时设置。
 
 Debian 受管理的 Nano 配置依赖系统 nanorc 加载软件包提供的语法定义；不要添加重复的 include glob。其选项面向 Nano
 5.3 或更高版本，并避免会改变文件内容或与终端选择冲突的设置。classic CLI 会复制该制品，但不会安装 Nano。
@@ -362,71 +247,43 @@ Nano 制品，也从不选择 Nano。
 
 ## Classic CLI
 
-只有 Debian 会在统一 OMZ 流程和 Starship 之后无条件运行 `command/classic_cli/main.sh`。它不安装软件包：使用 `install -Dm 644` 将
-随仓库提供的 `lesskey` 和 `nanorc` 制品复制到 `$HOME/.config/lesskey` 和 `$HOME/.config/nano/nanorc`，并以 `install -Dm 755` 将
-`nanom` wrapper 安装到 `$HOME/.local/bin/nanom`。该 wrapper 仅供 `EDITOR` 调用，不会通过 alias 改变 `nano` 命令；less 和 Nano
-来自平台基线。macOS 没有 classic CLI 组件。
+Debian 在 OMZ 和 Starship 后无条件运行 classic CLI；它只部署平台 less／Nano 的配置和 `nanom`，不安装软件包。`nanom` 只供 `EDITOR` 选择，不通过 alias 改变 `nano`；macOS 没有该组件。
 
 ## Debian modern CLI
 
-`command/modern_cli/main.sh` 是可选的聚合叶脚本。Linuxbrew 安装 `atuin`、`bat`、`btop`、`eza`、`fd`、`fzf`、`hyperfine`、
-`micro`、`ripgrep`、`tealdeer` 和 `zoxide` formula。聚合器还拥有 bat、fd 和 tldr 的 Homebrew completion 链接及 tealdeer 缓存预热，
-并直接安装 bat、Micro 的静态配置与 Micro 的 `detectindent` 插件。`man-db` 是平台基线：完整的 Debian 主机应当提供它，而
-`container/dev-container/Dockerfile` 会显式安装它。
+`command/modern_cli/main.sh` 是可选聚合叶脚本，拥有其 formula、Homebrew completion 链接、bat／Micro 静态配置和 Micro `detectindent` 插件；具体工具清单以脚本为准。`man-db` 是 Debian 平台基线，精简的 dev-container 会显式安装。
 
-Atuin 由 Linuxbrew 安装，没有仓库拥有的配置。全新 home 使用软件包默认值，但早期版本安装的 `~/.config/atuin/config.toml`
-会保留到显式删除为止。配置流程不会导入历史记录，也不会配置账户／同步。它的延迟初始化会接管 Ctrl-R 和 Up，而 fzf
-保留 Ctrl-T、Alt-C 和 `**` 补全。
+Atuin 没有仓库原生配置；旧 `~/.config/atuin/config.toml` 会保留，配置流程不导入历史记录或配置账户／同步。其延迟初始化和按键所有权见 OMZ 顺序章节。
 
-fzf 使用 formula 提供的 shell 集成默认值，没有仓库拥有的静态配置。`pre-eza` 插件只定义 eza 加载前需要的 zstyle，不定义 fzf 引导变量。
-插件加载后，`11-fzf.zsh` 从当前 `FZF_DEFAULT_COMMAND` 派生 `FZF_CTRL_T_COMMAND` 和 `FZF_ALT_C_COMMAND`，并添加 bat/eza 预览。
-fzf-tab 区块使用五字段 `:completion:*:*:*:*:*` 模式，使其优先级高于 Oh My Zsh 的 menu 默认值，同时恢复颜色、保持 Git checkout 顺序，
-并绑定分组导航。Bat 配置由聚合器直接安装；fd 没有独立配置脚本，eza 别名来自早期 zstyle，zoxide 恰好通过其 OMZ 插件初始化一次。
+fzf 也没有原生配置；formula 提供 shell 集成，受管理片段从 `FZF_DEFAULT_COMMAND` 派生 Ctrl-T／Alt-C 命令并增加预览。`pre-eza` 只负责 eza 加载前的 zstyle。fzf-tab 使用五字段 completion 模式覆盖 OMZ menu 默认值，并保留颜色、Git checkout 顺序和分组导航。
 
-聚合器直接安装 Micro 的 `detectindent` 插件和受管理设置，真彩色保持为 `MICRO_TRUECOLOR=1`，modern CLI 选择 Micro 作为默认编辑器。
-tealdeer 的 formula 版本由无条件 Homebrew 区块升级；聚合器和专用更新区块仍会以非致命方式预热其缓存。Markdown code 组件通过
-Linuxbrew 安装 `glow` 和提供 `markdownlint` 命令的 `markdownlint-cli`，拥有 Glow 的受管理配置并启用 TUI 鼠标支持；两个 formula
-同样由无条件 Homebrew 区块统一升级，不需要专用更新区块。zoxide 不拥有静态配置或第二次初始化。
+Micro 与编辑器规则见“补全与配置陷阱”。安装阶段不预热 tealdeer 缓存；只有用户调用 `update-all-in-one` 时才非致命地运行 `tldr --update`。Markdown 组件拥有 Glow 配置并启用 TUI 鼠标；formula 更新由通用 Homebrew 片段负责。zoxide 只通过 OMZ 插件初始化一次。
+
+## Distrobox 应用
+
+`--app-distrobox` 只检查 `docker` 命令后安装 formula；它不检查 daemon／socket 权限，实际使用要求当前用户无需 `sudo` 访问 Docker，刚加入 `docker` group 通常需重新登录。它不隐式启用 Docker，调度顺序见“分发器契约”。
+
+`app/distrobox.sh` 从动态 Homebrew `site-functions` 部署固定 completion 集合，再写入 `distrobox.conf`。脚本不创建 `$HOME/.config/distrobox`：父目录不存在即失败，存在则完整覆盖。`container_home_prefix=$HOME/distrobox` 使新容器使用 `$HOME/distrobox/<container-name>`，显式 `--home` 仍可覆盖；重新配置不迁移或删除已有容器 HOME。仓库不安装 Distrobox OMZ／prompt 插件，formula 由通用 Homebrew 片段更新。
 
 ## Yazi 应用
 
-`--app-yazi` 使用 Linuxbrew 安装 `yazi` formula；formula 拥有 `yazi`、`ya` 二进制文件。Yazi 依赖的 `file` 来自 Debian 基线，
-`dev-container` 也会显式预装。Git fetcher 和 Git/keymap 插件为无条件安装。启用 modern CLI 时，app 会添加两个 Bat previewer 和官方 `piper`；
-启用 Markdown 时，它会添加 Glow previewer 和第三方 `alberti42/faster-piper`，后者要求 Yazi 26.8.15 或更高版本。它会暴露 `$w`、`$h` 和
-终端主题 `$t`；Glow 将
-`$t` 作为 `dark` 或 `light` 使用，runner 保留 `-- "$1"`。command 和 code 组件会先运行，因此每个条件预览命令此时都已
-可用。
+`--app-yazi` 安装拥有 `yazi`／`ya` 的 formula；`file` 来自 Debian 基线，dev-container 会显式补齐。插件清单以脚本为准；modern CLI 和 Markdown 只在其命令已由前序组件提供时增加对应 previewer，并须保持第三方 previewer 与当前 Yazi 版本兼容。
 
-安装插件后，`main.sh` 运行 `yazi.toml.sh`；该脚本创建 Yazi 配置目录，并直接写入完整的 `yazi.toml` 渲染。
-`init.lua` 和 `keymap.toml` 仍是随仓库提供的制品。每个插件各自调用一次 `ya pkg add`，因此部分失败不会安装引用
-缺失插件的配置。
-后续成功运行可能在可变的 `package.toml` 中留下已禁用插件，但重新生成的配置不再引用它们。插件安装
-先于配置渲染；因为 `ya pkg add` 会拒绝已列出的依赖，普通的重复运行可能在 `yazi.toml.sh` 前退出。不要依赖
-重复运行来撤回 previewer。`y()` 包装器由 `custom.sh` 在 `APP_YAZI=1` 时安装为 `15-yazi.zsh`；之后关闭该标志不会删除已经安装的
-包装器。
+插件在配置写入前由 `ya pkg add` 逐个安装；任一失败都会跳过本次全部配置写入，使新 home 无配置、旧 home 保留旧配置和已成功添加的插件。随后 `yazi.toml.sh` 创建目录并完整渲染 `yazi.toml`，`init.lua` 和 `keymap.toml` 则是静态制品。
+
+`package.toml` 由 `ya` 拥有，仓库不直接编辑或垃圾回收；`ya pkg add` 会拒绝已列出的依赖，替换同名插件的来源时必须先 `ya pkg delete` 旧来源。因此普通重复运行可能在配置渲染前失败；后续成功运行会停止引用已禁用插件，却不删除它们。关闭 `APP_YAZI` 也不会删除已安装的 `15-yazi.zsh` 包装器。
 
 ## Git 应用
 
-`--app-git` 通过 Homebrew 安装 `gh`、提供 `delta` 的 `git-delta` 和 `lazygit`，并拥有全局 Git 设置、lazygit 配置、跟随 cwd 的
-`lg()` 函数，以及延迟的 `gh auth login`。系统 Git 是仓库引导和安装 Oh My Zsh 所需的前置依赖；Git 叶脚本会保护但不会安装它。
-实际写入器仍遵循共享所有权规则：Git 叶脚本写入工具和 Git 配置，OMZ `custom.sh` 按 `APP_GIT` 安装包含 `lg()` 的
-`14-git.zsh` 和一次性登录片段 `99-gh-login.zsh`。不要将 delta 或 lazygit 拆分到 modern CLI 中。
+`--app-git` 拥有 `gh`、delta、lazygit 及其非 shell 配置；系统 Git 由根引导器保证，叶脚本不安装或检查。OMZ `custom.sh` 则拥有 `lg()` 和一次性登录片段；其登录生命周期见“一次性 GitHub 登录”。不要把 delta 或 lazygit 移入 modern CLI。
 
-lazygit 配置面向软件包提供的 schema。它将 Nerd Fonts 版本 `"3"` 保持为字符串，并显式使用 `delta --paging=never`；lazygit 不会继承全局
-`core.pager=delta`。`lg()` 函数使用 `LAZYGIT_NEW_DIR_FILE`，将父 shell 移动到 lazygit 退出时所在目录。
-
-GitHub 登录通过 `99-gh-login.zsh` 延迟执行，以兼容不会启动交互式 Zsh 的无人值守容器构建；其自删除、失败不重试和重新运行配置后
-再次安装的语义遵循“一次性 GitHub 登录”一节。
+lazygit 配置必须匹配已安装版本的 schema：`gui.nerdFontsVersion` 保持字符串 `"3"`，`git.diffRenderers` 依次为 `delta --paging=never`、`rawGit --color-words` 和默认 raw Git；它不会继承全局 `core.pager=delta`。`lg()` 通过 `LAZYGIT_NEW_DIR_FILE` 将父 shell 切换到退出目录。
 
 ## Claude Code 与 copilot-api
 
-`debian/app/claude/main.sh` 通过 Linuxbrew 的 `claude-code` stable cask 安装 Claude Code，并由 APT 提供 `bubblewrap`、`jq` 和 `socat`。
-`update-all-in-one` 通过 Homebrew 更新该 cask，不再调用 `claude update`。如果启用了 `--app-claude-copilot-api`，会先运行该子脚本，因为
-它会替换 `~/.claude/settings.json`；通用插件安装在之后进行，以免清除 `enabledPlugins`。
+`debian/app/claude/main.sh` 通过 Homebrew 安装 Claude Code，并由 APT 提供 sandbox／JSON／socket 依赖；通用 Homebrew 更新片段负责升级，不调用 `claude update`。启用 copilot-api 时先运行会替换 `~/.claude/settings.json` 的子脚本，再安装通用插件，以保留 `enabledPlugins`。
 
-通用官方插件为 `claude-code-setup`、`claude-md-management`、`claude-security` 和 `hookify`；`APP_GIT` 会增加 `commit-commands`。语言
-集成始终与对应的语言服务器配对：Go 安装最新 `gopls` 和 `gopls-lsp`，Python 安装隔离的 `pyright[nodejs]` 和 `pyright-lsp`，
-Rust 安装 rust-analyzer 和 `rust-analyzer-lsp`。语言组件更早运行并拥有各自的工具链。
+插件清单以脚本为准。语言集成必须与对应语言服务器成对启用，并依赖更早运行的语言组件提供工具链；Git 插件只在 `APP_GIT=1` 时安装。
 
 脚本会在首次交互式启动前显式添加官方 marketplace。之后，`jq` 仅删除
 `extraKnownMarketplaces["claude-plugins-official"]`，并仅在父对象为空时删除父对象。保留 `enabledPlugins`、自定义／copilot marketplace 和
@@ -437,8 +294,8 @@ copilot-api 子脚本会将提供的三个模型值原样写入设置，不查�
 默认为空；base URL 默认为 `http://localhost:4141`，刻意设置的非机密 token 默认为 `dummy`。
 
 `install_settings()` 将最终的 `ANTHROPIC_*` 值合并到随仓库提供的模板，并以目录权限 700、文件
-权限 600 写入 `~/.claude/settings.json`。应将该模板视为 sandbox、permission、language、notification 和 workflow 偏好的事实来源，而不是将每个
-值复制到此处。仅对官方文档列出且实际 model/provider/account 支持 1M context 的模型使用 `[1m]`；该后缀不会为任意模型或 gateway 增加
+权限 600 写入 `~/.claude/settings.json`。应将该模板视为 sandbox、permission、language 和 workflow 偏好的事实来源，而不是将每个值
+复制到此处。仅对官方文档列出且实际 model/provider/account 支持 1M context 的模型使用 `[1m]`；该后缀不会为任意模型或 gateway 增加
 1M 能力。使用非第一方 gateway 时，成功还取决于协议转发能力及后端实际模型/provider。
 `CLAUDE_CODE_AUTO_COMPACT_WINDOW` 和 `autoCompactWindow` 都是合法的自动压缩窗口覆盖项；除非需要针对已知 model/provider/gateway
 限制校准，否则不要在受管理模板中硬编码。未覆盖时，Claude Code 使用针对当前模型调优的默认窗口；gateway 或自定义 model ID 可能需要
@@ -457,6 +314,9 @@ Node/npm/npx；启用该集成时，子脚本通过 Homebrew 安装 `node` formu
 bash /mnt/setup/main.sh --unattended "${setup_args[@]}"
 ```
 
+`setup_args_b64` 只编码参数，不提供保密性。该构建时通道不得承载 `--app-claude-auth-token` 或其他秘密值；否则 Debian 配置会把凭据写入
+镜像内的用户设置。引入 Docker secret 或运行时注入机制前，不要通过 dev-container 转发秘密参数。
+
 构建上下文是 `debian/`，因此镜像配置无法使用移到该树之外的文件。Debian 宿主把系统 `python3` 视为平台基线；它独立于
 `debian/code/python.sh` 可选安装的 Linuxbrew `uv` 和由 `uv tool` 管理的 `py-spy`。精简的 dev-container 镜像必须在 Dockerfile 的基础包列表显式补齐。launcher 当前假定宿主为提供
 `timedatectl` 的 Linux/systemd 环境，并要求 `LANG` 采用 `<locale>.<encoding>` 格式；现有检查只验证其非空。若要支持 macOS 宿主或
@@ -465,7 +325,7 @@ bash /mnt/setup/main.sh --unattended "${setup_args[@]}"
 `~/Projects` 挂载到具有特权的持久容器中。
 
 `container/copilot-api/main.sh` 解析最新 release 以获取 Git ref 和镜像标签，从该 ref 构建，可选地通过 `/dev/tty` 运行交互式
-认证，然后替换指定名称的服务容器、发布 4141 端口，并将主机的 `~/.copilot-api` 挂载为服务状态。
+认证，然后替换固定名为 `copilot-api` 的服务容器、发布 4141 端口，并将主机的 `~/.copilot-api` 挂载为服务状态。
 
 `container/copilot-api-config` 是包含 `jq` 和 `openssl` 的一次性镜像。它将同一主机目录挂载到 `/root/.copilot-api`，因此尽管容器内路径不同，
 仍会修改服务的持久 `config.json`。`--clear-api-keys` 清空整个 `auth.apiKeys` 数组；`--generate-api-keys <N>` 追加
@@ -478,10 +338,7 @@ N 个独立生成的 32 字节十六进制密钥；`--add-api-key <v>` 原样追
 
 ## macOS 特有约束
 
-macOS 的 `command/omz/main.sh` 安装 Oh My Zsh 后，先由 `install_plugin.sh` 克隆第三方插件，再由 `update.sh` 安装更新插件，之后由
-`plugin.sh` 重建插件数组并运行 `custom.sh`。它没有加载时设置写入器或延迟交互组件。更新插件从
-`plugins/update-all-in-one/custom/` 安装 `00-homebrew.zsh` 和 `01-oh-my-zsh.zsh`。`APP_VSCODE=1` 时，`custom.sh` 会安装无条件选择
-`code --wait` 的 `00-vscode.zsh`。
+macOS 沿用“配置所有权与落点”中的 OMZ 写入器顺序，但没有 Debian 的条件 PATH、Atuin、fzf 或一次性登录片段。它只安装 Homebrew／Oh My Zsh 更新片段，以及 VS Code（条件式）、autosuggestions、syntax-highlighting、you-should-use 和 z 的 custom 片段；`APP_VSCODE=1` 时选择 `code --wait`。
 macOS 的 `01-zsh-autosuggestions.zsh`、`02-zsh-syntax-highlighting.zsh`、`03-you-should-use.zsh` 和 `04-z.zsh` 必须分别与 Debian 的
 `05-zsh-autosuggestions.zsh`、`06-zsh-syntax-highlighting.zsh`、`07-you-should-use.zsh` 和 `08-z.zsh` 逐字节等同。不要将这些共享片段
 抽离到两棵配置树之外，因为仅使用 Debian 的 Docker 构建上下文看不到根级文件。
@@ -494,11 +351,6 @@ macOS 的 `01-zsh-autosuggestions.zsh`、`02-zsh-syntax-highlighting.zsh`、`03-
 
 完成变更前：
 
-- 确认每个新标志由正确的分发器拥有；区分可运行组件和纯集成标志，并保持适用接口列表
-  有序。
-- 确认每个配置片段只有一个逻辑所有者，并根据读取时机放置 shell 设置。
-- 检查全新 home，以及在相关标志关闭时重复配置同一 home 的行为。
-- 保持一次性登录生命周期：source 时在交互前删除片段，以 `APP_GIT=1` 重新运行配置允许再次尝试一次。
-- 使用软件包提供的工具验证随仓库提供的配置，包括解析器可能静默忽略的键。
-- 运行 Bash 语法检查、ShellCheck、shfmt，以及已暂存／未暂存的空白检查。
-- 对部署的 Zsh 片段运行 `zsh -n`；对于插件顺序或 fzf 改动，使用真实 ZLE 冒烟测试。
+- 按“分发器契约”和“配置所有权与落点”核对接口、所有权、加载时机及重复运行行为。
+- 使用实际软件包验证受管理配置，并执行“检查与安全验证”中适用于本次改动的静态、部署后及 ZLE 检查。
+- 涉及一次性登录、OMZ 顺序、补全或组件例外时，复核对应专题的专项约束。
