@@ -75,7 +75,6 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
 | `--image copilot-api`        | `--copilot-api-auth`           |
 | `--image copilot-api-config` | `--clear-api-keys`             |
 |                              | `--generate-api-keys <N>`      |
-|                              | `--add-api-key=<v>`            |
+|                              | `--add-api-key <v>`            |
 
-For `--generate-api-keys`, `<N>` is an integer from 0 to 100. `--reset-api-key` and `--api-keys <N>` remain aliases for
-`--clear-api-keys` and `--generate-api-keys <N>`, respectively.
+`--reset-api-key` and `--api-keys <N>` remain aliases for `--clear-api-keys` and `--generate-api-keys <N>`, respectively.
