@@ -1,0 +1,2 @@
+ZSHZ_CASE=smart
+ZSHZ_TILDE=1

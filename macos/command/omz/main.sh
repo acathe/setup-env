@@ -26,7 +26,7 @@ main() {
     install_omz
     bash './install_plugin.sh' "$@"
     bash './plugin.sh' "$@"
-    bash './00-setup_env.zsh.sh' "$@"
+    bash './custom.sh' "$@"
     bash './01-update.zsh.sh' "$@"
 }
 
