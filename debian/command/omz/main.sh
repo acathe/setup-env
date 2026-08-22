@@ -58,7 +58,6 @@ main() {
     bash './install_plugin.sh' "$@"
     bash './plugin.sh' "$@"
     bash './custom.sh' "$@"
-    bash './99-first_run.zsh.sh' "$@"
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then

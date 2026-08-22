@@ -38,6 +38,7 @@ main() {
     [[ $APP_DOCKER == '1' ]] && install_custom '13-docker.zsh'
     [[ $APP_GIT == '1' ]] && install_custom '14-git.zsh'
     [[ $APP_YAZI == '1' ]] && install_custom '15-yazi.zsh'
+    [[ $APP_GIT == '1' ]] && install_custom '99-gh-login.zsh'
 
     return 0
 }
