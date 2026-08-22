@@ -4,7 +4,6 @@ set -euo pipefail
 
 COMMAND_MODERN_CLI="${COMMAND_MODERN_CLI:-0}"
 
-CODE_GO="${CODE_GO:-0}"
 CODE_PYTHON="${CODE_PYTHON:-0}"
 CODE_RUST="${CODE_RUST:-0}"
 
@@ -35,28 +34,6 @@ EOF
 
     # tealdeer
     tldr --update || true
-EOF
-    fi
-
-    if [[ $CODE_GO == '1' ]]; then
-        cat << 'EOF'
-
-    # Go
-    local go_version go_tmp \
-        && go_version="$(curl -fsSL 'https://go.dev/dl/?mode=json' \
-            | jq -r 'first(.[] | select(.stable)).files[]
-                     | select(.os == "linux" and .arch == "amd64" and .kind == "archive")
-                     | .filename' \
-            | head -n 1)" \
-        && if [[ -z $go_version ]]; then
-            echo 'Failed to determine the latest Go version.' >&2
-            false
-        else
-            go_tmp="$(mktemp)" \
-                && curl -fsSL "https://go.dev/dl/$go_version" -o "$go_tmp" \
-                && sudo rm -rf '/usr/local/go' \
-                && sudo tar -C '/usr/local' -xzf "$go_tmp"
-        fi
 EOF
     fi
 

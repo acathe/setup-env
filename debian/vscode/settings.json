@@ -62,7 +62,7 @@
         "**/lib/python*/**": true, // Python
         "**/sdk/go*/src/**": true, // Go
         "**/typeshed-fallback/**": true, // Python
-        "/usr/local/go/src/**": true // Go
+        "/home/linuxbrew/.linuxbrew/opt/go/libexec/src/**": true // Go
     },
     "git.autofetch": true,
     "git.confirmSync": false,
