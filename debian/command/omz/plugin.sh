@@ -11,6 +11,7 @@ APP_VSCODE="${APP_VSCODE:-0}"
 
 CODE_GO="${CODE_GO:-0}"
 CODE_PYTHON="${CODE_PYTHON:-0}"
+CODE_RUST="${CODE_RUST:-0}"
 
 ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
 
@@ -27,6 +28,11 @@ download_plugin() {
         "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting"
 }
 
+install_brew_rustup() {
+    install -Dm 644 './brew-rustup.plugin.zsh' \
+        "$ZSH_CUSTOM/plugins/brew-rustup/brew-rustup.plugin.zsh"
+}
+
 append_plugin() {
     local plugin="$1"
     sed -i "/^plugins=(/s/)/ $plugin)/" "$HOME/.zshrc"
@@ -35,9 +41,14 @@ append_plugin() {
 main() {
     download_plugin
 
+    if [[ $CODE_RUST == '1' ]]; then
+        install_brew_rustup
+    fi
+
     sed -i 's/^plugins=(.*)/plugins=(aliases)/' "$HOME/.zshrc"
 
     append_plugin 'brew'
+    [[ $CODE_RUST == '1' ]] && append_plugin 'brew-rustup'
     append_plugin 'colored-man-pages'
     append_plugin 'dirhistory'
     append_plugin 'extract'
@@ -61,6 +72,7 @@ main() {
     [[ $CODE_GO == '1' ]] && append_plugin 'golang'
     [[ $CODE_PYTHON == '1' ]] && append_plugin 'python'
     [[ $CODE_PYTHON == '1' ]] && append_plugin 'uv'
+    [[ $CODE_RUST == '1' ]] && append_plugin 'rust'
 
     append_plugin 'ohmyzsh-full-autoupdate'
     append_plugin 'you-should-use'

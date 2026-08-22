@@ -5,7 +5,6 @@ set -euo pipefail
 COMMAND_MODERN_CLI="${COMMAND_MODERN_CLI:-0}"
 
 CODE_GO="${CODE_GO:-0}"
-CODE_RUST="${CODE_RUST:-0}"
 
 APP_DOCKER="${APP_DOCKER:-0}"
 APP_GIT="${APP_GIT:-0}"
@@ -35,15 +34,6 @@ EOF
 if [[ $TERM_PROGRAM == 'vscode' ]]; then
   export EDITOR='code --wait'
 fi
-EOF
-    fi
-
-    if [[ $CODE_RUST == '1' ]]; then
-        cat << 'EOF'
-
-# Rust
-export PATH="$HOMEBREW_PREFIX/opt/rustup/bin:$PATH"
-source "$ZSH/plugins/rust/rust.plugin.zsh"
 EOF
     fi
 

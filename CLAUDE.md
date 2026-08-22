@@ -158,14 +158,15 @@ set -- "${POSITIONAL[@]+"${POSITIONAL[@]}"}"
 每个共享配置片段只有一个逻辑所有者，但 `.zshrc` 由多个写入器协同管理。每棵配置树的 `command/omz/main.sh` 都会安装 Oh My Zsh、
 准备其模板，然后编排插件和自定义文件写入器。macOS 运行 `plugin.sh`、`00-setup_env.zsh.sh` 和 `01-update.zsh.sh`；Debian 运行
 `plugin.sh`、`setup-env.plugin.zsh.sh`、`00-setup_env.zsh.sh`、`01-update.zsh.sh` 和 `99-first_run.zsh.sh`。Debian 安装器还会启用
-模板中的用户 bin PATH，`plugin.sh` 拥有插件数组和克隆。只有在写入非空 `setup-env` 插件之后，`setup-env.plugin.zsh.sh` 才会前置
-配套的数组条目，从而避免 shell 启动时出现“已启用但缺失”的警告。
+模板中的用户 bin PATH，`plugin.sh` 拥有插件数组、克隆和专用插件制品安装。只有在写入非空 `setup-env` 插件之后，
+`setup-env.plugin.zsh.sh` 才会前置配套的数组条目，从而避免 shell 启动时出现“已启用但缺失”的警告。
 
 | 配置需求方 | 配置所属目标位置 |
 | --- | --- |
 | `compinit`、Oh My Zsh 库、插件列表 | `.zshrc` |
 | Starship prompt 外观 | `$HOME/.config/starship.toml` |
-| 在 source 过程中需要此配置的另一个插件 | `$ZSH_CUSTOM/plugins/setup-env/setup-env.plugin.zsh` |
+| eza 在 source 过程中需要的 zstyle | `$ZSH_CUSTOM/plugins/setup-env/setup-env.plugin.zsh` |
+| Rust 插件在 source 前需要的 rustup 代理 PATH | `$ZSH_CUSTOM/plugins/brew-rustup/brew-rustup.plugin.zsh` |
 | 别名、集成函数、`compdef`、运行时变量、编辑器选择 | `$ZSH_CUSTOM/00-setup_env.zsh` |
 | 用户调用的聚合更新函数 | `$ZSH_CUSTOM/01-update.zsh` |
 | 延迟执行的交互式登录或向导 | `$ZSH_CUSTOM/99-first_run.zsh` |
@@ -180,8 +181,8 @@ set -- "${POSITIONAL[@]+"${POSITIONAL[@]}"}"
 `PYTHON_AUTO_VRUN`。uv 无需该手动自动激活开关即可发现虚拟环境；不要重新引入它。
 
 由配置流程管理的运行时工具配置以制品形式随仓库提供，而不是由配置 shell 渲染。大多数写入器使用
-`install -m 644`，需要创建父目录时再加 `-D`。这包括 bat、Glow、less、micro、Nano、lazygit，以及 Yazi 的 `init.lua` 和
-`keymap.toml`；仓库本地 lint 配置和未部署的 VS Code 参考数据不受此规则约束。
+`install -m 644`，需要创建父目录时再加 `-D`。这包括 `brew-rustup` 插件、bat、Glow、less、micro、Nano、lazygit，以及 Yazi 的
+`init.lua` 和 `keymap.toml`；仓库本地 lint 配置和未部署的 VS Code 参考数据不受此规则约束。
 copilot-api 设置模板是随仓库提供、由 `jq` 补全的 JSON 制品，直接写入时目录权限为 700，文件权限为 600。外部
 例外是 `code/python.sh` 从 BesLogic 的 `main` 分支下载的 Ruff 基线。Starship 和 Yazi 使用生成式配置：`command/starship.sh` 通过
 已安装二进制文件的 `nerd-font-symbols` preset 替换 `$HOME/.config/starship.toml`；`app/yazi/yazi.toml.sh` 会创建目标目录，并通过
@@ -249,10 +250,10 @@ Oh My Zsh 会先于插件初始化补全和库，随后按 `plugins=()` 顺序 s
 Atuin 是刻意安排在插件之后的例外。它从 `00-setup_env.zsh` 初始化，以便在 fzf 加载后接管 Ctrl-R 和 Up；软件包提供的 Zsh 与
 syntax-highlighting 组合仍可高亮此时新增的 widget。不要为了遵循通用顺序规则而将它提前。
 
-Rust 是另一个刻意安排在插件数组之后的例外。Homebrew 的 keg-only `rustup` formula 将 `cargo`、`rustc` 和其他代理保留在
-`$HOMEBREW_PREFIX/opt/rustup/bin`；`00-setup_env.zsh` 必须先将该目录前置到 `PATH`，再 source 官方 `rust` 插件。不要把 `rust`
-重新加入 `plugins=()`：该插件会在 source 时检查 `cargo`，因早于 `00-setup_env.zsh` 加载而直接退出。Claude 集成也不得重新添加
-上游安装器使用的 `$HOME/.cargo/bin`。
+Debian 启用 Rust 时会安装自定义 `brew-rustup` 插件，并按 `brew`、`brew-rustup`、官方 `rust` 的先后顺序加载。
+Homebrew 的 keg-only `rustup` formula 将 `cargo`、`rustc` 和其他代理保留在 `$HOMEBREW_PREFIX/opt/rustup/bin`；`brew-rustup`
+负责先将该目录前置到 `PATH`。不要把它移到 `brew` 之前或 `rust` 之后：官方 `rust` 插件会在 source 时检查 `cargo`，路径尚未
+生效时会直接退出。Claude 集成也不得重新添加上游安装器使用的 `$HOME/.cargo/bin`。
 
 可选插件由提供相应命令的组件控制。启用 modern CLI 时，使用 Oh My Zsh 的 `zoxide` 插件并省略 `z`；未启用时，使用
 `z` 并输出 zsh-z 设置。优先使用 Debian 供应商补全，而不是每次 shell 启动都重新生成补全的插件。
