@@ -52,19 +52,9 @@ install_omz() {
     rm -f "$HOME/.bash_logout"
 }
 
-install_brew_rustup() {
-    install -Dm 644 './brew-rustup.plugin.zsh' \
-        "$ZSH_CUSTOM/plugins/brew-rustup/brew-rustup.plugin.zsh"
-}
-
 main() {
-    if ! command -v git > /dev/null 2>&1; then
-        echo 'git is not installed.' >&2
-        return 1
-    fi
-
-    if ! command -v curl > /dev/null 2>&1; then
-        echo 'curl is not installed.' >&2
+    if ! command -v git > /dev/null 2>&1 || ! command -v curl > /dev/null 2>&1; then
+        echo 'git or curl is not installed.' >&2
         return 1
     fi
 
@@ -74,7 +64,8 @@ main() {
     install_omz
 
     if [[ $CODE_RUST == '1' ]]; then
-        install_brew_rustup
+        install -Dm 644 './brew-rustup.plugin.zsh' \
+            "$ZSH_CUSTOM/plugins/brew-rustup/brew-rustup.plugin.zsh"
     fi
 
     bash './plugin.sh' "$@"

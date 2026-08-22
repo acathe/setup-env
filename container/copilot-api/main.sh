@@ -24,37 +24,39 @@ get_copilot_api_latest() {
     curl -fsSIL -o /dev/null -w '%{url_effective}' 'https://github.com/caozhiyuan/copilot-api/releases/latest' | sed -E 's#.*/tag/v?([^/]+)$#\1#'
 }
 
-main() {
-    if ! command -v docker > /dev/null 2>&1; then
-        echo 'Docker is required to deploy copilot-api.' >&2
-        return 1
-    fi
-
-    if ! command -v curl > /dev/null 2>&1; then
-        echo 'curl is required to determine the latest copilot-api version.' >&2
-        return 1
-    fi
-
-    local version
-    version="$(get_copilot_api_latest)"
+build_image() {
+    local version="$1"
     if [[ -z $version ]]; then
-        echo 'Failed to determine the latest copilot-api version.' >&2
+        echo 'Version is required to build copilot-api image.' >&2
         return 1
     fi
 
     docker build \
         -t "copilot-api:$version" \
         "https://github.com/caozhiyuan/copilot-api.git#v$version" >&2
+}
+
+auth() {
+    local image="$1"
+    if [[ -z $image ]]; then
+        echo 'Image is required to auth copilot-api.' >&2
+        return 1
+    fi
 
     sudo install -d -m 700 -o root -g root "$HOME/.copilot-api"
+    docker run \
+        --rm \
+        -it \
+        -v "$HOME/.copilot-api:/root/.local/share/copilot-api" \
+        "$image" \
+        --auth < /dev/tty
+}
 
-    if [[ $COPILOT_API_AUTH == '1' ]]; then
-        docker run \
-            --rm \
-            -it \
-            -v "$HOME/.copilot-api:/root/.local/share/copilot-api" \
-            "copilot-api:$version" \
-            --auth < /dev/tty
+run_container() {
+    local image="$1"
+    if [[ -z $image ]]; then
+        echo 'Image is required to run copilot-api container.' >&2
+        return 1
     fi
 
     if docker container inspect 'copilot-api' > /dev/null 2>&1; then
@@ -67,7 +69,25 @@ main() {
         --restart unless-stopped \
         -p 4141:4141 \
         -v "$HOME/.copilot-api:/root/.local/share/copilot-api" \
-        "copilot-api:$version"
+        "$image"
+}
+
+main() {
+    if ! command -v docker > /dev/null 2>&1 || ! command -v curl > /dev/null 2>&1; then
+        echo 'docker and curl are required to deploy copilot-api.' >&2
+        return 1
+    fi
+
+    local version
+    version="$(get_copilot_api_latest)"
+
+    build_image "$version"
+
+    if [[ $COPILOT_API_AUTH == '1' ]]; then
+        auth "copilot-api:$version"
+    fi
+
+    run_container "copilot-api:$version"
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then

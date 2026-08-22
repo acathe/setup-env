@@ -34,15 +34,12 @@ add_group() {
     sudo usermod -aG docker "$USER"
 }
 
-install_lazydocker() {
-    brew install 'lazydocker'
-}
-
 main() {
     add_repo
     install_docker
     add_group
-    install_lazydocker
+
+    brew install 'lazydocker'
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then

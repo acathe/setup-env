@@ -2,15 +2,8 @@
 
 set -euo pipefail
 
-install_go() {
-    brew install go
-}
-
 main() {
-    sudo apt-get update
-    sudo apt-get install -y build-essential
-
-    install_go
+    brew install 'go'
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then

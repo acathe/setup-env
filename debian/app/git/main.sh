@@ -35,10 +35,6 @@ parse_args() {
     done
 }
 
-install_tools() {
-    brew install 'gh' 'git-delta' 'lazygit'
-}
-
 setup_git() {
     if [[ -n $APP_GIT_USER_NAME ]]; then
         git config --global user.name "$APP_GIT_USER_NAME"
@@ -65,7 +61,7 @@ main() {
         return 1
     fi
 
-    install_tools
+    brew install 'gh' 'git-delta' 'lazygit'
     setup_git
 }
 
