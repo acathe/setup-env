@@ -353,7 +353,8 @@ fzf-tab 区块使用五字段 `:completion:*:*:*:*:*` 模式，使其优先级�
 恰好通过其 OMZ 插件初始化一次。
 
 Micro 真彩色保持为 `MICRO_TRUECOLOR=1`，modern CLI 选择 Micro 作为默认编辑器；tealdeer 拥有带保护条件的补全符号链接和一个
-非致命缓存预热。Markdown code 组件拥有 Glow 的受管理配置并启用 TUI 鼠标支持；zoxide 不拥有静态配置或第二次初始化。
+非致命缓存预热。Markdown code 组件通过 Linuxbrew 安装 `glow` 和提供 `markdownlint` 命令的 `markdownlint-cli`，拥有 Glow 的受管理配置并启用 TUI
+鼠标支持；两个 formula 由无条件 Homebrew 区块统一升级，不需要专用更新区块。zoxide 不拥有静态配置或第二次初始化。
 
 ## Yazi 应用
 

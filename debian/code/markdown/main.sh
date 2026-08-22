@@ -3,8 +3,7 @@
 set -euo pipefail
 
 main() {
-    sudo apt-get update
-    sudo apt-get install -y glow
+    brew install 'glow' 'markdownlint-cli'
 
     install -Dm 644 './glow.yml' "$HOME/.config/glow/glow.yml"
 }
