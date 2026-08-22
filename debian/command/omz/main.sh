@@ -53,11 +53,6 @@ install_omz() {
 }
 
 main() {
-    if ! command -v git > /dev/null 2>&1 || ! command -v curl > /dev/null 2>&1; then
-        echo 'git or curl is not installed.' >&2
-        return 1
-    fi
-
     sudo apt-get update
     sudo apt-get install -y zsh
 

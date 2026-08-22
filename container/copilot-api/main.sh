@@ -73,7 +73,7 @@ run_container() {
 }
 
 main() {
-    if ! command -v docker > /dev/null 2>&1 || ! command -v curl > /dev/null 2>&1; then
+    if ! command -v docker > /dev/null 2>&1; then
         echo 'docker and curl are required to deploy copilot-api.' >&2
         return 1
     fi

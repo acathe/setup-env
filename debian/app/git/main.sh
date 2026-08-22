@@ -56,11 +56,6 @@ setup_git() {
 }
 
 main() {
-    if ! command -v git > /dev/null 2>&1; then
-        echo 'git is not installed.' >&2
-        return 1
-    fi
-
     brew install 'gh' 'git-delta' 'lazygit'
     setup_git
 }

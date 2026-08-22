@@ -23,11 +23,6 @@ install_omz() {
 }
 
 main() {
-    if ! command -v curl > /dev/null 2>&1; then
-        echo 'curl is not installed.' >&2
-        return 1
-    fi
-
     install_omz
     bash './plugin.sh' "$@"
     bash './00-setup_env.zsh.sh' "$@"
