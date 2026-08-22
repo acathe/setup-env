@@ -77,19 +77,20 @@ ShellCheck 使用 `-x`，因为 `debian/app/docker.sh` 会动态 source `/etc/os
 `.bash_logout`。针对同一 home 重复生成文件的检查，并不意味着完整平台分发器是幂等的；第三方 OMZ 插件安装器会克隆到
 固定目标位置。
 
-受管理的 OMZ Zsh 同时包含 heredoc 生成文件和静态片段；ShellCheck 不会检查它们的 Zsh 正文。手动验证按以下顺序进行：
+受管理的 OMZ Zsh 包含静态片段；ShellCheck 不会检查它们的 Zsh 正文。手动验证按以下顺序进行：
 
 1. 创建一次性目录树，将 `HOME` 和 `ZSH_CUSTOM` 显式指向同一棵树，并使用受控的 `PATH`；只修改 `HOME` 不够，因为写入器会沿用
    继承的 `ZSH_CUSTOM`。
 2. 使用 Oh My Zsh 模板初始化 `$HOME/.zshrc`，在 `PATH` 中放置供 `install_plugin.sh` 使用的 `git` 桩程序；在 Linux 上验证
    macOS 时，再为 `plugin.sh` 提供 BSD `sed` 垫片。
 3. 设置并导出所有组件变量，包括 `APP_VSCODE`，以验证 `install_plugin.sh` 和 `custom.sh` 选择出的完整插件及片段集合。
-4. macOS：从 `command/omz/` 依次调用 `install_plugin.sh`、`plugin.sh` 和 `custom.sh`。Debian：从同一目录依次调用
-   `install_plugin.sh`、`plugin.sh`、`custom.sh` 和 `99-first_run.zsh.sh`。
+4. 两个平台都从 `command/omz/` 依次调用 `install_plugin.sh`、`plugin.sh` 和 `custom.sh`。
 5. 确认 `$HOME/.zshrc` 恰有一个 `plugins=(...)` 行，且完整内容和顺序符合当前组件变量；确认 `$ZSH_CUSTOM` 和
    `$ZSH_CUSTOM/plugins/update-all-in-one/custom` 中安装的片段 basename 集合与当前标志一致。
-6. 对 `$HOME/.zshrc`、所有已安装的 custom 片段、`update-all-in-one.plugin.zsh`、更新片段和 `99-first_run.zsh` 逐一运行 `zsh -n`；
+6. 对 `$HOME/.zshrc`、所有已安装的 custom 片段、`update-all-in-one.plugin.zsh` 和更新片段逐一运行 `zsh -n`；
    `COMMAND_MODERN_CLI=1` 时还要检查部署的 `pre-eza.plugin.zsh`，`CODE_RUST=1` 时还要检查部署的 `brew-rustup.plugin.zsh`。
+7. 验证 `99-gh-login.zsh` 时，在 `zsh -f` 中为 `gh` 提供函数桩，确认已认证时不调用登录、未认证时仅调用一次，并确认两种分支都在
+   检查认证状态前删除片段自身。
 
 不要执行 `command/omz/main.sh`：它会执行真实配置，Debian 上还会运行 `apt`；也不要调用其中的 `install_omz`，它会安装
 Oh My Zsh 并修改当前 home。若未提供 Homebrew 和 Starship 桩程序，也不要调用 `command/starship.sh`：它会安装真实 formula 并替换
@@ -164,10 +165,10 @@ set -- "${POSITIONAL[@]+"${POSITIONAL[@]}"}"
 ## 配置所有权与落点
 
 每个共享配置片段只有一个逻辑所有者，但 `.zshrc` 由多个写入器协同管理。每棵配置树的 `command/omz/main.sh` 都会安装 Oh My Zsh、
-准备其模板，然后依次运行 `install_plugin.sh`、`plugin.sh` 和自定义文件写入器。两平台随后运行 `custom.sh`，Debian 最后再运行
-`99-first_run.zsh.sh`。Debian 安装器还会启用模板中的用户 bin PATH。两平台的 `install_plugin.sh` 拥有第三方插件克隆并调用
-`update-all-in-one.sh`，Debian 版本还按组件标志复制仓库内的 `pre-eza` 和 `brew-rustup` 插件目录；`plugin.sh` 只拥有插件数组，并仅
-启用本次安装流程已经物化的条件插件。`update-all-in-one.sh` 拥有 `update-all-in-one` 插件入口和更新片段安装。
+准备其模板，然后依次运行 `install_plugin.sh`、`plugin.sh` 和 `custom.sh`。Debian 安装器还会启用模板中的用户 bin PATH。两平台的
+`install_plugin.sh` 拥有第三方插件克隆并调用 `update-all-in-one.sh`，Debian 版本还按组件标志复制仓库内的 `pre-eza` 和
+`brew-rustup` 插件目录；`plugin.sh` 只拥有插件数组，并仅启用本次安装流程已经物化的条件插件。`update-all-in-one.sh` 拥有
+`update-all-in-one` 插件入口和更新片段安装。
 
 | 配置需求方 | 配置所属目标位置 |
 | --- | --- |
@@ -178,13 +179,13 @@ set -- "${POSITIONAL[@]+"${POSITIONAL[@]}"}"
 | keg-only `clang-format` 的交互式 PATH | `$ZSH_CUSTOM/04-clang-format.zsh` |
 | 别名、集成函数、`compdef`、运行时变量、编辑器选择 | `$ZSH_CUSTOM/<custom basename>` |
 | 用户调用的聚合更新函数及其更新片段 | `$ZSH_CUSTOM/plugins/update-all-in-one/` |
-| 延迟执行的交互式登录或向导 | `$ZSH_CUSTOM/99-first_run.zsh` |
+| 延迟执行的 GitHub CLI 登录 | `$ZSH_CUSTOM/99-gh-login.zsh` |
 | 非交互式 shell 命令 | `.zshenv` |
 
 `custom.sh` 从各平台的 `command/omz/custom/` 选择静态 Zsh 片段，并使用源文件 basename 直接安装到 `$ZSH_CUSTOM`。Debian 的源文件按
 `00-nanom`、`01-micro`、`02-vscode`、`03-go`、`04-clang-format`、`05-zsh-autosuggestions`、`06-zsh-syntax-highlighting`、
-`07-you-should-use`、`08-z`、`09-atuin`、`10-eza`、`11-fzf`、`12-fzf-tab`、`13-docker`、`14-git`、`15-yazi` 排序；
-`01-micro.zsh` 同时拥有默认编辑器和 `MICRO_TRUECOLOR`。macOS 按自身原有顺序使用 `00-vscode`、`01-zsh-autosuggestions`、
+`07-you-should-use`、`08-z`、`09-atuin`、`10-eza`、`11-fzf`、`12-fzf-tab`、`13-docker`、`14-git`、`15-yazi`、`99-gh-login`
+排序；`01-micro.zsh` 同时拥有默认编辑器和 `MICRO_TRUECOLOR`。macOS 按自身原有顺序使用 `00-vscode`、`01-zsh-autosuggestions`、
 `02-zsh-syntax-highlighting`、`03-you-should-use` 和 `04-z`。文件名承担区块标识，片段正文不重复写入 `#` 标题。
 
 决策依据是值被读取的时机，而不是它看起来是否像环境变量。`pre-eza` 插件承载 eza 加载时 zstyle，并紧邻官方 `eza` 插件之前
@@ -214,23 +215,18 @@ Yazi 的 `package.toml` 不同：`ya pkg add` 拥有这份可变运行时清单�
 `owner/repository` 标识来源，但按插件名部署，因此替换同名插件的所有者时，必须先对旧来源执行 `ya pkg delete`，再添加新
 来源；绝不要直接编辑 `package.toml`。
 
-### 空渲染不会撤回先前输出
+### 一次性 GitHub 登录
 
-`99-first_run.zsh.sh` 会在接触当前目标之前捕获 `render_blocks()`。空渲染会成功返回，但不会写入或删除当前目标。在全新 home 上
-不会创建制品；在重复配置时，则让早期制品逐字节保持不变。这是刻意设计的配置契约：禁用标志不等于卸载或垃圾回收。
-
-重命名写入器不会删除早期版本已安装的 `$ZSH_CUSTOM/01-first_run.zsh`。这个已退役文件仍会被 Oh My Zsh 的
-自定义 `*.zsh` glob 匹配，并可能与 `99-first_run.zsh` 同时运行。迁移现有 home 时应显式删除它；不要假定当前写入器会
-垃圾回收已退役目标。
+Debian 的 `custom.sh` 在 `APP_GIT=1` 时安装静态 `99-gh-login.zsh`。Oh My Zsh 通过自定义 `*.zsh` glob 加载它时，该片段先删除自身，
+再检查 `gh` 是否存在以及当前认证状态，必要时启动 `gh auth login`。因此登录失败或取消后不会在每个新 shell 中重试；后续以
+`APP_GIT=1` 重新运行配置会再次安装该片段，并允许新流程再执行一次。
 
 Debian 的 OMZ `plugin.sh` 会从 `plugins=(aliases)` 重建数组；旧 home 中残留的 `setup-env` 插件，以及当前标志未启用的
-`pre-eza` 或 `brew-rustup` 目录都不会出现在数组中，因此不会生效。待执行的 `99-first_run.zsh` 并非如此：在它被 source 前关闭
-`APP_GIT`，仍会使其被 Oh My Zsh 的自定义 `*.zsh` glob 匹配。被 source 时，它会
-先删除自身，再检查命令或启动交互工作，因此失败或取消的提示不会在每个新 shell 中重试。后续配置若产生
-非空 first-run 渲染，会重新创建该文件，并允许新流程再次执行一次。
+`pre-eza` 或 `brew-rustup` 目录都不会出现在数组中，因此不会生效。
 
-两平台的 `custom.sh` 始终安装无条件片段，并通过 `install -m 644` 将当前选中项直接安装到 `$ZSH_CUSTOM`。它不会删除未选中项；
-在重复配置中关闭标志不等于卸载之前安装的片段。first-run 文件既不读取也不修改该集合。
+两平台的 `custom.sh` 始终安装无条件片段，并通过 `install -m 644` 将当前选中项直接安装到 `$ZSH_CUSTOM`。它不会删除未选中项或
+清理早期版本遗留文件；在重复配置中关闭标志不等于卸载之前安装的片段。因此，在尚未 source `99-gh-login.zsh` 前关闭 `APP_GIT`，
+已经安装的登录片段仍会保留并执行一次。
 
 两平台的 `update-all-in-one.sh` 都创建 `$ZSH_CUSTOM/plugins/update-all-in-one/custom`，并以 `0644` 安装插件入口和更新片段。
 安装器通过 `install_update()` 复制 `plugins/update-all-in-one/custom/` 中的片段；Debian 版本再根据导出的配置标志用条件调用选择可选片段，
@@ -261,8 +257,7 @@ Oh My Zsh 会先于插件初始化补全和库，随后按 `plugins=()` 顺序 s
 - 启用 modern CLI 时，`pre-eza` 紧邻并位于官方 `eza` 插件之前。
 - custom 片段保留源文件 basename，并按 `$ZSH_CUSTOM/*.zsh` 的字典序加载。
 - `update-all-in-one` 在插件阶段加载，入口只定义函数；更新片段只能在用户调用该函数时 source，shell 启动时绝不能运行更新。
-- 生成后，`99-first_run.zsh` 保持为最后一个由配置流程管理的自定义 Zsh 文件，使延迟交互工作在受管理的运行时
-  配置之后启动。
+- `99-gh-login.zsh` 保持为最后一个由配置流程管理的自定义 Zsh 文件，使延迟 GitHub CLI 登录在受管理的运行时配置之后启动。
 - `zsh-syntax-highlighting` 保持为 `plugins=()` 中的最后一项。
 - `fzf-tab` 位于 `zsh-autosuggestions` 和 syntax highlighting 等包装器之前。
 - 在本仓库中，`fzf-tab` 也位于 `fzf` 之前。fzf 会将当前 Tab 绑定捕获为 `fzf_default_completion`；颠倒两者会嵌套两个 fzf
@@ -416,13 +411,13 @@ Linuxbrew 安装 `glow` 和提供 `markdownlint` 命令的 `markdownlint-cli`，
 `--app-git` 通过 Homebrew 安装 `gh`、提供 `delta` 的 `git-delta` 和 `lazygit`，并拥有全局 Git 设置、lazygit 配置、跟随 cwd 的
 `lg()` 函数，以及延迟的 `gh auth login`。系统 Git 是仓库引导和安装 Oh My Zsh 所需的前置依赖；Git 叶脚本会保护但不会安装它。
 实际写入器仍遵循共享所有权规则：Git 叶脚本写入工具和 Git 配置，OMZ `custom.sh` 按 `APP_GIT` 安装包含 `lg()` 的
-`14-git.zsh`，`99-first_run.zsh.sh` 写入一次性登录区块。不要将 delta 或 lazygit 拆分到 modern CLI 中。
+`14-git.zsh` 和一次性登录片段 `99-gh-login.zsh`。不要将 delta 或 lazygit 拆分到 modern CLI 中。
 
 lazygit 配置面向软件包提供的 schema。它将 Nerd Fonts 版本 `"3"` 保持为字符串，并显式使用 `delta --paging=never`；lazygit 不会继承全局
 `core.pager=delta`。`lg()` 函数使用 `LAZYGIT_NEW_DIR_FILE`，将父 shell 移动到 lazygit 退出时所在目录。
 
-GitHub 登录通过 `99-first_run.zsh` 延迟执行，以兼容不会启动交互式 Zsh 的无人值守容器构建；其自删除、失败不重试和非空重建语义遵循
-“空渲染不会撤回先前输出”一节。
+GitHub 登录通过 `99-gh-login.zsh` 延迟执行，以兼容不会启动交互式 Zsh 的无人值守容器构建；其自删除、失败不重试和重新运行配置后
+再次安装的语义遵循“一次性 GitHub 登录”一节。
 
 ## Claude Code 与 copilot-api
 
@@ -504,8 +499,7 @@ macOS 的 `01-zsh-autosuggestions.zsh`、`02-zsh-syntax-highlighting.zsh`、`03-
   有序。
 - 确认每个配置片段只有一个逻辑所有者，并根据读取时机放置 shell 设置。
 - 检查全新 home，以及在相关标志关闭时重复配置同一 home 的行为。
-- 保持 first-run 生命周期：空渲染保留当前待执行任务，source 时在交互前删除它，退役路径有文档说明的
-  显式清理方式，非空重新渲染允许再次尝试一次。
+- 保持一次性登录生命周期：source 时在交互前删除片段，以 `APP_GIT=1` 重新运行配置允许再次尝试一次。
 - 使用软件包提供的工具验证随仓库提供的配置，包括解析器可能静默忽略的键。
 - 运行 Bash 语法检查、ShellCheck、shfmt，以及已暂存／未暂存的空白检查。
-- 渲染生成的 Zsh 并运行 `zsh -n`；对于插件顺序或 fzf 改动，使用真实 ZLE 冒烟测试。
+- 对部署的 Zsh 片段运行 `zsh -n`；对于插件顺序或 fzf 改动，使用真实 ZLE 冒烟测试。
