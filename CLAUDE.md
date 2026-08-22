@@ -36,8 +36,8 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
 Debian 的 Homebrew 引导流程与 macOS 的 PATH 保护逻辑一致，并直接调用官方安装器；`--unattended` 只会添加 `NONINTERACTIVE=1`。
 配置父脚本随后求值 `/home/linuxbrew/.linuxbrew/bin/brew shellenv bash`，使后代安装器可直接调用 `brew` 及其 formula 二进制文件。
 Oh My Zsh 的 `brew` 插件会独立配置交互式 Zsh；此集成不会为非交互式 shell 写入 `.zshenv`。
-Go 组件使用 Linuxbrew 的 `go` formula，并在 `.zshenv` 中前置默认的 `$HOME/go/bin`，使非交互式 Zsh 能找到 `go install` 产物。
-formula 可执行文件的发现沿用上述 Homebrew PATH 契约，不由 Go 组件重复配置。
+Go 组件使用 Linuxbrew 的 `go` formula；formula 可执行文件的发现沿用上述 Homebrew PATH 契约，不由 Go 组件重复配置。
+启用 `CODE_GO` 时，Debian 的 `00-setup_env.zsh.sh` 会在交互式 Zsh 中前置默认的 `$HOME/go/bin`，以发现 `go install` 产物。
 
 `debian/vscode/` 仅作为参考数据。没有分发器会安装这些文件；`--app-vscode` 会启用 OMZ 插件。`README.md` 当前仍记录手动
 安装扩展的方式；根据前述文档边界，此类非参数内容不应继续保留或新增。Debian 的 `00-setup_env.zsh.sh` 会在未启用 modern CLI 时选择
@@ -115,8 +115,9 @@ Debian 的 `APP_VSCODE` 是明确的纯集成例外：它有导出、解析器 c
 两个 CLI 入口点都是无解析器的叶脚本：`command/classic_cli/main.sh` 只拥有平台提供的 CLI 工具的无条件配置，而
 `command/modern_cli/main.sh` 聚合可选工具和固定的子安装器。
 
-标志会刻意通过导出变量和转发参数向下级联。`01-update.zsh.sh` 读取拥有专用更新区块的组件标志；Claude app 从 Debian 读取
-`CODE_GO`、`CODE_PYTHON`、`CODE_RUST` 和 `APP_GIT`；tmux 读取 `APP_CLAUDE`；Yazi 读取
+标志会刻意通过导出变量和转发参数向下级联。`00-setup_env.zsh.sh` 读取 `CODE_GO` 以配置用户 Go bin PATH；
+`01-update.zsh.sh` 读取拥有专用更新区块的组件标志；Claude app 从 Debian 读取 `CODE_GO`、`CODE_PYTHON`、`CODE_RUST` 和 `APP_GIT`；
+tmux 读取 `APP_CLAUDE`；Yazi 读取
 `COMMAND_MODERN_CLI` 和 `CODE_MARKDOWN`。OMZ 写入器读取组件标志，是因为它们实际拥有共享 shell 落点。跨组件读取仅在两个关注点都
 启用时增加集成行为，因而是有效的。
 
