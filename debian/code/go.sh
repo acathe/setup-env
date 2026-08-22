@@ -13,7 +13,7 @@ set_env() {
 
     {
         echo '# Go'
-        echo 'export PATH="$HOME/go/bin:/home/linuxbrew/.linuxbrew/opt/go/bin:$PATH"'
+        echo 'export PATH="$HOME/go/bin:$PATH"'
     } >> "$HOME/.zshenv"
 }
 

@@ -36,8 +36,8 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
 Debian 的 Homebrew 引导流程与 macOS 的 PATH 保护逻辑一致，并直接调用官方安装器；`--unattended` 只会添加 `NONINTERACTIVE=1`。
 配置父脚本随后求值 `/home/linuxbrew/.linuxbrew/bin/brew shellenv bash`，使后代安装器可直接调用 `brew` 及其 formula 二进制文件。
 Oh My Zsh 的 `brew` 插件会独立配置交互式 Zsh；此集成不会为非交互式 shell 写入 `.zshenv`。
-Go 组件使用 Linuxbrew 的 `go` formula，并在 `.zshenv` 中前置稳定的 `opt/go/bin` 和默认的 `$HOME/go/bin`，使非交互式 Zsh
-也能找到工具链与 `go install` 产物。
+Go 组件使用 Linuxbrew 的 `go` formula，并在 `.zshenv` 中前置默认的 `$HOME/go/bin`，使非交互式 Zsh 能找到 `go install` 产物。
+formula 可执行文件的发现沿用上述 Homebrew PATH 契约，不由 Go 组件重复配置。
 
 `debian/vscode/` 仅作为参考数据。没有分发器会安装这些文件；`--app-vscode` 会启用 OMZ 插件。`README.md` 当前仍记录手动
 安装扩展的方式；根据前述文档边界，此类非参数内容不应继续保留或新增。Debian 的 `00-setup_env.zsh.sh` 会在未启用 modern CLI 时选择
