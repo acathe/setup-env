@@ -30,8 +30,6 @@ main() {
     [[ $CODE_RUST == '1' ]] && install_custom_plugin 'brew-rustup'
     [[ $COMMAND_MODERN_CLI == '1' ]] && install_custom_plugin 'pre-eza'
 
-    bash './update-all-in-one.sh' "$@"
-
     return 0
 }
 

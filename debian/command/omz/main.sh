@@ -56,6 +56,7 @@ main() {
     install_omz
 
     bash './install_plugin.sh' "$@"
+    bash './update.sh' "$@"
     bash './plugin.sh' "$@"
     bash './custom.sh' "$@"
 }
