@@ -48,6 +48,7 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
 |                        | `--app-claude-default-sonnet-model <v>` |
 |                        | `--app-claude-default-haiku-model <v>`  |
 | `--app-docker`         |                                         |
+| `--app-distrobox`      |                                         |
 | `--app-git`            | `--app-git-user-name <v>`               |
 |                        | `--app-git-user-email <v>`              |
 | `--app-neovim`         |                                         |
@@ -76,5 +77,3 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
 | `--image copilot-api-config` | `--clear-api-keys`             |
 |                              | `--generate-api-keys <N>`      |
 |                              | `--add-api-key <v>`            |
-
-`--reset-api-key` and `--api-keys <N>` remain aliases for `--clear-api-keys` and `--generate-api-keys <N>`, respectively.
