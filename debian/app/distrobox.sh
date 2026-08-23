@@ -39,6 +39,7 @@ set_completions() {
 }
 
 set_config() {
+    mkdir -p "$HOME/.config/distrobox"
     echo "container_home_prefix=\"$HOME/distrobox\"" > "$HOME/.config/distrobox/distrobox.conf"
 
 }
