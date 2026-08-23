@@ -48,7 +48,6 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
 |                        | `--app-claude-default-sonnet-model <v>` |
 |                        | `--app-claude-default-haiku-model <v>`  |
 | `--app-docker`         |                                         |
-| `--app-distrobox`      |                                         |
 | `--app-git`            | `--app-git-user-name <v>`               |
 |                        | `--app-git-user-email <v>`              |
 | `--app-neovim`         |                                         |
