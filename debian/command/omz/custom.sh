@@ -9,7 +9,6 @@ CODE_PROTOBUF="${CODE_PROTOBUF:-0}"
 
 APP_DOCKER="${APP_DOCKER:-0}"
 APP_GIT="${APP_GIT:-0}"
-APP_INCUS="${APP_INCUS:-0}"
 APP_VSCODE="${APP_VSCODE:-0}"
 APP_YAZI="${APP_YAZI:-0}"
 
@@ -39,7 +38,6 @@ main() {
     [[ $APP_DOCKER == '1' ]] && install_custom '13-docker.zsh'
     [[ $APP_GIT == '1' ]] && install_custom '14-git.zsh'
     [[ $APP_YAZI == '1' ]] && install_custom '15-yazi.zsh'
-    [[ $APP_INCUS == '1' ]] && install_custom '98-incus-init.zsh'
     [[ $APP_GIT == '1' ]] && install_custom '99-gh-login.zsh'
 
     return 0
