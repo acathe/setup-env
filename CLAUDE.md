@@ -71,7 +71,7 @@ ShellCheck 使用 `-x`，因为 `debian/app/docker.sh` 会动态 source `/etc/os
 2. 导出所有组件变量（包括 `APP_VSCODE`），从 `command/omz/` 依次运行 `install_plugin.sh`、`update.sh`、`plugin.sh`、`custom.sh`。
 3. 断言 `.zshrc` 只有一个顺序正确的 `plugins=(...)`，且 `$ZSH_CUSTOM` 与更新插件目录中的 basename 集合符合标志。
 4. 对部署的 `.zshrc`、custom／更新片段及插件入口运行 `zsh -n`；启用 modern CLI 或 Rust 时还要检查 `pre-eza` 或 `brew-rustup` 插件。
-5. 在 `zsh -f` 中用 `gh` 桩验证 `99-gh-login.zsh` 的已认证和未认证分支：两者都先删除自身，后者只登录一次。
+5. 在 `zsh -f` 中用桩验证一次性片段：`98-incus-init.zsh` 和 `99-gh-login.zsh` 都先删除自身，再分别直接执行一次 `incus admin init` 和 `gh auth login`。
 
 不要运行会修改真实 home 的 `command/omz/main.sh` 或 `install_omz`。没有 Homebrew／Starship 桩时也不要运行 `command/starship.sh`；其目标文件语义见“配置所有权与落点”。不要直接调用会执行真实更新的 `update-all-in-one`；调度验证应在 `zsh -f` 中为 `sudo`、`brew`、`tldr`、`uv`、`rustup`、`ya` 和 `omz` 提供函数桩。
 
@@ -124,9 +124,11 @@ set -- "${POSITIONAL[@]+"${POSITIONAL[@]}"}"
 | Starship prompt 外观 | `$HOME/.config/starship.toml` |
 | eza 在 source 过程中需要的 zstyle | `$ZSH_CUSTOM/plugins/pre-eza/pre-eza.plugin.zsh` |
 | Rust 插件在 source 前需要的 rustup 代理 PATH | `$ZSH_CUSTOM/plugins/brew-rustup/brew-rustup.plugin.zsh` |
+| Incus 的 Zabbly key／源 | `/etc/apt/keyrings/zabbly.asc`、`/etc/apt/sources.list.d/zabbly-incus-stable.sources` |
 | keg-only `clang-format` 的交互式 PATH | `$ZSH_CUSTOM/04-clang-format.zsh` |
 | 别名、集成函数、`compdef`、运行时变量、编辑器选择 | `$ZSH_CUSTOM/<custom basename>` |
 | 用户调用的聚合更新函数及其更新片段 | `$ZSH_CUSTOM/plugins/update-all-in-one/` |
+| 延迟执行的 Incus 初始化 | `$ZSH_CUSTOM/98-incus-init.zsh` |
 | 延迟执行的 GitHub CLI 登录 | `$ZSH_CUSTOM/99-gh-login.zsh` |
 
 `custom.sh` 从各平台的 `command/omz/custom/` 选择静态 Zsh 片段，保留源 basename 安装到 `$ZSH_CUSTOM`，由文件名字典序决定加载顺序；文件名已承担区块标识，正文不重复标题。读取时机决定设置应进入加载前的自定义插件还是加载后的编号 custom 片段，具体顺序约束见“Oh My Zsh 加载与插件顺序”。
@@ -140,23 +142,27 @@ Python 运行时则由 `uv` 安装和管理，不额外安装 Homebrew `python` 
 重新运行会覆盖本次选中的静态制品，但不会删除未选中项或旧副本；关闭标志不等于卸载，清理必须显式执行。追加式上游集成不在此覆盖保证内。生成式配置则各有不同语义：
 
 - Starship 不传 `--force`，只在目标不存在时生成 `starship.toml`，存在即失败。
+- Incus 的 APT 文件覆盖和来源约束见“Incus 应用”。
 - Yazi 的配置写入和 `package.toml` 所有权见“Yazi 应用”。
 
 Starship 迁移不会删除旧 Powerlevel10k 克隆或 Debian 不管理的 `.p10k.zsh`；官方 Starship 插件会先清除旧 `ZSH_THEME`，因此它们不会生效。
 
 ### 一次性 GitHub 登录
 
-Debian 的 `custom.sh` 在 `APP_GIT=1` 时安装静态 `99-gh-login.zsh`。Oh My Zsh 通过自定义 `*.zsh` glob 加载它时，该片段先删除自身，
-再检查 `gh` 是否存在以及当前认证状态，必要时启动 `gh auth login`。因此登录失败或取消后不会在每个新 shell 中重试；单独以
-`APP_GIT=1` 重跑 `command/omz/custom.sh` 会再次安装该片段。完整 Debian 流程是否能到达该写入器，仍受固定目标目录的第三方插件克隆
-非幂等性约束。
+Debian 的 `custom.sh` 只在 `APP_GIT=1` 时安装静态 `99-gh-login.zsh`，因此片段被加载时直接先删除自身，再运行 `gh auth login`，不重复检查命令或认证状态。登录失败或取消后不会在每个新 shell 中重试；单独以 `APP_GIT=1` 重跑 `command/omz/custom.sh` 会再次安装该片段。完整 Debian 流程是否能到达该写入器，仍受固定目标目录的第三方插件克隆非幂等性约束。
+
+### 一次性 Incus 初始化
+
+Debian 的 `custom.sh` 只在 `APP_INCUS=1` 时安装静态 `98-incus-init.zsh`，因此片段在新 Zsh 中直接先删除自身，再以普通用户运行一次 `incus admin init`，不重复检查命令。失败或取消后不会自动重试；单独以 `APP_INCUS=1` 重跑 `command/omz/custom.sh` 可再次安装。
+
+`app/incus.sh` 修改组数据库后，当前 shell 不会立即获得 `incus-admin` supplementary group。用户必须完整退出并重新登录后再启动首个 Zsh；如果从原 shell 直接嵌套启动 Zsh，片段仍会先删除自身，初始化可能因 socket 权限失败。
 
 ### 重复运行与更新
 
 Debian 的 OMZ `plugin.sh` 会从 `plugins=(aliases)` 重建数组；旧 home 中残留的 `setup-env` 插件，以及当前标志未启用的
 `pre-eza` 或 `brew-rustup` 目录都不会出现在数组中，因此不会生效。
 
-`custom.sh` 始终安装无条件片段和本次选中的条件片段。受上文不清理规则影响，关闭 `APP_GIT` 后，尚未 source 的残留 `99-gh-login.zsh` 仍会执行一次。
+`custom.sh` 始终安装无条件片段和本次选中的条件片段。受上文不清理规则影响，关闭 `APP_INCUS` 或 `APP_GIT` 后，尚未 source 的残留 `98-incus-init.zsh` 或 `99-gh-login.zsh` 仍会执行一次。
 
 两平台的 `update.sh` 都安装 `update-all-in-one` 入口和更新片段；Debian 根据导出标志选择可选片段，而不在安装时探测命令。受通用不清理规则影响，旧的可选更新片段会保留。
 
@@ -181,7 +187,7 @@ tealdeer 缓存数据、包括 `py-spy` 在内的 `uv tool`、rustup 和 Yazi �
 Oh My Zsh 先初始化补全和库，再按 `plugins=()` 顺序 source 插件、按字典序 source `$ZSH_CUSTOM/*.zsh`，最后加载主题。必须保持：
 
 - modern CLI 的 `pre-eza` 紧邻并位于 `eza` 前，使 source 期间读取的 zstyle 及时生效；不要移到编号 custom 片段。
-- custom 片段保留源 basename；`99-gh-login.zsh` 是最后一个受管理片段。`ZSH_HIGHLIGHT_HIGHLIGHTERS+=(brackets)` 必须留在 syntax-highlighting 加载后的 custom 片段，否则插件无法安装 `main` highlighter。
+- custom 片段保留源 basename；一次性 `98-incus-init.zsh` 紧邻 `99-gh-login.zsh` 之前，后者仍是最后一个受管理片段。`ZSH_HIGHLIGHT_HIGHLIGHTERS+=(brackets)` 必须留在 syntax-highlighting 加载后的 custom 片段，否则插件无法安装 `main` highlighter。
 - `update-all-in-one` 在插件阶段、`ohmyzsh-full-autoupdate` 之前加载；它只定义函数，执行语义见上一节。第三方克隆插件在同步更新它们的 `ohmyzsh-full-autoupdate` 之后加载。
 - `zsh-syntax-highlighting` 是 `plugins=()` 最后一项；`fzf-tab` 位于 autosuggestions、syntax highlighting 等包装器之前，也位于 `fzf` 前。fzf 会捕获当时的 Tab 绑定为 `fzf_default_completion`，颠倒后二者会嵌套打开补全界面。
 - `brew` 紧跟 `aliases`，位于 `starship` 前；macOS 上还要位于依赖 Homebrew handler 的 `command-not-found` 前。
@@ -256,6 +262,14 @@ fzf 也没有原生配置；formula 提供 shell 集成，受管理片段从 `FZ
 
 Micro 与编辑器规则见“补全与配置陷阱”。安装阶段不预热 tealdeer 缓存；只有用户调用 `update-all-in-one` 时才非致命地运行 `tldr --update`。Markdown 组件拥有 Glow 配置并启用 TUI 鼠标；formula 更新由通用 Homebrew 片段负责。zoxide 只通过 OMZ 插件初始化一次。
 
+## Incus 应用
+
+`--app-incus` 只面向全新的 Debian 13 `trixie`，并直接遵循 Incus 官方文档指向的 Zabbly `stable` 安装流程。`app/incus.sh` 创建 keyring 目录、下载 Zabbly key、按 `/etc/os-release` 和 `dpkg` 写入 deb822 source、安装 `incus` 与 Web UI 包 `incus-ui-canonical`，最后把 `$USER` 加入 `incus-admin`。
+
+脚本不验证 key 指纹或 APT candidate，不创建 pin，也不处理已安装版本、旧 source 或其他通道。通用 APT 更新片段负责后续升级；OMZ 只增加“一次性 Incus 初始化”所述的延迟 custom，不增加插件或专用更新片段。
+
+用户完整重新登录后，`98-incus-init.zsh` 以已获得 `incus-admin` 权限的普通用户启动交互式 `incus admin init`。存储池、网络、集群及远程 HTTPS 访问等配置完全由用户回答决定，仓库不提供 preseed、默认答案或额外开放端口。`incus-admin` 可完全控制本地 daemon，权限等价主机 root。
+
 ## Yazi 应用
 
 `--app-yazi` 安装拥有 `yazi`／`ya` 的 formula；`file` 来自 Debian 基线，dev-container 会显式补齐。插件清单以脚本为准；modern CLI 和 Markdown 只在其命令已由前序组件提供时增加对应 previewer，并须保持第三方 previewer 与当前 Yazi 版本兼容。
@@ -320,6 +334,8 @@ launcher 只支持当前 SSH 登录 shell 已由 Ghostty 标记的宿主：`TERM
 `LANG=C`，必须同步更新宿主预检、拆分逻辑和 Dockerfile 的 `localedef` 调用。无人值守模式安装 Oh My Zsh 但不启动它，且会更改
 登录 shell；dev-container 预期通过 `docker exec` 进入交互式 Zsh，不保证直接执行的非交互命令能发现 Homebrew；launcher 将主机的
 `~/Projects` 挂载到具有特权的持久容器中。
+
+`--app-incus` 只支持 Debian 主机，不得作为 dev-container 的 Debian flag 转发。它会把一次性初始化片段写入镜像，但 dev-container 以 `sleep infinity` 而非 systemd 作为服务模型，首个 Zsh 没有可用的 Incus daemon，初始化会失败并删除自身；即使 launcher 使用 `--privileged`，也不要据此增加自动启动、cgroup／storage 挂载或声称 daemon 可用。远程 client 或嵌套 Incus 需要单独设计。
 
 `container/copilot-api/main.sh` 解析最新 release 以获取 Git ref 和镜像标签，从该 ref 构建，可选地通过 `/dev/tty` 运行交互式
 认证，然后替换固定名为 `copilot-api` 的服务容器、发布 4141 端口，并将主机的 `~/.copilot-api` 挂载为服务状态。

@@ -1,3 +1,3 @@
 command rm -f -- "${(%):-%x}"
 
-gh auth login
+incus admin init
