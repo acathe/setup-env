@@ -1,4 +1,4 @@
-FROM debian:trixie
+FROM debian:13
 
 ARG lang
 ARG encoding
