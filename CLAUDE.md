@@ -20,7 +20,7 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
 
 - `macos/` 配置终端客户端／跳板机，不作为开发机配置，也不包含 Git 或 classic CLI 组件。
 - `debian/` 配置开发环境；Homebrew、Zsh、Oh My Zsh、Starship 和不安装外部软件包的 classic CLI 基线无条件执行，其余组件可选。
-- `container/` 分发到 `dev-container`、`copilot-api` 或一次性 `copilot-api-config`；`dev-container` 使用 `debian/` 作为构建上下文。
+- `container/` 分发到 `dev-container`、`copilot-api`、`portainer-ce` 或一次性 `copilot-api-config`；`dev-container` 使用 `debian/` 作为构建上下文。
 
 下文未带平台前缀的 `command/`、`code/` 和 `app/` 路径，均相对于所讨论的平台树。
 
@@ -278,6 +278,10 @@ Micro 与编辑器规则见“补全与配置陷阱”。安装阶段不预热 t
 
 `package.toml` 由 `ya` 拥有，仓库不直接编辑或垃圾回收；`ya pkg add` 会拒绝已列出的依赖，替换同名插件的来源时必须先 `ya pkg delete` 旧来源。因此普通重复运行可能在配置渲染前失败；后续成功运行会停止引用已禁用插件，却不删除它们。关闭 `APP_YAZI` 也不会删除已安装的 `15-yazi.zsh` 包装器。
 
+## Docker 应用
+
+`--app-docker` 拥有 Docker 官方 APT repository、Engine、CLI、containerd、Buildx、Compose、docker 用户组成员关系和 lazydocker，不部署容器服务。`usermod -aG docker` 只影响新登录会话；运行 `container/` 目标前应重新登录，使当前用户无需 `sudo` 即可访问 Docker daemon。
+
 ## Git 应用
 
 `--app-git` 拥有 `gh`、delta、lazygit 及其非 shell 配置；系统 Git 由根引导器保证，叶脚本不安装或检查。OMZ `custom.sh` 则拥有 `lg()` 和一次性登录片段；其登录生命周期见“一次性 GitHub 登录”。不要把 delta 或 lazygit 移入 modern CLI。
@@ -339,6 +343,8 @@ launcher 只支持当前 SSH 登录 shell 已由 Ghostty 标记的宿主：`TERM
 
 `container/copilot-api/main.sh` 解析最新 release 以获取 Git ref 和镜像标签，从该 ref 构建，可选地通过 `/dev/tty` 运行交互式
 认证，然后替换固定名为 `copilot-api` 的服务容器、发布 4141 端口，并将主机的 `~/.copilot-api` 挂载为服务状态。
+
+`container/portainer-ce/main.sh` 是无参数的固定服务 launcher；它要求当前用户已能访问 Docker daemon，不安装 Docker 或使用 `sudo`。脚本先拉取 `portainer/portainer-ce:lts` 并创建或复用 `portainer_data` named volume，再替换固定名为 `portainer` 的容器，因此拉取失败不会中断旧服务，重跑也不会删除持久数据。容器使用 `unless-stopped`，将 HTTPS `9443` 发布到宿主全部接口，并挂载 `/var/run/docker.sock`；不发布 Edge Agent 使用的 `8000` 或旧版 `9000`。Docker socket 赋予 Web 界面近似宿主 root 的权限，因此 `9443` 只能允许可信网络访问。
 
 `container/copilot-api-config` 是包含 `jq` 和 `openssl` 的一次性镜像。它将同一主机目录挂载到 `/root/.copilot-api`，因此尽管容器内路径不同，
 仍会修改服务的持久 `config.json`。`--clear-api-keys` 清空整个 `auth.apiKeys` 数组；`--generate-api-keys <N>` 追加

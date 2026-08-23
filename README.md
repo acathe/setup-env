@@ -77,3 +77,4 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
 | `--image copilot-api-config` | `--clear-api-keys`             |
 |                              | `--generate-api-keys <N>`      |
 |                              | `--add-api-key <v>`            |
+| `--image portainer-ce`       |                                |
