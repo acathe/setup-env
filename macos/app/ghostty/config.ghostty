@@ -1,3 +1,5 @@
 theme = Atom One Dark
 shell-integration-features = ssh-env,ssh-terminfo
 macos-option-as-alt = left
+bell-features = system
+notify-on-command-finish = unfocused
