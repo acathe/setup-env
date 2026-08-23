@@ -85,8 +85,8 @@ ShellCheck 使用 `-x`，因为 `debian/app/docker.sh` 会动态 source `/etc/os
 1. 以可覆盖的默认值初始化自身标志，并导出后代会读取的值。
 2. `parse_args()` 消费自身标志，将未知参数追加到 `POSITIONAL`；布尔标志只 shift 一次，值标志用 `numOfArgs` 防止在 `set -u` 下读取缺失的 `$2`。
 3. 恢复转发参数并调用 `main()`。
-4. 无条件基线按显式依赖顺序执行；可选组件按 command、code、app 分组且组内按字母排序。Docker → Distrobox 是 provider-before-consumer 例外，所有接口视图都保持两者相邻且 Docker 在前。
-5. 每个可选组件自行安装或保护其所需命令；除有明确集成契约外，不得依赖另一可选标志。`APP_DISTROBOX` 不隐式启用 `APP_DOCKER`，已有 Docker 的系统可单独启用前者。
+4. 无条件基线按显式依赖顺序执行；可选组件按 command、code、app 分组且组内按字母排序。
+5. 每个可选组件自行安装或保护其所需命令；除有明确集成契约外，不得依赖另一可选标志。
 
 普通可运行组件的导出块、解析器 case、`main()` 保护条件和 `README.md` 表是同一接口的四个有序视图。Debian `APP_VSCODE` 是纯集成例外：它有导出、解析器和 README 标志，但没有叶脚本或 `main()` 保护；OMZ 用它选择插件和 `02-vscode.zsh`。不要为对称性虚构空保护条件。
 
@@ -124,8 +124,6 @@ set -- "${POSITIONAL[@]+"${POSITIONAL[@]}"}"
 | Starship prompt 外观 | `$HOME/.config/starship.toml` |
 | eza 在 source 过程中需要的 zstyle | `$ZSH_CUSTOM/plugins/pre-eza/pre-eza.plugin.zsh` |
 | Rust 插件在 source 前需要的 rustup 代理 PATH | `$ZSH_CUSTOM/plugins/brew-rustup/brew-rustup.plugin.zsh` |
-| Distrobox 的容器 HOME 前缀 | `$HOME/.config/distrobox/distrobox.conf` |
-| Distrobox 的 Homebrew Zsh 补全 | `$ZSH_CUSTOM/completions/_distrobox*` |
 | keg-only `clang-format` 的交互式 PATH | `$ZSH_CUSTOM/04-clang-format.zsh` |
 | 别名、集成函数、`compdef`、运行时变量、编辑器选择 | `$ZSH_CUSTOM/<custom basename>` |
 | 用户调用的聚合更新函数及其更新片段 | `$ZSH_CUSTOM/plugins/update-all-in-one/` |
@@ -142,7 +140,6 @@ Python 运行时则由 `uv` 安装和管理，不额外安装 Homebrew `python` 
 重新运行会覆盖本次选中的静态制品，但不会删除未选中项或旧副本；关闭标志不等于卸载，清理必须显式执行。追加式上游集成不在此覆盖保证内。生成式配置则各有不同语义：
 
 - Starship 不传 `--force`，只在目标不存在时生成 `starship.toml`，存在即失败。
-- Distrobox 的目录创建和覆盖语义见“Distrobox 应用”。
 - Yazi 的配置写入和 `package.toml` 所有权见“Yazi 应用”。
 
 Starship 迁移不会删除旧 Powerlevel10k 克隆或 Debian 不管理的 `.p10k.zsh`；官方 Starship 插件会先清除旧 `ZSH_THEME`，因此它们不会生效。
@@ -231,7 +228,7 @@ heredoc、`$blocks` 或 `.zshenv` 生成层。直接编辑这些静态制品，�
 
 ## 补全与配置陷阱
 
-`compinit` 只发现 `_*` 文件，并按文件首个 `#compdef` 注册命令；可执行文件名或符号链接名不会改变该声明。Oh My Zsh 在 `compinit` 前将 `$ZSH_CUSTOM/completions` 加入 `fpath`，而 `brew` 插件更晚才追加 Homebrew `site-functions`，因此 modern CLI 和 Distrobox 必须通过动态 `brew --prefix` 提前部署受管理链接。创建每个链接前分别验证来源；后续失败不会回滚已创建链接或中间配置。不要硬编码 Linuxbrew／Cellar 前缀、产生悬空链接，或为此写 `.zshenv`。
+`compinit` 只发现 `_*` 文件，并按文件首个 `#compdef` 注册命令；可执行文件名或符号链接名不会改变该声明。Oh My Zsh 在 `compinit` 前将 `$ZSH_CUSTOM/completions` 加入 `fpath`，而 `brew` 插件更晚才追加 Homebrew `site-functions`，因此 modern CLI 必须通过动态 `brew --prefix` 提前部署受管理链接。创建每个链接前分别验证来源；后续失败不会回滚已创建链接或中间配置。不要硬编码 Linuxbrew／Cellar 前缀、产生悬空链接，或为此写 `.zshenv`。
 
 应使用软件包实际提供的工具验证配置，而不是针对上游 master。Lazygit 和 Micro 会静默忽略未知键，且迁移可能重写受管理文件；Lazygit 的具体 schema 约束见“Git 应用”。未知的 bat、fzf 或 delta 选项会使调用失败，也必须由已安装二进制逐项解析。
 
@@ -258,12 +255,6 @@ Atuin 没有仓库原生配置；旧 `~/.config/atuin/config.toml` 会保留，�
 fzf 也没有原生配置；formula 提供 shell 集成，受管理片段从 `FZF_DEFAULT_COMMAND` 派生 Ctrl-T／Alt-C 命令并增加预览。`pre-eza` 只负责 eza 加载前的 zstyle。fzf-tab 使用五字段 completion 模式覆盖 OMZ menu 默认值，并保留颜色、Git checkout 顺序和分组导航。
 
 Micro 与编辑器规则见“补全与配置陷阱”。安装阶段不预热 tealdeer 缓存；只有用户调用 `update-all-in-one` 时才非致命地运行 `tldr --update`。Markdown 组件拥有 Glow 配置并启用 TUI 鼠标；formula 更新由通用 Homebrew 片段负责。zoxide 只通过 OMZ 插件初始化一次。
-
-## Distrobox 应用
-
-`--app-distrobox` 只检查 `docker` 命令后安装 formula；它不检查 daemon／socket 权限，实际使用要求当前用户无需 `sudo` 访问 Docker，刚加入 `docker` group 通常需重新登录。它不隐式启用 Docker，调度顺序见“分发器契约”。
-
-`app/distrobox.sh` 从动态 Homebrew `site-functions` 部署固定 completion 集合，再写入 `distrobox.conf`。脚本不创建 `$HOME/.config/distrobox`：父目录不存在即失败，存在则完整覆盖。`container_home_prefix=$HOME/distrobox` 使新容器使用 `$HOME/distrobox/<container-name>`，显式 `--home` 仍可覆盖；重新配置不迁移或删除已有容器 HOME。仓库不安装 Distrobox OMZ／prompt 插件，formula 由通用 Homebrew 片段更新。
 
 ## Yazi 应用
 

@@ -13,7 +13,6 @@ export CODE_RUST="${CODE_RUST:-0}"
 
 export APP_CLAUDE="${APP_CLAUDE:-0}"
 export APP_DOCKER="${APP_DOCKER:-0}"
-export APP_DISTROBOX="${APP_DISTROBOX:-0}"
 export APP_GIT="${APP_GIT:-0}"
 export APP_NEOVIM="${APP_NEOVIM:-0}"
 export APP_TMUX="${APP_TMUX:-0}"
@@ -59,10 +58,6 @@ parse_args() {
             --app-docker)
                 APP_DOCKER=1
                 shift # shift once since flags have no values
-                ;;
-            --app-distrobox)
-                APP_DISTROBOX=1
-                shift
                 ;;
             --app-git)
                 APP_GIT=1
@@ -111,7 +106,6 @@ main() {
 
     [[ $APP_CLAUDE == '1' ]] && bash './app/claude/main.sh' "$@"
     [[ $APP_DOCKER == '1' ]] && bash './app/docker.sh' "$@"
-    [[ $APP_DISTROBOX == '1' ]] && bash './app/distrobox.sh' "$@"
     [[ $APP_GIT == '1' ]] && bash './app/git/main.sh' "$@"
     [[ $APP_NEOVIM == '1' ]] && bash './app/neovim.sh' "$@"
     [[ $APP_TMUX == '1' ]] && bash './app/tmux/main.sh' "$@"
