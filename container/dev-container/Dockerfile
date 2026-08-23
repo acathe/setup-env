@@ -1,17 +1,13 @@
-FROM debian:trixie
+FROM debian:13
 
 ARG lang
 ARG encoding
 ARG language
 ARG tz
-ARG term=xterm-256color
-ARG colorterm=truecolor
 
 ENV LANG=${lang}.${encoding}
 ENV LANGUAGE=${language}
 ENV TZ=${tz}
-ENV TERM=${term}
-ENV COLORTERM=${colorterm}
 
 SHELL ["/usr/bin/bash", "-c"]
 
@@ -30,23 +26,24 @@ ENV USER=${user}
 
 RUN sudo apt-get update \
     && sudo apt-get install -y \
-        bzip2 \
-        ca-certificates \
-        curl \
-        file \
-        git \
-        iproute2 \
-        iputils-ping \
-        less \
-        lsof \
-        man-db \
-        nano \
-        netcat-openbsd \
-        procps \
-        psmisc \
-        python3 \
-        vim-tiny \
-        xz-utils \
+    bzip2 \
+    ca-certificates \
+    curl \
+    file \
+    git \
+    iproute2 \
+    iputils-ping \
+    less \
+    lsof \
+    man-db \
+    nano \
+    ncurses-bin \
+    netcat-openbsd \
+    procps \
+    psmisc \
+    python3 \
+    vim-tiny \
+    xz-utils \
     && sudo rm -rf /var/lib/apt/lists/* /tmp/*
 
 ARG setup_args_b64=""
@@ -54,5 +51,21 @@ RUN --mount=type=bind,source=.,target=/mnt/setup,readonly \
     mapfile -d '' -t setup_args < <(printf '%s' "$setup_args_b64" | base64 -d) \
     && bash /mnt/setup/main.sh --unattended "${setup_args[@]}" \
     && sudo rm -rf /var/lib/apt/lists/* /tmp/*
+
+ARG terminfo_b64=""
+RUN mkdir -p "/home/${user}/.terminfo" \
+    && printf '%s' "$terminfo_b64" | base64 -d > /tmp/terminfo.src \
+    && tic -x -o "/home/${user}/.terminfo" /tmp/terminfo.src \
+    && rm /tmp/terminfo.src
+
+ARG term=xterm-256color
+ARG colorterm=truecolor
+ARG term_program=""
+ARG term_program_version=""
+
+ENV TERM=${term}
+ENV COLORTERM=${colorterm}
+ENV TERM_PROGRAM=${term_program}
+ENV TERM_PROGRAM_VERSION=${term_program_version}
 
 CMD ["sleep", "infinity"]

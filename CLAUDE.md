@@ -305,8 +305,14 @@ Node/npm/npx；启用该集成时，子脚本通过 Homebrew 安装 `node` formu
 bash /mnt/setup/main.sh --unattended "${setup_args[@]}"
 ```
 
-`setup_args_b64` 只编码参数，不提供保密性。该构建时通道不得承载 `--app-claude-auth-token` 或其他秘密值；否则 Debian 配置会把凭据写入
-镜像内的用户设置。引入 Docker secret 或运行时注入机制前，不要通过 dev-container 转发秘密参数。
+launcher 只支持当前 SSH 登录 shell 已由 Ghostty 标记的宿主：`TERM_PROGRAM` 必须为 `ghostty`，且 `USER`、`LANG`、`TERM`、`COLORTERM` 和
+`TERM_PROGRAM_VERSION` 都必须非空，否则在构建前失败。这四个终端值通过 build ARG 原样写入最终镜像 `ENV`。宿主使用
+`infocmp -x "$TERM"` 导出当前条目并以 `terminfo_b64` 传递；镜像在基础 APT 包补齐 `ncurses-bin` 并完成无人值守 setup 后，由当前容器用户
+使用 `tic -x` 编译到 `/home/${user}/.terminfo`。APT 和 setup 阶段刻意不注入终端 `ENV`；terminfo 与宿主派生的终端 `ENV` 都位于 setup 后，
+避免终端或 Ghostty 版本变化使 APT 和完整 setup 缓存失效。
+
+`setup_args_b64` 和 `terminfo_b64` 都只编码数据，不提供保密性。前者不得承载 `--app-claude-auth-token` 或其他秘密值；否则 Debian 配置会把凭据写入
+镜像内的用户设置。后者只承载 `infocmp` 输出。引入 Docker secret 或运行时注入机制前，不要通过 dev-container 的 build ARG 转发秘密参数。
 
 构建上下文是 `debian/`，因此镜像配置无法使用移到该树之外的文件。Debian 宿主把系统 `python3` 视为平台基线；它独立于
 `debian/code/python.sh` 可选安装的 Linuxbrew `uv` 和由 `uv tool` 管理的 `py-spy`。精简的 dev-container 镜像必须在 Dockerfile 的基础包列表显式补齐。launcher 当前假定宿主为提供
