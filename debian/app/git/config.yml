@@ -7,7 +7,7 @@ gui:
 git:
   diffRenderers:
     - command: >-
-        delta --paging=never --no-navigate--hyperlinks
+        delta --paging=never --hyperlinks
         --hyperlinks-file-link-format="lazygit-edit://{path}:{line}"
       name: delta
 
