@@ -44,11 +44,15 @@ setup_git() {
         git config --global user.email "$APP_GIT_USER_EMAIL"
     fi
 
-    git config --global core.pager delta
+    git config --global core.pager 'delta --features side-by-side'
     git config --global interactive.diffFilter 'delta --color-only'
     git config --global delta.navigate true
     git config --global delta.line-numbers true
-    git config --global delta.side-by-side true
+    if git config --global --get-all delta.side-by-side > /dev/null; then
+        git config --global --unset-all delta.side-by-side
+    fi
+    git config --global delta.side-by-side.side-by-side true
+    git config --global delta.unified.side-by-side false
     git config --global delta.syntax-theme TwoDark
     git config --global merge.conflictStyle zdiff3
 

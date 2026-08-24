@@ -7,14 +7,11 @@ gui:
 git:
   diffRenderers:
     - command: >-
-        delta --paging=never --hyperlinks
+        delta --paging=never --features=side-by-side --hyperlinks
         --hyperlinks-file-link-format="lazygit-edit://{path}:{line}"
-      name: delta
+      name: delta-side-by-side
 
-    - type: rawGit
-      args:
-        - --color-words
-      name: color-words
-
-    - type: rawGit
-      name: default
+    - command: >-
+        delta --paging=never --features=unified --hyperlinks
+        --hyperlinks-file-link-format="lazygit-edit://{path}:{line}"
+      name: delta-unified
