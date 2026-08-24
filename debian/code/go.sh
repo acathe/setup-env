@@ -4,6 +4,7 @@ set -euo pipefail
 
 main() {
     brew install 'go'
+    go install 'github.com/go-delve/delve/cmd/dlv@latest'
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
