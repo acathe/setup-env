@@ -1,1 +1,1 @@
-export EDITOR=nanom
+export EDITOR="$HOME/.local/bin/nanom"
