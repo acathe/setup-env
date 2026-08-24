@@ -270,9 +270,9 @@ Micro 与编辑器规则见“补全与配置陷阱”。安装阶段不预热 t
 
 ## Git 应用
 
-`--app-git` 拥有 `gh`、delta 和 lazygit；非空的 `--app-git-user-name`／`--app-git-user-email` 写入 Git global scope，并无条件拥有 `core.pager`、`interactive.diffFilter`、`delta.navigate`、`delta.line-numbers`、`delta.side-by-side.side-by-side`、`delta.unified.side-by-side`、`delta.syntax-theme` 和 `merge.conflictStyle` 这些 global 键，以及完整的 `$HOME/.config/lazygit/config.yml`，但不拥有整个 `.gitconfig`。配置时会删除旧的基础 `delta.side-by-side` 键，避免它覆盖 named feature；`core.pager` 显式启用 `side-by-side` feature。系统 Git 依赖根引导器的 Command Line Tools／APT 前置流程；叶脚本不安装或检查。OMZ `custom.sh` 则拥有 `lg()` 和一次性登录片段；其登录生命周期见“一次性 GitHub 登录”。不要把 delta 或 lazygit 移入 modern CLI。
+`--app-git` 拥有 `gh`、delta 和 lazygit；非空的 `--app-git-user-name`／`--app-git-user-email` 写入 Git global scope，并无条件拥有 `core.pager`、`interactive.diffFilter`、`delta.navigate`、`delta.line-numbers`、`delta.side-by-side`、`delta.syntax-theme` 和 `merge.conflictStyle` 这些 global 键，以及完整的 `$HOME/.config/lazygit/config.yml`，但不拥有整个 `.gitconfig`。系统 Git 依赖根引导器的 Command Line Tools／APT 前置流程；叶脚本不安装或检查。OMZ `custom.sh` 则拥有 `lg()` 和一次性登录片段；其登录生命周期见“一次性 GitHub 登录”。不要把 delta 或 lazygit 移入 modern CLI。
 
-lazygit 配置必须匹配已安装版本的 schema：`gui.nerdFontsVersion` 保持字符串 `"3"`，`gui.filterMode` 为 `fuzzy`；`git.diffRenderers` 只包含两个 delta renderer，分别通过 `--features=side-by-side` 和 `--features=unified` 切换布局，并共享 `--paging=never --hyperlinks --hyperlinks-file-link-format="lazygit-edit://{path}:{line}"`。它们不会继承全局 `core.pager` 命令，但会继承基础 `[delta]` 配置。`lg()` 通过 `LAZYGIT_NEW_DIR_FILE` 将父 shell 切换到退出目录。
+lazygit 配置必须匹配已安装版本的 schema：`gui.nerdFontsVersion` 保持字符串 `"3"`，`gui.filterMode` 为 `fuzzy`；`git.diffRenderers` 依次使用 `delta --paging=never --hyperlinks --hyperlinks-file-link-format="lazygit-edit://{path}:{line}"`、`rawGit --color-words` 和默认 raw Git。它不会继承全局 `core.pager=delta`。`lg()` 通过 `LAZYGIT_NEW_DIR_FILE` 将父 shell 切换到退出目录。
 
 ## Claude Code 与 copilot-api
 
