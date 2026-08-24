@@ -1,1 +1,1 @@
-alias lzd=lazydocker
+alias lzd='lazydocker'
