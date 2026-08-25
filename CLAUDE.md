@@ -233,7 +233,7 @@ Micro 真彩色只由 `micro.settings.json` 的 `"truecolor": "on"` 管理，不
 
 Debian 受管理的 Nano 配置依赖系统 nanorc 加载软件包提供的语法定义；不要添加重复的 include glob。其选项面向 Nano
 5.3 或更高版本，并避免会改变文件内容或与终端选择冲突的设置。classic CLI 仅在未启用 modern CLI 时复制该制品和 `nanom` wrapper，但不会安装 Nano。
-在没有冲突残留片段的新 home 中，Debian 未启用 modern CLI 时安装 `00-nanom.zsh`，把 `EDITOR` 设为运行 `/usr/bin/nano --modernbindings`（`nano -/`）的 `nanom` wrapper；启用时安装 `01-micro.zsh` 并选择 Micro。写入器不删除未选中片段；modern → classic 重跑会保留后加载的 `01-micro.zsh`，切换回 `nanom` 必须显式删除旧片段。macOS 没有受管理的 Nano 制品，也从不选择 Nano。
+在没有冲突残留片段的新 home 中，Debian 未启用 modern CLI 时安装 `00-nano.zsh`，把 `EDITOR` 设为运行 `/usr/bin/nano --modernbindings`（`nano -/`）的 `nanom` wrapper；启用时安装 `01-micro.zsh` 并选择 Micro。写入器不删除未选中片段；modern → classic 重跑会保留后加载的 `01-micro.zsh`，切换回 `nanom` 必须显式删除旧片段。macOS 没有受管理的 Nano 制品，也从不选择 Nano。
 
 新增插件或主题时，需要使用官方或积极维护的来源，默认值应来自官方设置或使用指南。不要因为部分工具使用 One Dark 覆盖，
 就推断每个工具都需要该覆盖。
