@@ -20,7 +20,7 @@ install_custom() {
 }
 
 main() {
-    [[ $COMMAND_MODERN_CLI != '1' ]] && install_custom '00-nanom.zsh'
+    [[ $COMMAND_MODERN_CLI != '1' ]] && install_custom '00-nano.zsh'
     [[ $COMMAND_MODERN_CLI == '1' ]] && install_custom '01-micro.zsh'
     [[ $APP_VSCODE == '1' ]] && install_custom '02-vscode.zsh'
     [[ $CODE_GO == '1' ]] && install_custom '03-go.zsh'
