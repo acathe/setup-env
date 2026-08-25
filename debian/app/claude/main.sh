@@ -25,6 +25,12 @@ parse_args() {
     done
 }
 
+install_settings() {
+    mkdir -p "$HOME/.claude"
+    chmod 700 "$HOME/.claude"
+    install -m 600 './settings.json' "$HOME/.claude/settings.json"
+}
+
 install_plugin() {
     claude plugin marketplace add 'anthropics/claude-plugins-official'
     claude plugin install 'claude-code-setup@claude-plugins-official'
@@ -66,8 +72,10 @@ main() {
 
     brew install --cask 'claude-code'
 
+    install_settings
+
     if [[ $APP_CLAUDE_COPILOT_API == '1' ]]; then
-        bash './copilot_api/main.sh' "$@"
+        bash './copilot_api.sh' "$@"
     fi
 
     install_plugin

@@ -65,19 +65,17 @@ parse_args() {
     done
 }
 
-install_settings() {
-    mkdir -p "$HOME/.claude"
-    chmod 700 "$HOME/.claude"
-
+update_settings() {
+    local tmp
+    tmp="$(mktemp)"
     jq --arg ANTHROPIC_BASE_URL "$APP_CLAUDE_BASE_URL" \
         --arg ANTHROPIC_AUTH_TOKEN "$APP_CLAUDE_AUTH_TOKEN" \
         --arg ANTHROPIC_DEFAULT_OPUS_MODEL "$APP_CLAUDE_DEFAULT_OPUS_MODEL" \
         --arg ANTHROPIC_DEFAULT_SONNET_MODEL "$APP_CLAUDE_DEFAULT_SONNET_MODEL" \
         --arg ANTHROPIC_DEFAULT_HAIKU_MODEL "$APP_CLAUDE_DEFAULT_HAIKU_MODEL" \
         '.env += $ARGS.named' \
-        './settings.json' > "$HOME/.claude/settings.json"
-
-    chmod 600 "$HOME/.claude/settings.json"
+        "$HOME/.claude/settings.json" > "$tmp"
+    cp "$tmp" "$HOME/.claude/settings.json"
 }
 
 install_plugins() {
@@ -89,7 +87,7 @@ install_plugins() {
 }
 
 main() {
-    install_settings
+    update_settings
     install_plugins
 }
 
