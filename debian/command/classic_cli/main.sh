@@ -5,10 +5,13 @@ set -euo pipefail
 COMMAND_MODERN_CLI="${COMMAND_MODERN_CLI:-0}"
 
 main() {
-    install -Dm 644 './lesskey' "$HOME/.config/lesskey"
+    # less
+    install -Dm 644 './less.lesskey' "$HOME/.config/lesskey"
+
+    # nano
     if [[ $COMMAND_MODERN_CLI != '1' ]]; then
         install -Dm 755 './nanom' "$HOME/.local/bin/nanom"
-        install -Dm 644 './nanorc' "$HOME/.config/nano/nanorc"
+        install -Dm 644 './nano.nanorc' "$HOME/.config/nano/nanorc"
     fi
 }
 

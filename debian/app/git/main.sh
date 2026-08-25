@@ -52,7 +52,7 @@ setup_git() {
     git config --global delta.syntax-theme TwoDark
     git config --global merge.conflictStyle zdiff3
 
-    install -Dm 644 './config.yml' "$HOME/.config/lazygit/config.yml"
+    install -Dm 644 './lazygit.config.yml' "$HOME/.config/lazygit/config.yml"
 }
 
 main() {

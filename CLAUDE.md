@@ -135,7 +135,7 @@ set -- "${POSITIONAL[@]+"${POSITIONAL[@]}"}"
 Python 运行时则由 `uv` 安装和管理，不额外安装 Homebrew `python` formula。Python 集成会启用 Oh My Zsh 的 `python` 和 `uv` 插件，
 但刻意不设置 `PYTHON_AUTO_VRUN`。uv 无需该手动自动激活开关即可发现虚拟环境；不要重新引入它。
 
-运行时工具配置默认作为仓库制品部署，而不是由 shell 渲染；文件通常使用 `install -m 644`，需要创建父目录时加 `-D`。OMZ 自定义插件是目录制品，`install_plugin.sh` 使用 `cp -R` 部署，以便将来增加辅助文件。copilot-api 设置由 `jq` 补全模板；Python 的 Ruff 基线是从外部 `main` 分支下载的例外。
+运行时工具配置默认作为仓库制品部署，而不是由 shell 渲染；文件通常使用 `install -m 644`，需要创建父目录时加 `-D`。OMZ 自定义插件是目录制品，`install_plugin.sh` 使用 `cp -R` 部署，以便将来增加辅助文件。Claude 基础设置作为静态 `settings.json` 制品安装，copilot-api 再用 `jq` 更新已部署文件中的动态字段；Python 的 Ruff 基线是从外部 `main` 分支下载的例外。
 
 重新运行会覆盖本次选中的静态制品，但不会删除未选中项或旧副本；关闭标志不等于卸载，清理必须显式执行。追加式上游集成不在此覆盖保证内。生成式配置则各有不同语义：
 
@@ -276,7 +276,7 @@ lazygit 配置必须匹配已安装版本的 schema：`gui.nerdFontsVersion` 保
 
 ## Claude Code 与 copilot-api
 
-`debian/app/claude/main.sh` 通过 Homebrew 安装 Claude Code，并由 APT 提供 sandbox／JSON／socket 依赖；通用 Homebrew 更新片段负责升级，不调用 `claude update`。启用 copilot-api 时先运行会替换 `~/.claude/settings.json` 的子脚本，再安装通用插件，以保留 `enabledPlugins`。
+`debian/app/claude/main.sh` 通过 Homebrew 安装 Claude Code，并由 APT 提供 sandbox／JSON／socket 依赖；通用 Homebrew 更新片段负责升级，不调用 `claude update`。父脚本每次先以仓库模板替换 `~/.claude/settings.json`；启用 copilot-api 时再运行同目录的 `copilot_api.sh`，定点合并网关设置并安装其插件，之后安装通用插件，以保留两组 `enabledPlugins`。
 
 插件清单以脚本为准。语言集成必须与对应语言服务器成对启用，并依赖更早运行的语言组件提供工具链；Git 插件只在 `APP_GIT=1` 时安装。
 
@@ -285,11 +285,11 @@ lazygit 配置必须匹配已安装版本的 schema：`gui.nerdFontsVersion` 保
 独立 registry 状态。不要将此定点 JSON 清理直接替换为 `claude plugin marketplace remove`：该命令会移除 marketplace 配置，但不会卸载
 已安装插件，其作用范围不同于这里只删除受管理 settings 条目。
 
-copilot-api 子脚本会将提供的三个模型值原样写入设置，不查询 `/v1/models`，也不验证可用性。模型值
+`copilot_api.sh` 会将提供的三个模型值原样写入设置，不查询 `/v1/models`，也不验证可用性。模型值
 默认为空；base URL 默认为 `http://localhost:4141`，刻意设置的非机密 token 默认为 `dummy`。
 
-`install_settings()` 将最终的 `ANTHROPIC_*` 值合并到随仓库提供的模板，并以目录权限 700、文件
-权限 600 写入 `~/.claude/settings.json`。应将该模板视为 sandbox、permission、language 和 workflow 偏好的事实来源，而不是将每个值
+`install_settings()` 以目录权限 700、文件权限 600 将仓库中的基础模板安装到 `~/.claude/settings.json`；随后，
+`copilot_api.sh` 的 `update_settings()` 将最终的 `ANTHROPIC_*` 值合并到这个已部署文件。应将基础模板视为 sandbox、permission、language 和 workflow 偏好的事实来源，而不是将每个值
 复制到此处。仅对官方文档列出且实际 model/provider/account 支持 1M context 的模型使用 `[1m]`；该后缀不会为任意模型或 gateway 增加
 1M 能力。使用非第一方 gateway 时，成功还取决于协议转发能力及后端实际模型/provider。
 `CLAUDE_CODE_AUTO_COMPACT_WINDOW` 和 `autoCompactWindow` 都是合法的自动压缩窗口覆盖项；除非需要针对已知 model/provider/gateway
@@ -298,7 +298,7 @@ copilot-api 子脚本会将提供的三个模型值原样写入设置，不查�
 
 copilot marketplace 会安装 `agent-inject` 和 `tool-search`。使用这个非第一方 `ANTHROPIC_BASE_URL` 时，应保持原生 `ENABLE_TOOL_SEARCH` 未设置，使
 Claude Code 使用其文档说明的预先加载 fallback。仅当 gateway 会转发 `tool_reference` 区块时才将其设为 `true`。两个插件都需要
-Node/npm/npx；启用该集成时，子脚本通过 Homebrew 安装 `node` formula。Node 仅服务于此集成，不是独立的 Debian 组件。
+Node/npm/npx；启用该集成时，`copilot_api.sh` 通过 Homebrew 安装 `node` formula。Node 仅服务于此集成，不是独立的 Debian 组件。
 
 ## 容器流程
 
