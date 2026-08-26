@@ -16,10 +16,8 @@ main() {
 
     append_plugin 'brew'
     append_plugin 'colored-man-pages'
-    append_plugin 'command-not-found'
     append_plugin 'copyfile'
     append_plugin 'copypath'
-    append_plugin 'dirhistory'
     append_plugin 'extract'
     append_plugin 'fancy-ctrl-z'
     append_plugin 'macos'

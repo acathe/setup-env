@@ -22,9 +22,7 @@ main() {
     sed -i 's/^plugins=(.*)/plugins=(aliases)/' "$HOME/.zshrc"
 
     append_plugin 'brew'
-    append_plugin 'command-not-found'
     append_plugin 'colored-man-pages'
-    append_plugin 'dirhistory'
     append_plugin 'extract'
     append_plugin 'fancy-ctrl-z'
     [[ $COMMAND_MODERN_CLI != '1' ]] && append_plugin 'history-substring-search'
