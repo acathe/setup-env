@@ -3,3 +3,5 @@ shell-integration-features = ssh-env,ssh-terminfo
 macos-option-as-alt = left
 bell-features = system
 notify-on-command-finish = unfocused
+window-width = 80
+window-height = 24

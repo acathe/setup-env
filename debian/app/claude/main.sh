@@ -70,7 +70,7 @@ main() {
     sudo apt-get update
     sudo apt-get install -y bubblewrap jq socat
 
-    brew install --cask 'claude-code'
+    brew install --cask 'claude-code@latest'
 
     install_settings
 
