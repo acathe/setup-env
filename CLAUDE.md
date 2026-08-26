@@ -28,13 +28,13 @@ Debian 首次安装 Homebrew 前会通过 APT 安装官方前置依赖。根分�
 
 Go 沿用该 PATH 契约；`CODE_GO` 和 `CODE_PROTOBUF` 分别让 OMZ `custom.sh` 安装 `$HOME/go/bin` 与 keg-only `clang-format` 的交互式 PATH 片段。
 
-`debian/vscode/` 仅为参考数据，不由分发器安装。`--app-vscode` 只启用 OMZ 集成：在 VS Code 运行时选择 `code --wait`，且不输出 `VISUAL`。编辑器的 Nano／Micro 选择见“补全与配置陷阱”。应通过 `bash` 调用脚本，不依赖可执行位。
+`debian/vscode/` 仅为参考数据，不由分发器安装。Debian 的 `--app-vscode` 只启用 OMZ 集成：在 VS Code 运行时选择 `code --wait`，且不输出 `VISUAL`。编辑器的 Nano／Micro 选择见“补全与配置陷阱”。应通过 `bash` 调用脚本，不依赖可执行位。
 
 根 `main.sh` 和 `macos/` 必须兼容 Apple Bash 3.2；Debian 和容器代码可使用更新的 Bash。
 
 ## 检查与安全验证
 
-从仓库根目录运行以下非破坏性检查：
+从仓库根目录运行以下非破坏性检查。以下命令要求 `bash`、`git`、`shellcheck`、`shfmt` 和 `zsh` 已在 `PATH` 中；Debian 的 `--code-bash` 提供 `shellcheck` 和 `shfmt`：
 
 ```bash
 find . \( -path './.git' -o -path './.claude' \) -prune -o \
@@ -73,7 +73,7 @@ ShellCheck 使用 `-x`，因为 `debian/app/docker.sh` 会动态 source `/etc/os
 4. 对部署的 `.zshrc`、custom／更新片段及插件入口运行 `zsh -n`；启用 modern CLI 或 Rust 时还要检查 `pre-eza` 或 `brew-rustup` 插件。
 5. 在 `zsh -f` 中用桩验证一次性片段：`99-gh-login.zsh` 先删除自身，再直接执行一次 `gh auth login`。
 
-不要运行会修改真实 home 的 `command/omz/main.sh` 或 `install_omz`。没有 Homebrew／Starship 桩时也不要运行 `command/starship.sh`；其目标文件语义见“配置所有权与落点”。不要直接调用会执行真实更新的 `update-all-in-one`；调度验证应在 `zsh -f` 中为 `sudo`、`brew`、`tldr`、`uv`、`rustup`、`ya` 和 `omz` 提供函数桩。
+不要运行会修改真实 home 的 `command/omz/main.sh` 或 `install_omz`。没有 Homebrew／Starship 桩时也不要运行 `command/starship.sh`；其目标文件语义见“配置所有权与落点”。不要直接调用会执行真实更新的 `update-all-in-one`；调度验证必须使用一次性 `ZSH_CUSTOM`，并在 `zsh -f` 中为 `sudo`、`brew`、`tldr`、`uv`、`rustup`、`ya` 和 `omz` 提供函数桩。若测试目录包含 `99-copilot-api.zsh`，还必须桩化 `curl` 和 `bash`，或显式排除该片段。
 
 对于 fzf shell 改动，请在 `zsh -f` 中检查 `${(z)FZF_CTRL_T_OPTS}` 和 `${(z)FZF_ALT_C_OPTS}`。插件顺序改动需要真实的 ZLE／PTY
 冒烟测试：普通 Tab 和 `**<Tab>` 必须各自只打开一次 fzf；`fzf_default_completion` 必须为 `fzf-tab-complete`；Ctrl-T 和 Alt-C 必须保持单次调用。
@@ -98,8 +98,9 @@ ShellCheck 使用 `-x`，因为 `debian/app/docker.sh` 会动态 source `/etc/os
 | macOS OMZ 写入器 | `COMMAND_SSH`、`APP_VSCODE` |
 | Claude app | `CODE_GO`、`CODE_PYTHON`、`CODE_RUST`、`APP_GIT` |
 | tmux／Yazi | `APP_CLAUDE`／`COMMAND_MODERN_CLI`、`CODE_MARKDOWN` |
+| Debian classic CLI | `COMMAND_MODERN_CLI` |
 
-组件拥有安装及其非 shell 配置；后者可以是整文件、键级、追加式或上游文件 patch，相关组件说明必须明确其所有权形态。共享 shell 配置片段必须由相应 OMZ 写入器生成，不能由叶组件直接追加；modern CLI 直接管理 `$ZSH_CUSTOM/completions` 中的受控链接是补全加载时序所需的明确例外。
+组件拥有安装及其非 shell 配置；后者可以是整文件、键级、追加式或上游文件 patch，相关组件说明必须明确其所有权形态。共享 shell 配置片段必须由相应 OMZ 写入器生成，不能由叶组件直接追加；当前明确例外是 modern CLI 为满足补全加载时序而直接管理 `$ZSH_CUSTOM/completions` 中的受控链接，以及 `container/copilot-api/main.sh` 在服务启动成功后安装 `99-copilot-api.zsh`。
 
 除根管道入口外，分发器和叶脚本必须可 source，并沿用相邻脚本的 `BASH_SOURCE` 末尾保护；无参数叶脚本不引入解析器或 `POSITIONAL`。根入口和 macOS 还必须保留 Bash 3.2 兼容的空数组恢复形式：
 
@@ -116,7 +117,7 @@ set -- "${POSITIONAL[@]+"${POSITIONAL[@]}"}"
 每个共享配置片段只有一个逻辑所有者，但 `.zshrc` 由多个写入器协同管理。每棵配置树的 `command/omz/main.sh` 都会安装 Oh My Zsh、
 准备其模板，然后依次运行 `install_plugin.sh`、`update.sh`、`plugin.sh` 和 `custom.sh`。Debian 安装器还会启用模板中的用户 bin PATH。
 两平台的 `install_plugin.sh` 拥有第三方插件克隆，Debian 版本还按组件标志复制仓库内的 `pre-eza` 和 `brew-rustup` 插件目录；
-`update.sh` 拥有 `update-all-in-one` 插件入口和更新片段安装；`plugin.sh` 只拥有插件数组，并仅启用本次安装流程已经物化的条件插件。
+`update.sh` 拥有 `update-all-in-one` 插件入口和平台更新片段；`container/copilot-api/main.sh` 拥有 `99-copilot-api.zsh`；`plugin.sh` 只拥有插件数组，并仅启用本次安装流程已经物化的条件插件。
 
 | 配置需求方 | 配置所属目标位置 |
 | --- | --- |
@@ -135,7 +136,7 @@ set -- "${POSITIONAL[@]+"${POSITIONAL[@]}"}"
 Python 运行时则由 `uv` 安装和管理，不额外安装 Homebrew `python` formula。Python 集成会启用 Oh My Zsh 的 `python` 和 `uv` 插件，
 但刻意不设置 `PYTHON_AUTO_VRUN`。uv 无需该手动自动激活开关即可发现虚拟环境；不要重新引入它。
 
-运行时工具配置默认作为仓库制品部署，而不是由 shell 渲染；文件通常使用 `install -m 644`，需要创建父目录时加 `-D`。OMZ 自定义插件是目录制品，`install_plugin.sh` 使用 `cp -R` 部署，以便将来增加辅助文件。Claude 基础设置作为静态 `settings.json` 制品安装，copilot-api 再用 `jq` 更新已部署文件中的动态字段；Python 的 Ruff 基线是从外部 `main` 分支下载的例外。
+运行时工具配置默认作为仓库制品部署，而不是由 shell 渲染；文件通常使用 `install -m 644`，Debian 需要同时创建父目录时可使用 GNU `install -D`，macOS 则先 `mkdir -p` 再运行 `install -m`。OMZ 自定义插件是目录制品，`install_plugin.sh` 使用 `cp -R` 部署，以便将来增加辅助文件。Claude 基础设置作为静态 `settings.json` 制品安装，copilot-api 再用 `jq` 更新已部署文件中的动态字段；Python 的 Ruff 基线是从外部 `main` 分支下载的例外。
 
 重新运行会覆盖本次选中的静态制品，但不会删除未选中项或旧副本；关闭标志不等于卸载，清理必须显式执行。追加式上游集成不在此覆盖保证内。生成式配置则各有不同语义：
 
@@ -155,22 +156,22 @@ Debian 的 OMZ `plugin.sh` 会从 `plugins=(aliases)` 重建数组；旧 home �
 
 `custom.sh` 始终安装无条件片段和本次选中的条件片段。受上文不清理规则影响，关闭 `APP_GIT` 后，尚未 source 的残留 `99-gh-login.zsh` 仍会执行一次。
 
-两平台的 `update.sh` 都安装 `update-all-in-one` 入口和更新片段；Debian 根据导出标志选择可选片段，而不在安装时探测命令。受通用不清理规则影响，旧的可选更新片段会保留。
+两平台的 `update.sh` 都安装 `update-all-in-one` 入口和平台更新片段；Debian 根据导出标志选择可选片段，而不在安装时探测命令。受通用不清理规则影响，旧的可选更新片段会保留。`container/copilot-api/main.sh` 在服务容器成功启动后另行安装 `99-copilot-api.zsh`；该片段固定从 `master` 重新调用根入口，不继承首次部署使用的 `--branch`。
 
 `update-all-in-one.plugin.zsh` 被 source 时只定义 `update-all-in-one`，绝不能运行更新。函数使用 Zsh 默认字典序遍历
-`$ZSH_CUSTOM/plugins/update-all-in-one/custom` 中的全部 `*.zsh`，并在当前 Zsh 中逐一 source。仓库用 `00-...`、`01-...` 这类连续编号
-声明受管理片段的执行顺序，但运行器不要求文件名具有数字前缀。同一模块的多步操作用 `&&` 连接；受管理清单把 `omz update` 保持为
-最后一个更新片段。运行器不会检查每次 `source` 的返回值；默认交互式 Zsh 会继续执行后续片段，最终成功可能掩盖前序失败。`&&` 只保证
-同一片段内的后续步骤在前一步失败时不执行。
+`$ZSH_CUSTOM/plugins/update-all-in-one/custom` 中的全部 `*.zsh`，并在当前 Zsh 中逐一 source。仓库的平台片段用 `00-...`、`01-...` 这类连续编号
+声明执行顺序，并把 `omz update` 放在各自平台基线的最后一个片段；运行器不要求文件名具有数字前缀。安装过 copilot-api updater 后，
+`99-copilot-api.zsh` 会在 `omz update` 之后执行，因此后者不是全局最后一个动作。同一模块的多步操作用 `&&` 连接。运行器不会检查每次
+`source` 的返回值；默认交互式 Zsh 会继续执行后续片段，最终成功可能掩盖前序失败。`&&` 只保证同一片段内的后续步骤在前一步失败时不执行。
 
-在 macOS 上，受管理片段依次运行 `brew update`、`brew upgrade --greedy`、`brew cleanup`，最后运行 `omz update`。Homebrew 会覆盖其
+在 macOS 上，平台片段依次运行 `brew update`、`brew upgrade --greedy`、`brew cleanup` 和 `omz update`。Homebrew 会覆盖其
 formula 和 cask，因此 `APP_VSCODE` 不需要专用更新片段。
 
 在 Debian 上，APT 负责更新由 APT 安装的工具。无条件 Homebrew 片段会更新 formula metadata、以 `--greedy` 升级所有已安装的 formula 和 cask，并
 执行 cleanup；它也覆盖由 Homebrew 管理的 Claude Code、Node、Go，以及 protobuf 组件的 `clang-format` 和 `protobuf`。专用片段更新
 tealdeer 缓存数据、包括 `py-spy` 在内的 `uv tool`、rustup 和 Yazi 插件；完整平台流程成功后，对应命令由安装这些片段的组件提供。`update.sh`
-先于可选组件运行，因此中途失败可能留下引用尚未安装命令的片段。`omz update` 保持为最后一个动作。不要为 Go 恢复专用更新片段、扫描
-`$GOBIN`/`$GOPATH/bin`、添加全局 Go 工具更新器或在此更新 `gopls`。
+先于可选组件运行，因此中途失败可能留下引用尚未安装命令的片段。不要为 Go 恢复专用更新片段、扫描 `$GOBIN`/`$GOPATH/bin`、添加全局
+Go 工具更新器或在此更新 `gopls`。
 
 `ohmyzsh-full-autoupdate` 在 shell 初始化期间独立更新带实体 `.git` 目录的 custom 插件和主题。不要调用其私有实现、操作 `.zsh-update` 标签，或把需要权限和交互的系统更新接入启动路径；`update-all-in-one` 也不重复扫描这些仓库，两者只共享官方 `omz update` 边界。
 
@@ -182,7 +183,7 @@ Oh My Zsh 先初始化补全和库，再按 `plugins=()` 顺序 source 插件、
 - custom 片段保留源 basename；`99-gh-login.zsh` 是最后一个受管理片段。`ZSH_HIGHLIGHT_HIGHLIGHTERS+=(brackets)` 必须留在 syntax-highlighting 加载后的 custom 片段，否则插件无法安装 `main` highlighter。
 - `update-all-in-one` 在插件阶段、`ohmyzsh-full-autoupdate` 之前加载；它只定义函数，执行语义见上一节。第三方克隆插件在同步更新它们的 `ohmyzsh-full-autoupdate` 之后加载。
 - `zsh-syntax-highlighting` 是 `plugins=()` 最后一项；`fzf-tab` 位于 autosuggestions、syntax highlighting 等包装器之前，也位于 `fzf` 前。fzf 会捕获当时的 Tab 绑定为 `fzf_default_completion`，颠倒后二者会嵌套打开补全界面。
-- `brew` 紧跟 `aliases`，位于 `starship` 前；macOS 上还要位于依赖 Homebrew handler 的 `command-not-found` 前。
+- `brew` 紧跟 `aliases`，位于 `starship` 前。
 - 官方 `starship` 插件在 custom 片段和主题之前清除 `ZSH_THEME` 并初始化 prompt；不要添加第二次 `starship init` 或主题写入器。
 
 Atuin 是刻意安排在插件之后的例外。它从 `09-atuin.zsh` 初始化，以便在 fzf 加载后接管 Ctrl-R 和 Up；软件包提供的 Zsh 与
@@ -190,7 +191,7 @@ syntax-highlighting 组合仍可高亮此时新增的 widget。不要为了遵�
 
 Debian 启用 Rust 时必须保持 `brew` → `brew-rustup` → `rust`：前者建立 Homebrew 环境，中间插件前置 keg-only 工具链代理路径，官方 `rust` 插件随后才能在 source 时发现 `cargo`。不要重排，也不要在 Claude 集成中重新添加上游安装器使用的 `$HOME/.cargo/bin`。
 
-可选插件通常由提供相应命令的组件控制；Debian `APP_VSCODE` 是不安装 `code` 的纯集成例外。启用 modern CLI 时使用 `zoxide` 并省略 `z`，未启用时使用 `z` 并输出 zsh-z 设置；Homebrew completion 的加载时机见“补全与配置陷阱”。
+可选插件通常由提供相应命令的组件控制。启用 modern CLI 时使用 `zoxide` 并省略 `z`，未启用时使用 `z` 并输出 zsh-z 设置；Homebrew completion 的加载时机见“补全与配置陷阱”。
 
 不要使用 `\<z\>` 删除插件名。连字符不是单词字符，因此该模式可能匹配 `fancy-ctrl-z` 的尾部、吞掉分隔符，并
 将两个名称粘连。如果必须删除，请用空格和括号划定边界。在 macOS 上使用 BSD `sed -i ''`，在 Debian 上使用 GNU `sed -i`。
@@ -209,7 +210,7 @@ BRANCH="${BRANCH:-master}"       # 正确
 # BRANCH="${BRANCH:-'master'}"   # 会展开为带有字面引号的值
 ```
 
-编号 custom 片段和 `update-all-in-one` 片段当前均作为仓库内静态 `.zsh` 制品维护，由 `custom.sh` 或 `update.sh` 直接部署；不存在
+编号 custom 片段和平台 `update-all-in-one` 片段当前均作为仓库内静态 `.zsh` 制品维护，由 `custom.sh` 或 `update.sh` 直接部署；不存在
 heredoc、`$blocks` 或 `.zshenv` 生成层。直接编辑这些静态制品，并保留需要在 Zsh source 时展开的 `$PATH`、`$HOME`、`$EDITOR` 和 fzf
 占位符。fzf 预览字符串刻意包含
 嵌套引号；扁平化任一层都会改变选项 tokenization。保留 `-- {}`，使以 `-` 开头的候选项不会被解析为选项。
@@ -276,7 +277,7 @@ lazygit 配置必须匹配已安装版本的 schema：`gui.nerdFontsVersion` 保
 
 ## Claude Code 与 copilot-api
 
-`debian/app/claude/main.sh` 通过 Homebrew 安装 Claude Code，并由 APT 提供 sandbox／JSON／socket 依赖；通用 Homebrew 更新片段负责升级，不调用 `claude update`。父脚本每次先以仓库模板替换 `~/.claude/settings.json`；启用 copilot-api 时再运行同目录的 `copilot_api.sh`，定点合并网关设置并安装其插件，之后安装通用插件，以保留两组 `enabledPlugins`。
+`debian/app/claude/main.sh` 通过 Homebrew 安装 `claude-code@latest` cask，并由 APT 提供 sandbox／JSON／socket 依赖；通用 Homebrew 更新片段负责升级，不调用 `claude update`。父脚本每次先以仓库模板替换 `~/.claude/settings.json`；启用 copilot-api 时再运行同目录的 `copilot_api.sh`，定点合并网关设置并安装其插件，之后安装通用插件，以保留两组 `enabledPlugins`。
 
 插件清单以脚本为准。语言集成必须与对应语言服务器成对启用，并依赖更早运行的语言组件提供工具链；Git 插件只在 `APP_GIT=1` 时安装。
 
