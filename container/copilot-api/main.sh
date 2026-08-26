@@ -3,6 +3,7 @@
 set -euo pipefail
 
 COPILOT_API_AUTH="${COPILOT_API_AUTH:-0}"
+ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
 
 parse_args() {
     POSITIONAL=()
@@ -72,6 +73,12 @@ run_container() {
         "$image"
 }
 
+install_update() {
+    mkdir -p "$ZSH_CUSTOM/plugins/update-all-in-one/custom"
+    install -m 644 './99-copilot-api.zsh' \
+        "$ZSH_CUSTOM/plugins/update-all-in-one/custom/99-copilot-api.zsh"
+}
+
 main() {
     if ! command -v docker > /dev/null 2>&1; then
         echo 'docker and curl are required to deploy copilot-api.' >&2
@@ -88,6 +95,7 @@ main() {
     fi
 
     run_container "copilot-api:$version"
+    install_update
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
