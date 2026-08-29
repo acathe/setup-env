@@ -75,8 +75,8 @@ run_container() {
 
 install_update() {
     mkdir -p "$ZSH_CUSTOM/plugins/update-all-in-one/custom"
-    install -m 644 './99-copilot-api.zsh' \
-        "$ZSH_CUSTOM/plugins/update-all-in-one/custom/99-copilot-api.zsh"
+    install -m 644 './98-copilot-api.zsh' \
+        "$ZSH_CUSTOM/plugins/update-all-in-one/custom/98-copilot-api.zsh"
 }
 
 main() {

@@ -28,7 +28,7 @@ main() {
     [[ $CODE_PYTHON == '1' ]] && install_update '03-uv-tools.zsh'
     [[ $CODE_RUST == '1' ]] && install_update '04-rust.zsh'
     [[ $APP_YAZI == '1' ]] && install_update '05-yazi.zsh'
-    install_update '06-oh-my-zsh.zsh'
+    install_update '99-oh-my-zsh.zsh'
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
