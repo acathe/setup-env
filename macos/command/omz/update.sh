@@ -16,7 +16,7 @@ main() {
     install -m 644 './plugins/update-all-in-one/update-all-in-one.plugin.zsh' \
         "$ZSH_CUSTOM/plugins/update-all-in-one/update-all-in-one.plugin.zsh"
     install_update '00-homebrew.zsh'
-    install_update '01-oh-my-zsh.zsh'
+    install_update '99-oh-my-zsh.zsh'
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then

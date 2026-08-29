@@ -73,7 +73,7 @@ ShellCheck 使用 `-x`，因为 `debian/app/docker.sh` 会动态 source `/etc/os
 4. 对部署的 `.zshrc`、custom／更新片段及插件入口运行 `zsh -n`；启用 modern CLI 或 Rust 时还要检查 `pre-eza` 或 `brew-rustup` 插件。
 5. 在 `zsh -f` 中用桩验证一次性片段：`99-gh-login.zsh` 先删除自身，再直接执行一次 `gh auth login`。
 
-不要运行会修改真实 home 的 `command/omz/main.sh` 或 `install_omz`。没有 Homebrew／Starship 桩时也不要运行 `command/starship.sh`；其目标文件语义见“配置所有权与落点”。不要直接调用会执行真实更新的 `update-all-in-one`；调度验证必须使用一次性 `ZSH_CUSTOM`，并在 `zsh -f` 中为 `sudo`、`brew`、`tldr`、`uv`、`rustup`、`ya` 和 `omz` 提供函数桩。若测试目录包含 `99-copilot-api.zsh`，还必须桩化 `curl` 和 `bash`，或显式排除该片段。
+不要运行会修改真实 home 的 `command/omz/main.sh` 或 `install_omz`。没有 Homebrew／Starship 桩时也不要运行 `command/starship.sh`；其目标文件语义见“配置所有权与落点”。不要直接调用会执行真实更新的 `update-all-in-one`；调度验证必须使用一次性 `ZSH_CUSTOM`，并在 `zsh -f` 中为 `sudo`、`brew`、`tldr`、`uv`、`rustup`、`ya` 和 `omz` 提供函数桩。若测试目录包含 `98-copilot-api.zsh`，还必须桩化 `curl` 和 `bash`，或显式排除该片段。
 
 对于 fzf shell 改动，请在 `zsh -f` 中检查 `${(z)FZF_CTRL_T_OPTS}` 和 `${(z)FZF_ALT_C_OPTS}`。插件顺序改动需要真实的 ZLE／PTY
 冒烟测试：普通 Tab 和 `**<Tab>` 必须各自只打开一次 fzf；`fzf_default_completion` 必须为 `fzf-tab-complete`；Ctrl-T 和 Alt-C 必须保持单次调用。
@@ -100,7 +100,7 @@ ShellCheck 使用 `-x`，因为 `debian/app/docker.sh` 会动态 source `/etc/os
 | tmux／Yazi | `APP_CLAUDE`／`COMMAND_MODERN_CLI`、`CODE_MARKDOWN` |
 | Debian classic CLI | `COMMAND_MODERN_CLI` |
 
-组件拥有安装及其非 shell 配置；后者可以是整文件、键级、追加式或上游文件 patch，相关组件说明必须明确其所有权形态。共享 shell 配置片段必须由相应 OMZ 写入器生成，不能由叶组件直接追加；当前明确例外是 modern CLI 为满足补全加载时序而直接管理 `$ZSH_CUSTOM/completions` 中的受控链接，以及 `container/copilot-api/main.sh` 在服务启动成功后安装 `99-copilot-api.zsh`。
+组件拥有安装及其非 shell 配置；后者可以是整文件、键级、追加式或上游文件 patch，相关组件说明必须明确其所有权形态。共享 shell 配置片段必须由相应 OMZ 写入器生成，不能由叶组件直接追加；当前明确例外是 modern CLI 为满足补全加载时序而直接管理 `$ZSH_CUSTOM/completions` 中的受控链接，以及 `container/copilot-api/main.sh` 在服务启动成功后安装 `98-copilot-api.zsh`。
 
 除根管道入口外，分发器和叶脚本必须可 source，并沿用相邻脚本的 `BASH_SOURCE` 末尾保护；无参数叶脚本不引入解析器或 `POSITIONAL`。根入口和 macOS 还必须保留 Bash 3.2 兼容的空数组恢复形式：
 
@@ -117,7 +117,7 @@ set -- "${POSITIONAL[@]+"${POSITIONAL[@]}"}"
 每个共享配置片段只有一个逻辑所有者，但 `.zshrc` 由多个写入器协同管理。每棵配置树的 `command/omz/main.sh` 都会安装 Oh My Zsh、
 准备其模板，然后依次运行 `install_plugin.sh`、`update.sh`、`plugin.sh` 和 `custom.sh`。Debian 安装器还会启用模板中的用户 bin PATH。
 两平台的 `install_plugin.sh` 拥有第三方插件克隆，Debian 版本还按组件标志复制仓库内的 `pre-eza` 和 `brew-rustup` 插件目录；
-`update.sh` 拥有 `update-all-in-one` 插件入口和平台更新片段；`container/copilot-api/main.sh` 拥有 `99-copilot-api.zsh`；`plugin.sh` 只拥有插件数组，并仅启用本次安装流程已经物化的条件插件。
+`update.sh` 拥有 `update-all-in-one` 插件入口和平台更新片段；`container/copilot-api/main.sh` 拥有 `98-copilot-api.zsh`；`plugin.sh` 只拥有插件数组，并仅启用本次安装流程已经物化的条件插件。
 
 | 配置需求方 | 配置所属目标位置 |
 | --- | --- |
@@ -156,12 +156,12 @@ Debian 的 OMZ `plugin.sh` 会从 `plugins=(aliases)` 重建数组；旧 home �
 
 `custom.sh` 始终安装无条件片段和本次选中的条件片段。受上文不清理规则影响，关闭 `APP_GIT` 后，尚未 source 的残留 `99-gh-login.zsh` 仍会执行一次。
 
-两平台的 `update.sh` 都安装 `update-all-in-one` 入口和平台更新片段；Debian 根据导出标志选择可选片段，而不在安装时探测命令。受通用不清理规则影响，旧的可选更新片段会保留。`container/copilot-api/main.sh` 在服务容器成功启动后另行安装 `99-copilot-api.zsh`；该片段固定从 `master` 重新调用根入口，不继承首次部署使用的 `--branch`。
+两平台的 `update.sh` 都安装 `update-all-in-one` 入口和平台更新片段；Debian 根据导出标志选择可选片段，而不在安装时探测命令。受通用不清理规则影响，旧的可选更新片段以及已部署的旧 basename 都会保留，重命名片段后重跑可能重复执行，清理必须显式进行。`container/copilot-api/main.sh` 在服务容器成功启动后另行安装 `98-copilot-api.zsh`；该片段固定从 `master` 重新调用根入口，不继承首次部署使用的 `--branch`。
 
 `update-all-in-one.plugin.zsh` 被 source 时只定义 `update-all-in-one`，绝不能运行更新。函数使用 Zsh 默认字典序遍历
-`$ZSH_CUSTOM/plugins/update-all-in-one/custom` 中的全部 `*.zsh`，并在当前 Zsh 中逐一 source。仓库的平台片段用 `00-...`、`01-...` 这类连续编号
-声明执行顺序，并把 `omz update` 放在各自平台基线的最后一个片段；运行器不要求文件名具有数字前缀。安装过 copilot-api updater 后，
-`99-copilot-api.zsh` 会在 `omz update` 之后执行，因此后者不是全局最后一个动作。同一模块的多步操作用 `&&` 连接。运行器不会检查每次
+`$ZSH_CUSTOM/plugins/update-all-in-one/custom` 中的全部 `*.zsh`，并在当前 Zsh 中逐一 source。仓库的平台片段用数字前缀声明执行顺序，并把运行
+`omz update` 的片段固定命名为 `99-oh-my-zsh.zsh`；运行器不要求文件名具有数字前缀。安装 copilot-api updater 后，`98-copilot-api.zsh`
+紧邻并位于 `99-oh-my-zsh.zsh` 之前，因此当前仓库制品总是以 `omz update` 收尾。同一模块的多步操作用 `&&` 连接。运行器不会检查每次
 `source` 的返回值；默认交互式 Zsh 会继续执行后续片段，最终成功可能掩盖前序失败。`&&` 只保证同一片段内的后续步骤在前一步失败时不执行。
 
 在 macOS 上，平台片段依次运行 `brew update`、`brew upgrade --greedy`、`brew cleanup` 和 `omz update`。Homebrew 会覆盖其
