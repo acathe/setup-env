@@ -20,7 +20,7 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
 
 - `macos/` 配置终端客户端／跳板机，不作为开发机配置，也不包含 Git 或 classic CLI 组件。
 - `debian/` 配置开发环境；Homebrew、Zsh、Oh My Zsh、Starship 和不安装外部软件包的 classic CLI 基线无条件执行，其余组件可选。
-- `container/main.sh` 消费默认值为 `dev-container` 的 `--image`，并直接执行 `./$IMAGE/main.sh`；`dev-container`、`copilot-api`、`portainer-ce` 和一次性 `copilot-api-config` 是公开支持清单，不是 parser allowlist。`dev-container` 使用 `debian/` 作为构建上下文。
+- `container/main.sh` 消费默认值为 `dev-container` 的 `--image`，并直接执行 `./$IMAGE/main.sh`；`dev-container`、`copilot-api` 和一次性 `copilot-api-config` 是公开支持清单，不是 parser allowlist。`dev-container` 使用 `debian/` 作为构建上下文。
 
 下文未带平台前缀的 `command/`、`code/` 和 `app/` 路径，均相对于所讨论的平台树。
 
@@ -326,11 +326,8 @@ launcher 只检查 Ghostty 标记及构建所需环境变量，不验证 SSH 或
 登录 shell；dev-container 预期通过 `docker exec` 进入交互式 Zsh，不保证直接执行的非交互命令能发现 Homebrew。launcher 在同名容器已存在时拒绝启动；新容器使用 `--privileged`、`unless-stopped` 和具有 `NOPASSWD:ALL` 的用户，并可写挂载主机的 `~/Projects`，两侧因此属于同一信任边界。Dockerfile 创建用户时不指定数值 UID／GID，launcher 也不与宿主显式对齐，bind mount 可能产生文件所有权差异。
 
 `container/copilot-api/main.sh` 解析最新 release 以获取 Git ref 和镜像标签，从该 ref 构建，可选地通过 `/dev/tty` 运行交互式
-认证，然后替换固定名为 `copilot-api` 的服务容器，并将主机的 `~/.copilot-api` 挂载为服务状态。认证会以 `root:root`、0700 创建该目录；服务和配置容器分别把它挂载到各自的 root 状态路径。`-p 4141:4141` 未指定宿主 IP 或协议，会请求按 Docker 默认绑定把宿主 TCP 4141 发布到容器 TCP 4141，通常对全部宿主地址开放；仓库不固定 daemon 的默认绑定或上游应用的监听地址，也不提供 TLS 或网络访问控制。仅允许可信网络访问，或另行使用 API key、防火墙或可信代理。
-
-`container/portainer-ce/main.sh` 是无参数的固定服务 launcher；它要求当前用户已能访问 Docker daemon，不安装 Docker 或使用 `sudo`。脚本先拉取 `portainer/portainer-ce:lts` 并创建或复用 `portainer_data` named volume，再替换固定名为 `portainer` 的容器，因此拉取失败不会中断旧服务，重跑也不会删除持久数据。容器使用 `unless-stopped`，将 HTTPS `9443` 发布到宿主全部接口，并挂载 `/var/run/docker.sock`；不发布 Edge Agent 使用的 `8000` 或旧版 `9000`。Docker socket 赋予 Web 界面近似宿主 root 的权限，因此 `9443` 只能允许可信网络访问。
-
-copilot-api 和 Portainer 都先完成 build／pull，再删除旧容器并运行新容器；镜像准备失败会保留旧服务，但删除后若 `docker run` 失败则没有回滚或 health check，服务会保持停止。
+认证，然后替换固定名为 `copilot-api` 的服务容器，并将主机的 `~/.copilot-api` 挂载为服务状态。认证会以 `root:root`、0700 创建该目录；服务和配置容器分别把它挂载到各自的 root 状态路径。`-p 4141:4141` 未指定宿主 IP 或协议，会请求按 Docker 默认绑定把宿主 TCP 4141 发布到容器 TCP 4141，通常对全部宿主地址开放；仓库不固定 daemon 的默认绑定或上游应用的监听地址，也不提供 TLS 或网络访问控制。仅允许可信网络访问，或另行使用 API key、防火墙或可信代理。launcher 会先完成版本解析、镜像构建和可选认证，再删除旧容器并运行新容器；
+删除旧容器前失败会保留旧服务，但删除后若 `docker run` 失败则没有回滚或 health check，服务会保持停止。
 
 `container/copilot-api-config` 是包含 `jq` 和 `openssl` 的一次性镜像。它将同一主机目录挂载到 `/root/.copilot-api`，因此尽管容器内路径不同，
 仍会修改服务的持久 `config.json`。`--clear-api-keys` 清空整个 `auth.apiKeys` 数组；`--generate-api-keys <N>` 追加
