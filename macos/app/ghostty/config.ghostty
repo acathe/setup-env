@@ -1,7 +1,8 @@
-theme = Atom One Dark
-shell-integration-features = ssh-env,ssh-terminfo
-macos-option-as-alt = left
 bell-features = system
+clipboard-read = allow
+macos-option-as-alt = left
 notify-on-command-finish = unfocused
-window-width = 80
+shell-integration-features = ssh-env,ssh-terminfo
+theme = Atom One Dark
 window-height = 24
+window-width = 80
