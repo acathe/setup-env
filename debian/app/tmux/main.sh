@@ -2,8 +2,6 @@
 
 set -euo pipefail
 
-APP_CLAUDE="${APP_CLAUDE:-0}"
-
 install_oh_my_tmux() {
     mkdir -p "$HOME/.config"
 
@@ -17,12 +15,10 @@ configure_tmux() {
     sed -i 's/^#set -g mouse on$/set -g mouse on/' "$HOME/.config/tmux/tmux.conf.local"
     sed -i 's/^#set -g history-limit .*/set -g history-limit 10000/' "$HOME/.config/tmux/tmux.conf.local"
 
-    if [[ $APP_CLAUDE == '1' ]]; then
-        {
-            echo
-            cat './claude.tmux.conf'
-        } >> "$HOME/.config/tmux/tmux.conf.local"
-    fi
+    {
+        echo
+        cat './tmux.conf'
+    } >> "$HOME/.config/tmux/tmux.conf.local"
 }
 
 main() {

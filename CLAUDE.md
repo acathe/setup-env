@@ -97,7 +97,7 @@ ShellCheck 使用 `-x`，因为 `debian/app/docker.sh` 会动态 source `/etc/os
 | Debian OMZ 写入器 | `COMMAND_MODERN_CLI`、`CODE_GO`、`CODE_PROTOBUF`、`CODE_PYTHON`、`CODE_RUST`、`APP_DOCKER`、`APP_GIT`、`APP_TMUX`、`APP_VSCODE`、`APP_YAZI` |
 | macOS OMZ 写入器 | `COMMAND_SSH`、`APP_VSCODE` |
 | Claude app | `CODE_GO`、`CODE_PYTHON`、`CODE_RUST`、`APP_GIT` |
-| tmux／Yazi | `APP_CLAUDE`／`COMMAND_MODERN_CLI`、`CODE_MARKDOWN` |
+| Yazi | `COMMAND_MODERN_CLI`、`CODE_MARKDOWN` |
 | Debian classic CLI | `COMMAND_MODERN_CLI` |
 
 组件拥有安装及其非 shell 配置；后者可以是整文件、键级、追加式或上游文件 patch，相关组件说明必须明确其所有权形态。共享 shell 配置片段必须由相应 OMZ 写入器生成，不能由叶组件直接追加；当前明确例外是 modern CLI 为满足补全加载时序而直接管理 `$ZSH_CUSTOM/completions` 中的受控链接，以及 `container/copilot-api/main.sh` 在服务启动成功后安装 `98-copilot-api.zsh`。
@@ -263,7 +263,7 @@ Micro 与编辑器规则见“补全与配置陷阱”。安装阶段不预热 t
 
 ## tmux 应用
 
-`--app-tmux` 安装 tmux formula，并在每次运行时下载、执行未固定版本的 `gpakosz/.tmux` `master/install.sh`，再 patch 上游生成的 `$HOME/.config/tmux/tmux.conf.local`。`APP_CLAUDE=1` 时会无仓库侧查重地追加 `claude.tmux.conf`；当前上游安装器会先把活动配置目录移为时间戳备份再重建，因此正常重跑不会在活动文件中累积该区块，但会保留备份目录，且未固定的上游行为可能变化。OMZ 启用 `copybuffer`、`copyfile` 和 `tmux`；只有 formula 由通用 Homebrew 片段更新，没有 Oh My Tmux 专用更新片段。
+`--app-tmux` 安装 tmux formula，并在每次运行时下载、执行未固定版本的 `gpakosz/.tmux` `master/install.sh`，再 patch 上游生成的 `$HOME/.config/tmux/tmux.conf.local`，并无仓库侧查重地追加静态 `tmux.conf`。该制品无条件启用 passthrough、extended keys、Ghostty terminal features 和 OSC 52 集成：`set-clipboard on` 允许 pane 内应用写入终端剪贴板并创建 tmux buffer，`get-clipboard request` 则向最近使用的终端请求剪贴板且不保存读取结果。两者都是 server 级选项，会影响同一 server 下的全部 session；终端允许读取时，远程或不可信 pane 程序也能读写客户端系统剪贴板，当前受管理的 Ghostty 配置会直接允许读取。上游安装器会先把活动配置目录移为时间戳备份再重建，因此正常重跑不会在活动文件中累积该区块，但会保留备份目录，且未固定的上游行为可能变化。OMZ 启用 `copybuffer`、`copyfile` 和 `tmux`；只有 formula 由通用 Homebrew 片段更新，没有 Oh My Tmux 专用更新片段。
 
 ## Docker 应用
 

@@ -1,4 +1,5 @@
 {
+  "clipboard": "terminal",
   "colorscheme": "one-dark",
   "diffgutter": true,
   "ft:markdown": {
