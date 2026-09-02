@@ -96,7 +96,7 @@ OMZ 改动除仓库制品的 `zsh -n` 外，还需在一次性 `HOME`、`ZSH_CUS
 
 没有 Homebrew／Starship 桩时不要运行 `command/starship.sh`，也不要直接调用真实 `update-all-in-one`。fzf 改动须在一次性环境的 `zsh -f` 中检查 `${(z)FZF_CTRL_T_OPTS}` 和 `${(z)FZF_ALT_C_OPTS}`；插件顺序改动还需真实 ZLE／PTY 测试，确保普通 Tab、`**<Tab>`、Ctrl-T 和 Alt-C 各只调用一次，且 `fzf_default_completion=fzf-tab-complete`。
 
-macOS SSH 只能使用一次性 HOME 和 `ssh-keygen`／`ssh-copy-id` 桩，覆盖首次运行、重复运行、私钥存在但 `.pub` 缺失及 `--command-ssh-no-copy-key`；不得连接真实远端。终端剪贴板只能用非敏感标记，在隔离 tmux server 上沿 Micro → tmux → Ghostty 验证复制、沿 Ghostty → tmux → Micro 验证粘贴；静态配置解析、普通 bracketed paste 或终端快捷键不能替代该测试，同一 server 中不得运行不可信 pane。
+macOS SSH 只能使用一次性 HOME 和 `ssh-keygen`／`ssh-copy-id` 桩，覆盖首次运行、重复运行、私钥存在但 `.pub` 缺失及 `--command-ssh-no-copy-key`；不得连接真实远端。
 
 ## 配置所有权、落点与重复运行
 
@@ -169,11 +169,11 @@ Atuin 和 fzf 都没有仓库原生配置：流程不导入 Atuin 历史或账�
 
 插件先由 `ya pkg add` 安装；任一失败都会跳过本次全部配置写入，使新 home 无配置，旧 home 保留旧配置和已成功添加的插件。随后 `yazi.toml.sh` 完整渲染 `yazi.toml`，`init.lua` 和 `keymap.toml` 作为静态制品部署。`package.toml` 由 `ya` 拥有；重复 add 会拒绝已列依赖，换源须先 delete。后续成功或关闭标志不会垃圾回收插件或残留 `15-yazi.zsh`。
 
-### tmux 与终端剪贴板
+### tmux 与 Ghostty
 
-`--app-tmux` 每次下载并执行未固定的 `gpakosz/.tmux` `master/install.sh`，patch 上游生成文件后无查重追加 `debian/app/tmux/tmux.conf`；该制品无条件启用 passthrough、extended keys、Ghostty terminal features 和终端剪贴板集成。上游会把活动配置移为时间戳备份再重建，正常重跑不在活动文件累积区块，但会保留备份且行为可能随上游变化。
+`--app-tmux` 每次下载并执行未固定的 `gpakosz/.tmux` `master/install.sh`，patch 上游生成文件后无查重追加 `debian/app/tmux/ghostty.tmux.conf`；该制品无条件启用 passthrough、extended keys 和仅限 `xterm-ghostty` 的 terminal features。上游会把活动配置移为时间戳备份再重建，正常重跑不在活动文件累积区块，但会保留备份且行为可能随上游变化。
 
-Micro 的 `"clipboard": "terminal"`、tmux 的 `set-clipboard on`／`get-clipboard request` 和 Ghostty 的 `clipboard-read = allow` 构成跨组件契约；modern CLI、tmux 和 Ghostty 由独立标志选择，缺少任一端不保证同等行为。tmux 两项为 server 级设置：pane 应用可写终端剪贴板并创建 tmux buffer，也可向最近终端请求读取且不保存读值；同一 server 的全部 session 受影响，终端允许读取时不可信 pane 可读写客户端系统剪贴板。
+Micro 使用内部剪贴板；tmux 制品不设置 `set-clipboard`／`get-clipboard`，Ghostty 制品不放宽 `clipboard-read`。仓库不提供 Micro、tmux 与 Ghostty 间的系统剪贴板联动。
 
 ### macOS SSH
 
@@ -238,5 +238,5 @@ macOS 没有 Debian 的条件 PATH、Atuin、fzf 或一次性登录片段；`APP
 完成变更前：
 
 - 同步适用的接口视图，并按 dispatcher、配置所有权、加载时机和通用重跑规则检查新增／移动组件。
-- 用实际安装版本验证受管配置，运行本文件适用的静态、一次性 HOME、ZLE／PTY、SSH 或剪贴板专项检查。
+- 用实际安装版本验证受管配置，运行本文件适用的静态、一次性 HOME、ZLE／PTY 或 SSH 专项检查。
 - 涉及 OMZ 顺序、补全、一次性登录、container 秘密／网络边界或组件例外时，逐项复核对应契约；不能完成目标平台测试时明确记录限制。

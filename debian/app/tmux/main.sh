@@ -17,7 +17,7 @@ configure_tmux() {
 
     {
         echo
-        cat './tmux.conf'
+        cat './ghostty.tmux.conf'
     } >> "$HOME/.config/tmux/tmux.conf.local"
 }
 

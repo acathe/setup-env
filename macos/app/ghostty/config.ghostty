@@ -1,5 +1,4 @@
 bell-features = system
-clipboard-read = allow
 macos-option-as-alt = left
 notify-on-command-finish = unfocused
 shell-integration-features = ssh-env,ssh-terminfo
