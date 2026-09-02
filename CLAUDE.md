@@ -4,7 +4,7 @@
 
 本仓库只面向全新且环境明确的 macOS、Debian 和仓库定义的容器流程；无需兼容未知旧环境、非目标发行版或非目标平台，但必须遵守本文明确列出的 Bash 3.2 等约束。仓库由 Bash 配置脚本和静态制品组成，没有统一构建目标或自动化测试套件；容器流程会构建 Docker 镜像。
 
-机械清单以对应 dispatcher、叶脚本和静态制品为事实来源；本文只维护跨文件架构、所有权、失败状态、安全边界和无法从单个文件判断的约束。`README.md` 只保留公开调用和参数简表，目前仍遗漏根入口独有的 `--branch`，仍含手动安装 VS Code 扩展的命令，并用未排除 `--app-claude-auth-token` 的 `(debian-flag)` 表示 dev-container 转发参数。这些是已知文档偏差，不是接口或安全先例。
+机械清单以对应 dispatcher、叶脚本和静态制品为事实来源；本文只维护跨文件架构、所有权、失败状态、安全边界和无法从单个文件判断的约束。`README.md` 只保留公开调用和参数简表，目前仍含手动安装 VS Code 扩展的命令，并用未排除 `--app-claude-auth-token` 的 `(debian-flag)` 表示 dev-container 转发参数。这些是已知文档偏差，不是接口或安全先例。
 
 ## 架构、入口与分发器契约
 
@@ -12,10 +12,10 @@
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
-    | bash -s -- [--branch <v>] [--setup <macos|debian|container>] [flags]
+    | bash -s -- [--setup <macos|debian|container>] [flags]
 ```
 
-根 `main.sh` 只消费 `--branch` 和默认值为 `macos` 的 `--setup`，浅克隆请求分支后分发到 `<setup>/main.sh`。macOS 缺少 Command Line Tools 目录时只触发 `xcode-select --install`，不会等待或验证完成；Debian／container 未发现 Git 时通过 APT 安装。克隆不会自动删除。根入口必须在 `curl | bash` 中无条件执行，是唯一没有 `BASH_SOURCE` 末尾保护的配置脚本，也是 `--branch` 的解析事实来源。
+根 `main.sh` 只消费默认值为 `macos` 的 `--setup`，浅克隆远端 HEAD 指向的默认分支后分发到 `<setup>/main.sh`。管道下载的 bootstrap 固定来自调用 URL 中的 `master`；若远端默认分支改变，bootstrap 与 payload 可能来自不同分支。macOS 缺少 Command Line Tools 目录时只触发 `xcode-select --install`，不会等待或验证完成；Debian／container 未发现 Git 时通过 APT 安装。克隆不会自动删除。根入口必须在 `curl | bash` 中无条件执行，是唯一没有 `BASH_SOURCE` 末尾保护的配置脚本，也是根级 `--setup` 的解析事实来源。
 
 - `macos/` 配置终端客户端／跳板机，不作为开发机配置，也不包含 Git 或 classic CLI。
 - `debian/` 配置开发环境；Homebrew、Zsh、Oh My Zsh、Starship 和不安装外部软件包的 classic CLI 基线无条件执行，其余组件可选。
@@ -31,11 +31,11 @@ Debian 首次安装 Homebrew 前通过 APT 安装官方前置依赖。根入口�
 
 1. 以可覆盖默认值初始化并导出后代读取的标志。
 2. `parse_args()` 逐 token 扫描；布尔标志 shift 一次，值标志用 `numOfArgs` 避免在 `set -u` 下读取缺失的 `$2`。尾部缺值会被静默丢弃并保留当前值，unknown token 最终无人消费时也会静默忽略。
-3. 未知 token 进入 `POSITIONAL` 并向下恢复。parser 没有 `--` 终止或 option/value 成组机制；下层参数值若等于祖先保留标志（如 `--add-api-key --branch` 或 `--add-api-key --image`），会被祖先消费。
+3. 未知 token 进入 `POSITIONAL` 并向下恢复。parser 没有 `--` 终止或 option/value 成组机制；下层参数值若等于祖先保留标志（如 `--add-api-key --setup` 或 `--add-api-key --image`），会被祖先消费。
 4. 无条件基线按依赖顺序执行；可选组件按 command、code、app 分组且组内按字母排序。
-5. 每个可选组件自行安装或保护其所需命令；除明确集成契约外，不得依赖另一可选标志。
+5. `command/`、`code/` 和 `app/` 下的每个可选组件自行安装或保护其所需命令；container target 不在此保证内。除明确集成契约外，不得依赖另一可选标志。
 
-普通可运行组件的导出块、parser case、`main()` 保护条件和 README 表是同一接口的四个有序视图。Debian `APP_VSCODE` 是纯集成例外：有导出、parser 和 README 标志，但没有叶脚本或 `main()` 保护；OMZ 用它选择插件和 `02-vscode.zsh`，不要为对称性虚构空保护。
+普通可运行组件的导出块、parser case、`main()` 保护条件和 README 表应作为同一接口的四个有序视图同步维护；上文列出的 README 偏差不是新增接口的先例。Debian `APP_VSCODE` 是纯集成例外：有导出、parser 和 README 标志，但没有叶脚本或 `main()` 保护；OMZ 用它选择插件和 `02-vscode.zsh`，不要为对称性虚构空保护。
 
 跨组件读取只在双方启用时增加集成行为：
 
@@ -59,12 +59,14 @@ set -- "${POSITIONAL[@]+"${POSITIONAL[@]}"}"
 
 ## 检查与安全验证
 
-从仓库根运行以下非破坏性检查；要求 `bash`、`git`、`shellcheck`、`shfmt` 和 `zsh` 在 `PATH` 中，Debian `--code-bash` 提供 ShellCheck 和 shfmt：
+从仓库根运行以下非破坏性检查；要求 `bash`、`git`、`jq`、`shellcheck`、`shfmt` 和 `zsh` 在 `PATH` 中，Debian `--code-bash` 提供 ShellCheck 和 shfmt：
 
 ```bash
 find . \( -path './.git' -o -path './.claude' \) -prune -o \
     -type f -name '*.sh' -exec bash -n {} \;
 sh -n debian/command/classic_cli/nanom
+jq empty debian/app/claude/settings.json \
+    debian/command/modern_cli/micro.settings.json
 find . \( -path './.git' -o -path './.claude' \) -prune -o -type f -name '*.sh' \
     -exec shellcheck -x --rcfile './.shellcheckrc' {} +
 shellcheck -s sh --rcfile './.shellcheckrc' debian/command/classic_cli/nanom
@@ -82,7 +84,7 @@ PATH 中的 Bash 不能证明 Bash 3.2 兼容；根目录或 macOS 改动还须�
 find main.sh macos -type f -name '*.sh' -exec /bin/bash -n {} \;
 ```
 
-ShellCheck 使用 `-x`，因为 `debian/app/docker.sh` 动态 source `/etc/os-release`；`.shellcheckrc` 禁用 `SC2016`，供字面量 `jq`／`sed` 程序和生成内容保留美元符号。
+严格 JSON 检查刻意不包含采用 JSONC 的 `debian/vscode/settings.json`。ShellCheck 使用 `-x`，因为 `debian/app/docker.sh` 动态 source `/etc/os-release`；`.shellcheckrc` 禁用 `SC2016`，供字面量 `jq`／`sed` 程序和生成内容保留美元符号。
 
 直接运行 dispatcher 会执行真实安装并修改 home。例如 `bash debian/main.sh --app-tmux` 会运行 APT、安装 OMZ；Debian OMZ 还会删除 `.profile`、`.bashrc` 和 `.bash_logout`。不要用普通账户作为冒烟测试沙箱。第三方插件会 clone 到固定目录，因此一次性 home 中的重复生成测试也不证明完整 dispatcher 幂等。
 
@@ -96,7 +98,7 @@ OMZ 改动除仓库制品的 `zsh -n` 外，还需在一次性 `HOME`、`ZSH_CUS
 
 没有 Homebrew／Starship 桩时不要运行 `command/starship.sh`，也不要直接调用真实 `update-all-in-one`。fzf 改动须在一次性环境的 `zsh -f` 中检查 `${(z)FZF_CTRL_T_OPTS}` 和 `${(z)FZF_ALT_C_OPTS}`；插件顺序改动还需真实 ZLE／PTY 测试，确保普通 Tab、`**<Tab>`、Ctrl-T 和 Alt-C 各只调用一次，且 `fzf_default_completion=fzf-tab-complete`。
 
-macOS SSH 只能使用一次性 HOME 和 `ssh-keygen`／`ssh-copy-id` 桩，覆盖首次运行、重复运行、私钥存在但 `.pub` 缺失及 `--command-ssh-no-copy-key`；不得连接真实远端。终端剪贴板只能用非敏感标记，在隔离 tmux server 上沿 Micro → tmux → Ghostty 验证复制、沿 Ghostty → tmux → Micro 验证粘贴；静态配置解析、普通 bracketed paste 或终端快捷键不能替代该测试，同一 server 中不得运行不可信 pane。
+macOS SSH 只能使用一次性 HOME 和 `ssh-keygen`／`ssh-copy-id` 桩，覆盖首次运行、重复运行、私钥存在但 `.pub` 缺失及 `--command-ssh-no-copy-key`；不得连接真实远端。
 
 ## 配置所有权、落点与重复运行
 
@@ -121,7 +123,7 @@ macOS SSH 只能使用一次性 HOME 和 `ssh-keygen`／`ssh-copy-id` 桩，覆�
 
 Debian 仅在 `APP_GIT=1` 时安装 `99-gh-login.zsh`；片段被 source 时先删除自身再直接运行一次 `gh auth login`，失败或取消也不会在新 shell 自动重试。重跑 `custom.sh` 可重新安装；关闭标志后尚未 source 的残留片段仍可能执行一次。完整流程还受固定第三方 clone 目录的非幂等性限制。
 
-`plugin.sh` 从 `plugins=(aliases)` 重建数组，未选插件目录即使残留也不会被启用。两平台 `update.sh` 按导出标志安装片段而不探测命令；旧可选片段和旧 basename 会保留，重命名后可能重复执行。copilot-api 启动成功后另装 `98-copilot-api.zsh`，固定从 `master` 重新调用根入口，不继承首次 `--branch`。
+`plugin.sh` 从 `plugins=(aliases)` 重建数组，未选插件目录即使残留也不会被启用。两平台 `update.sh` 按导出标志安装片段而不探测命令；旧可选片段和旧 basename 会保留，重命名后可能重复执行。copilot-api 启动成功后另装 `98-copilot-api.zsh`，固定从 `master` 重新调用根入口。
 
 `update-all-in-one.plugin.zsh` 被 source 时只定义函数；调用后按 Zsh 默认字典序 source `custom/*.zsh`。平台以数字前缀声明顺序，`98-copilot-api.zsh` 位于固定的 `99-oh-my-zsh.zsh` 前，当前制品总以 `omz update` 收尾。同一片段多步操作用 `&&`；运行器不检查每次 `source` 返回值，后续成功可能掩盖前序失败。安装 `update.sh` 早于可选组件，中途失败可能留下引用尚未安装命令的片段。
 
@@ -169,11 +171,11 @@ Atuin 和 fzf 都没有仓库原生配置：流程不导入 Atuin 历史或账�
 
 插件先由 `ya pkg add` 安装；任一失败都会跳过本次全部配置写入，使新 home 无配置，旧 home 保留旧配置和已成功添加的插件。随后 `yazi.toml.sh` 完整渲染 `yazi.toml`，`init.lua` 和 `keymap.toml` 作为静态制品部署。`package.toml` 由 `ya` 拥有；重复 add 会拒绝已列依赖，换源须先 delete。后续成功或关闭标志不会垃圾回收插件或残留 `15-yazi.zsh`。
 
-### tmux 与终端剪贴板
+### tmux 与 Ghostty
 
-`--app-tmux` 每次下载并执行未固定的 `gpakosz/.tmux` `master/install.sh`，patch 上游生成文件后无查重追加 `debian/app/tmux/tmux.conf`；该制品无条件启用 passthrough、extended keys、Ghostty terminal features 和终端剪贴板集成。上游会把活动配置移为时间戳备份再重建，正常重跑不在活动文件累积区块，但会保留备份且行为可能随上游变化。
+`--app-tmux` 每次下载并执行未固定的 `gpakosz/.tmux` `master/install.sh`，patch 上游生成文件后无查重追加 `debian/app/tmux/ghostty.tmux.conf`；该制品无条件启用 passthrough、extended keys 和仅限 `xterm-ghostty` 的 terminal features。上游会把活动配置移为时间戳备份再重建，正常重跑不在活动文件累积区块，但会保留备份且行为可能随上游变化。
 
-Micro 的 `"clipboard": "terminal"`、tmux 的 `set-clipboard on`／`get-clipboard request` 和 Ghostty 的 `clipboard-read = allow` 构成跨组件契约；modern CLI、tmux 和 Ghostty 由独立标志选择，缺少任一端不保证同等行为。tmux 两项为 server 级设置：pane 应用可写终端剪贴板并创建 tmux buffer，也可向最近终端请求读取且不保存读值；同一 server 的全部 session 受影响，终端允许读取时不可信 pane 可读写客户端系统剪贴板。
+Micro 使用内部剪贴板；tmux 制品不设置 `set-clipboard`／`get-clipboard`，Ghostty 制品不放宽 `clipboard-read`。仓库不提供 Micro、tmux 与 Ghostty 间的系统剪贴板联动。
 
 ### macOS SSH
 
@@ -211,7 +213,7 @@ bash /mnt/setup/main.sh --unattended "${setup_args[@]}"
 
 launcher 只检查 Ghostty 标记和构建变量，不验证当前是否为 SSH 或 login shell：它要求 `TERM_PROGRAM=ghostty`，且 `USER`、`LANG`、`TERM`、`COLORTERM`、`TERM_PROGRAM_VERSION` 非空，并以 `infocmp -x "$TERM"` 导出 terminfo。镜像在基础 APT 和完整 setup 后才写入终端 ENV，并由容器用户用 `tic -x` 编译到 `/home/${user}/.terminfo`，从而避免终端变化使 APT／setup 缓存失效。
 
-`setup_args_b64` 和 `terminfo_b64` 只编码数据，不提供保密性。前者不得承载 `--app-claude-auth-token` 或其他秘密，否则会通过 build ARG 进入镜像并可能写入用户设置；引入 Docker secret 或运行时注入前，不得扩展此通道传递凭据。
+`setup_args_b64` 和 `terminfo_b64` 只编码数据，不提供保密性。前者不得承载 `--app-claude-auth-token` 或其他秘密，否则会通过 build ARG 进入镜像并可能写入用户设置；引入 Docker secret 或运行时注入前，不得扩展此通道传递凭据。宿主直接传入 `--app-claude-auth-token` 也可能暴露在 shell history 和 process argv 中，并以明文写入 0600 设置文件；文件权限只保护落盘后的访问，不构成秘密注入通道。
 
 构建上下文仅为 `debian/`，镜像配置不能依赖树外文件。系统 `python3` 是基线，独立于可选 uv／py-spy；精简镜像须在 Dockerfile 显式补齐基线包。launcher 假定 Linux/systemd 与 `timedatectl`，并实际要求 `LANG` 为 `<locale>.<encoding>`，现有预检只验证非空；支持 macOS 宿主或 `LANG=C` 时须同步修改预检、拆分逻辑和 `localedef`。
 
@@ -225,7 +227,7 @@ launcher 只检查 Ghostty 标记和构建变量，不验证当前是否为 SSH 
 
 ### copilot-api-config
 
-一次性 config 镜像修改同一主机目录中的服务 `config.json`。`--clear-api-keys` 清空整个数组；`--generate-api-keys <N>` 追加 N 个独立 32 字节十六进制 key；`--add-api-key <v>` 原样追加实际到达 parser 的非空值。`--reset-api-key` 和 `--api-keys <N>` 是前两者的兼容 alias；带值参数重复时最后一个值生效，追加不去重，且仍受祖先保留标志值碰撞限制。
+一次性 config 镜像修改同一主机目录中的服务 `config.json`。`--clear-api-keys` 清空整个数组；`--generate-api-keys <N>` 追加 N 个独立 32 字节十六进制 key；`--add-api-key <v>` 原样追加实际到达 parser 的非空值。`<N>` 当前未经格式或上限验证便进入 Bash 算术上下文；调用方必须只传规范非负十进制值，不得传递不可信输入。`--reset-api-key` 和 `--api-keys <N>` 是前两者的兼容 alias；带值参数重复时最后一个值生效，追加不去重，且仍受祖先保留标志值碰撞限制。
 
 容器固定按清空 → 随机追加 → 固定追加执行，参数出现顺序不改变操作顺序。固定 key 会经过宿主 argv 和 Docker 环境变量，可能暴露在 shell 历史、进程参数或 Docker metadata 中，不是秘密注入通道。任务假定服务已生成有效 `config.json`。
 
@@ -238,5 +240,5 @@ macOS 没有 Debian 的条件 PATH、Atuin、fzf 或一次性登录片段；`APP
 完成变更前：
 
 - 同步适用的接口视图，并按 dispatcher、配置所有权、加载时机和通用重跑规则检查新增／移动组件。
-- 用实际安装版本验证受管配置，运行本文件适用的静态、一次性 HOME、ZLE／PTY、SSH 或剪贴板专项检查。
+- 用实际安装版本验证受管配置，运行本文件适用的静态、一次性 HOME、ZLE／PTY 或 SSH 专项检查。
 - 涉及 OMZ 顺序、补全、一次性登录、container 秘密／网络边界或组件例外时，逐项复核对应契约；不能完成目标平台测试时明确记录限制。

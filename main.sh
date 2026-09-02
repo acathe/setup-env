@@ -2,22 +2,12 @@
 
 set -euo pipefail
 
-BRANCH="${BRANCH:-master}"
 SETUP="${SETUP:-macos}"
 
 parse_args() {
     POSITIONAL=()
     while (($# > 0)); do
         case "$1" in
-            --branch)
-                numOfArgs=1 # number of switch arguments
-                if (($# < numOfArgs + 1)); then
-                    shift $#
-                else
-                    BRANCH="$2"
-                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
-                fi
-                ;;
             --setup)
                 numOfArgs=1 # number of switch arguments
                 if (($# < numOfArgs + 1)); then
@@ -67,8 +57,7 @@ main() {
 
     git clone 'https://github.com/acathe/setup-env.git' "$tmpdir" \
         --depth 1 \
-        --single-branch \
-        --branch "$BRANCH"
+        --single-branch
 
     bash "$tmpdir/$SETUP/main.sh" "$@"
 }
