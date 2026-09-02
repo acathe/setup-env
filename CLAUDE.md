@@ -4,7 +4,7 @@
 
 本仓库只面向全新且环境明确的 macOS、Debian 和仓库定义的容器流程；无需兼容未知旧环境、非目标发行版或非目标平台，但必须遵守本文明确列出的 Bash 3.2 等约束。仓库由 Bash 配置脚本和静态制品组成，没有统一构建目标或自动化测试套件；容器流程会构建 Docker 镜像。
 
-机械清单以对应 dispatcher、叶脚本和静态制品为事实来源；本文只维护跨文件架构、所有权、失败状态、安全边界和无法从单个文件判断的约束。`README.md` 只保留公开调用和参数简表，目前仍遗漏根入口独有的 `--branch`，仍含手动安装 VS Code 扩展的命令，并用未排除 `--app-claude-auth-token` 的 `(debian-flag)` 表示 dev-container 转发参数。这些是已知文档偏差，不是接口或安全先例。
+机械清单以对应 dispatcher、叶脚本和静态制品为事实来源；本文只维护跨文件架构、所有权、失败状态、安全边界和无法从单个文件判断的约束。`README.md` 只保留公开调用和参数简表，目前仍含手动安装 VS Code 扩展的命令，并用未排除 `--app-claude-auth-token` 的 `(debian-flag)` 表示 dev-container 转发参数。这些是已知文档偏差，不是接口或安全先例。
 
 ## 架构、入口与分发器契约
 
@@ -12,10 +12,10 @@
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
-    | bash -s -- [--branch <v>] [--setup <macos|debian|container>] [flags]
+    | bash -s -- [--setup <macos|debian|container>] [flags]
 ```
 
-根 `main.sh` 只消费 `--branch` 和默认值为 `macos` 的 `--setup`，浅克隆请求分支后分发到 `<setup>/main.sh`。`--branch` 只选择 clone 后执行的 payload；管道下载的 bootstrap 仍来自调用 URL 中的 `master`。macOS 缺少 Command Line Tools 目录时只触发 `xcode-select --install`，不会等待或验证完成；Debian／container 未发现 Git 时通过 APT 安装。克隆不会自动删除。根入口必须在 `curl | bash` 中无条件执行，是唯一没有 `BASH_SOURCE` 末尾保护的配置脚本，也是 `--branch` 的解析事实来源。
+根 `main.sh` 只消费默认值为 `macos` 的 `--setup`，浅克隆远端 HEAD 指向的默认分支后分发到 `<setup>/main.sh`。管道下载的 bootstrap 固定来自调用 URL 中的 `master`；若远端默认分支改变，bootstrap 与 payload 可能来自不同分支。macOS 缺少 Command Line Tools 目录时只触发 `xcode-select --install`，不会等待或验证完成；Debian／container 未发现 Git 时通过 APT 安装。克隆不会自动删除。根入口必须在 `curl | bash` 中无条件执行，是唯一没有 `BASH_SOURCE` 末尾保护的配置脚本，也是根级 `--setup` 的解析事实来源。
 
 - `macos/` 配置终端客户端／跳板机，不作为开发机配置，也不包含 Git 或 classic CLI。
 - `debian/` 配置开发环境；Homebrew、Zsh、Oh My Zsh、Starship 和不安装外部软件包的 classic CLI 基线无条件执行，其余组件可选。
@@ -31,7 +31,7 @@ Debian 首次安装 Homebrew 前通过 APT 安装官方前置依赖。根入口�
 
 1. 以可覆盖默认值初始化并导出后代读取的标志。
 2. `parse_args()` 逐 token 扫描；布尔标志 shift 一次，值标志用 `numOfArgs` 避免在 `set -u` 下读取缺失的 `$2`。尾部缺值会被静默丢弃并保留当前值，unknown token 最终无人消费时也会静默忽略。
-3. 未知 token 进入 `POSITIONAL` 并向下恢复。parser 没有 `--` 终止或 option/value 成组机制；下层参数值若等于祖先保留标志（如 `--add-api-key --branch` 或 `--add-api-key --image`），会被祖先消费。
+3. 未知 token 进入 `POSITIONAL` 并向下恢复。parser 没有 `--` 终止或 option/value 成组机制；下层参数值若等于祖先保留标志（如 `--add-api-key --setup` 或 `--add-api-key --image`），会被祖先消费。
 4. 无条件基线按依赖顺序执行；可选组件按 command、code、app 分组且组内按字母排序。
 5. `command/`、`code/` 和 `app/` 下的每个可选组件自行安装或保护其所需命令；container target 不在此保证内。除明确集成契约外，不得依赖另一可选标志。
 
@@ -123,7 +123,7 @@ macOS SSH 只能使用一次性 HOME 和 `ssh-keygen`／`ssh-copy-id` 桩，覆�
 
 Debian 仅在 `APP_GIT=1` 时安装 `99-gh-login.zsh`；片段被 source 时先删除自身再直接运行一次 `gh auth login`，失败或取消也不会在新 shell 自动重试。重跑 `custom.sh` 可重新安装；关闭标志后尚未 source 的残留片段仍可能执行一次。完整流程还受固定第三方 clone 目录的非幂等性限制。
 
-`plugin.sh` 从 `plugins=(aliases)` 重建数组，未选插件目录即使残留也不会被启用。两平台 `update.sh` 按导出标志安装片段而不探测命令；旧可选片段和旧 basename 会保留，重命名后可能重复执行。copilot-api 启动成功后另装 `98-copilot-api.zsh`，固定从 `master` 重新调用根入口，不继承首次 `--branch`。
+`plugin.sh` 从 `plugins=(aliases)` 重建数组，未选插件目录即使残留也不会被启用。两平台 `update.sh` 按导出标志安装片段而不探测命令；旧可选片段和旧 basename 会保留，重命名后可能重复执行。copilot-api 启动成功后另装 `98-copilot-api.zsh`，固定从 `master` 重新调用根入口。
 
 `update-all-in-one.plugin.zsh` 被 source 时只定义函数；调用后按 Zsh 默认字典序 source `custom/*.zsh`。平台以数字前缀声明顺序，`98-copilot-api.zsh` 位于固定的 `99-oh-my-zsh.zsh` 前，当前制品总以 `omz update` 收尾。同一片段多步操作用 `&&`；运行器不检查每次 `source` 返回值，后续成功可能掩盖前序失败。安装 `update.sh` 早于可选组件，中途失败可能留下引用尚未安装命令的片段。
 
