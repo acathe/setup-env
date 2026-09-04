@@ -12,12 +12,26 @@ ENV TZ=${tz}
 SHELL ["/usr/bin/bash", "-c"]
 
 ARG user
+ARG uid
+ARG gid
+RUN groupadd -g "${gid}" "${user}" \
+    && useradd -m -u "${uid}" -g "${gid}" -s "$(command -v bash)" "${user}"
+
 RUN apt-get update \
-    && apt-get install -y locales sudo \
+    && apt-get install -y locales \
     && localedef -i ${lang} -c -f ${encoding} -A /usr/share/locale/locale.alias ${lang}.${encoding} \
-    && useradd -m -s "$(command -v bash)" "${user}" \
+    && rm -rf /var/lib/apt/lists/* /tmp/*
+
+RUN apt-get update \
+    && apt-get install -y sudo \
     && echo "${user} ALL=(ALL) NOPASSWD:ALL" > "/etc/sudoers.d/${user}" \
     && chmod 0440 "/etc/sudoers.d/${user}" \
+    && rm -rf /var/lib/apt/lists/* /tmp/*
+
+RUN apt-get update \
+    && apt-get install -y openssh-server \
+    && install -d -m 700 -o "${user}" -g "${user}" "/home/${user}/.ssh" \
+    && install -d -m 755 /run/sshd \
     && rm -rf /var/lib/apt/lists/* /tmp/*
 
 WORKDIR /home/${user}
@@ -46,18 +60,6 @@ RUN sudo apt-get update \
     xz-utils \
     && sudo rm -rf /var/lib/apt/lists/* /tmp/*
 
-ARG setup_args_b64=""
-RUN --mount=type=bind,source=.,target=/mnt/setup,readonly \
-    mapfile -d '' -t setup_args < <(printf '%s' "$setup_args_b64" | base64 -d) \
-    && bash /mnt/setup/main.sh --unattended "${setup_args[@]}" \
-    && sudo rm -rf /var/lib/apt/lists/* /tmp/*
-
-ARG terminfo_b64=""
-RUN mkdir -p "/home/${user}/.terminfo" \
-    && printf '%s' "$terminfo_b64" | base64 -d > /tmp/terminfo.src \
-    && tic -x -o "/home/${user}/.terminfo" /tmp/terminfo.src \
-    && rm /tmp/terminfo.src
-
 ARG term=xterm-256color
 ARG colorterm=truecolor
 ARG term_program=""
@@ -68,4 +70,16 @@ ENV COLORTERM=${colorterm}
 ENV TERM_PROGRAM=${term_program}
 ENV TERM_PROGRAM_VERSION=${term_program_version}
 
-CMD ["sleep", "infinity"]
+ARG terminfo_b64=""
+RUN mkdir -p "/home/${user}/.terminfo" \
+    && printf '%s' "$terminfo_b64" | base64 -d > /tmp/terminfo.src \
+    && tic -x -o "/home/${user}/.terminfo" /tmp/terminfo.src \
+    && rm /tmp/terminfo.src
+
+ARG setup_args_b64=""
+RUN --mount=type=bind,source=.,target=/mnt/setup,readonly \
+    mapfile -d '' -t setup_args < <(printf '%s' "$setup_args_b64" | base64 -d) \
+    && bash /mnt/setup/main.sh --unattended "${setup_args[@]}" \
+    && sudo rm -rf /var/lib/apt/lists/* /tmp/*
+
+CMD ["sudo", "/usr/sbin/sshd", "-D", "-e"]
