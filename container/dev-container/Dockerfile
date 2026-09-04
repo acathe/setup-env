@@ -60,18 +60,6 @@ RUN sudo apt-get update \
     xz-utils \
     && sudo rm -rf /var/lib/apt/lists/* /tmp/*
 
-ARG setup_args_b64=""
-RUN --mount=type=bind,source=.,target=/mnt/setup,readonly \
-    mapfile -d '' -t setup_args < <(printf '%s' "$setup_args_b64" | base64 -d) \
-    && bash /mnt/setup/main.sh --unattended "${setup_args[@]}" \
-    && sudo rm -rf /var/lib/apt/lists/* /tmp/*
-
-ARG terminfo_b64=""
-RUN mkdir -p "/home/${user}/.terminfo" \
-    && printf '%s' "$terminfo_b64" | base64 -d > /tmp/terminfo.src \
-    && tic -x -o "/home/${user}/.terminfo" /tmp/terminfo.src \
-    && rm /tmp/terminfo.src
-
 ARG term=xterm-256color
 ARG colorterm=truecolor
 ARG term_program=""
@@ -81,5 +69,17 @@ ENV TERM=${term}
 ENV COLORTERM=${colorterm}
 ENV TERM_PROGRAM=${term_program}
 ENV TERM_PROGRAM_VERSION=${term_program_version}
+
+ARG terminfo_b64=""
+RUN mkdir -p "/home/${user}/.terminfo" \
+    && printf '%s' "$terminfo_b64" | base64 -d > /tmp/terminfo.src \
+    && tic -x -o "/home/${user}/.terminfo" /tmp/terminfo.src \
+    && rm /tmp/terminfo.src
+
+ARG setup_args_b64=""
+RUN --mount=type=bind,source=.,target=/mnt/setup,readonly \
+    mapfile -d '' -t setup_args < <(printf '%s' "$setup_args_b64" | base64 -d) \
+    && bash /mnt/setup/main.sh --unattended "${setup_args[@]}" \
+    && sudo rm -rf /var/lib/apt/lists/* /tmp/*
 
 CMD ["sudo", "/usr/sbin/sshd", "-D", "-e"]
