@@ -14,13 +14,22 @@ SHELL ["/usr/bin/bash", "-c"]
 ARG user
 ARG uid
 ARG gid
+RUN groupadd -g "${gid}" "${user}" \
+    && useradd -m -u "${uid}" -g "${gid}" -s "$(command -v bash)" "${user}"
+
 RUN apt-get update \
-    && apt-get install -y locales openssh-server sudo \
+    && apt-get install -y locales \
     && localedef -i ${lang} -c -f ${encoding} -A /usr/share/locale/locale.alias ${lang}.${encoding} \
-    && groupadd -g "${gid}" "${user}" \
-    && useradd -m -u "${uid}" -g "${gid}" -s "$(command -v bash)" "${user}" \
+    && rm -rf /var/lib/apt/lists/* /tmp/*
+
+RUN apt-get update \
+    && apt-get install -y sudo \
     && echo "${user} ALL=(ALL) NOPASSWD:ALL" > "/etc/sudoers.d/${user}" \
     && chmod 0440 "/etc/sudoers.d/${user}" \
+    && rm -rf /var/lib/apt/lists/* /tmp/*
+
+RUN apt-get update \
+    && apt-get install -y openssh-server \
     && install -d -m 700 -o "${user}" -g "${user}" "/home/${user}/.ssh" \
     && install -d -m 755 /run/sshd \
     && rm -rf /var/lib/apt/lists/* /tmp/*
