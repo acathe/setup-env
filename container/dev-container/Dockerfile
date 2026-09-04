@@ -12,12 +12,17 @@ ENV TZ=${tz}
 SHELL ["/usr/bin/bash", "-c"]
 
 ARG user
+ARG uid
+ARG gid
 RUN apt-get update \
-    && apt-get install -y locales sudo \
+    && apt-get install -y locales openssh-server sudo \
     && localedef -i ${lang} -c -f ${encoding} -A /usr/share/locale/locale.alias ${lang}.${encoding} \
-    && useradd -m -s "$(command -v bash)" "${user}" \
+    && groupadd -g "${gid}" "${user}" \
+    && useradd -m -u "${uid}" -g "${gid}" -s "$(command -v bash)" "${user}" \
     && echo "${user} ALL=(ALL) NOPASSWD:ALL" > "/etc/sudoers.d/${user}" \
     && chmod 0440 "/etc/sudoers.d/${user}" \
+    && install -d -m 700 -o "${user}" -g "${user}" "/home/${user}/.ssh" \
+    && install -d -m 755 /run/sshd \
     && rm -rf /var/lib/apt/lists/* /tmp/*
 
 WORKDIR /home/${user}
@@ -68,4 +73,4 @@ ENV COLORTERM=${colorterm}
 ENV TERM_PROGRAM=${term_program}
 ENV TERM_PROGRAM_VERSION=${term_program_version}
 
-CMD ["sleep", "infinity"]
+CMD ["sudo", "/usr/sbin/sshd", "-D", "-e"]

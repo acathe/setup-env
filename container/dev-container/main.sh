@@ -71,6 +71,8 @@ main() {
         -t "dev-container:$IMAGE_TAG" \
         -f './Dockerfile' \
         --build-arg "user=$USER" \
+        --build-arg "uid=$(id -u)" \
+        --build-arg "gid=$(id -g)" \
         --build-arg "lang=${LANG%.*}" \
         --build-arg "encoding=${LANG#*.}" \
         --build-arg "language=${LANGUAGE:-}" \
@@ -95,7 +97,9 @@ main() {
         --tmpfs /tmp:exec \
         --hostname "$CONTAINER" \
         --name "$CONTAINER" \
-        -v "$HOME/Projects:/home/$USER/Projects" \
+        --publish '0.0.0.0:2222:22/tcp' \
+        --volume "$HOME/.ssh/authorized_keys:/home/$USER/.ssh/authorized_keys:ro" \
+        --volume "$HOME/Projects:/home/$USER/Projects" \
         "dev-container:$IMAGE_TAG"
 }
 
