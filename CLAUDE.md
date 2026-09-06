@@ -35,7 +35,7 @@ Debian 首次安装 Homebrew 前通过 APT 安装官方前置依赖。根入口�
 4. 无条件基线按依赖顺序执行；可选组件按 command、code、app 分组且组内按字母排序。
 5. `command/`、`code/` 和 `app/` 下的每个可选组件自行安装或保护其所需命令；container target 不在此保证内。除明确集成契约外，不得依赖另一可选标志。
 
-普通可运行组件的导出块、parser case、`main()` 保护条件和 README 表应作为同一接口的四个有序视图同步维护；上文列出的 README 偏差不是新增接口的先例。Debian `APP_VSCODE` 和 `APP_GHOSTTY` 是纯集成例外：有导出、parser 和 README 标志，但没有对应的 app 叶脚本或 `main()` 保护。OMZ 用 `APP_VSCODE` 选择插件和 `02-vscode.zsh`；`APP_GHOSTTY` 不安装 Ghostty、不自动启用 Claude／tmux，也不根据当前终端自动开启，而由 SSH、tmux 和 Claude 按各自所有权消费。不要为对称性虚构空保护。
+普通可运行组件的导出块、parser case、`main()` 保护条件和 README 表应作为同一接口的四个有序视图同步维护；上文列出的 README 偏差不是新增接口的先例。Debian `APP_VSCODE` 和 `APP_GHOSTTY` 是纯集成例外：有导出、parser 和 README 标志，但没有对应的 app 叶脚本或 `main()` 保护。OMZ 用 `APP_VSCODE` 选择插件和 `02-vscode.zsh`；`APP_GHOSTTY` 不安装 Ghostty、不自动启用 SSH／Claude／tmux，也不根据当前终端自动开启，而由 SSH、tmux 和 Claude 按各自所有权消费。不要为对称性虚构空保护。
 
 可选组件之间的正向集成要求双方启用；无条件基线可读取标志选择配置：
 
@@ -185,7 +185,7 @@ Micro 使用内部剪贴板；tmux 制品不设置 `set-clipboard`／`get-clipbo
 
 ### Debian SSH
 
-Debian 基线始终调用 `command/ssh/main.sh`，但写入器仅在 `APP_GHOSTTY=1` 时部署 `90-ghostty-env.conf`，由 SSH 组件拥有终端环境接收配置。脚本不安装或重载 SSH 服务；关闭标志只跳过安装，不删除既有 drop-in，配置生效仍取决于 sshd 加载它。
+Debian `--command-ssh` 默认关闭，仅在 `COMMAND_SSH=1` 时调用 `command/ssh/main.sh`；写入器仅在同时启用 `APP_GHOSTTY=1` 时部署 `90-ghostty-env.conf`，由 SSH 组件拥有终端环境接收配置。脚本不安装或重载 SSH 服务；关闭任一标志只跳过安装，不删除既有 drop-in，配置生效仍取决于 sshd 加载它。
 
 ### macOS SSH
 
@@ -221,7 +221,7 @@ lazygit schema 和 renderer 以 `debian/app/git/lazygit.config.yml` 为事实来
 bash /mnt/setup/main.sh --unattended "${setup_args[@]}"
 ```
 
-dev-container 复用 Debian 的集成默认值；launcher 的 Ghostty 预检不会自动启用 `APP_GHOSTTY`，需要这些 Debian 适配时须显式转发 `--app-ghostty`。
+dev-container 复用 Debian 的集成默认值；launcher 的 Ghostty 预检不会自动启用 `APP_GHOSTTY`，需要这些 Debian 适配时须显式转发 `--app-ghostty`，其中 SSH 环境接收配置还须启用 `--command-ssh`。
 
 launcher 只检查 Ghostty 标记和构建变量，不验证当前是否为 SSH 或 login shell：它要求 `TERM_PROGRAM=ghostty`，且 `USER`、`LANG`、`TERM`、`COLORTERM`、`TERM_PROGRAM_VERSION` 非空，并以 `infocmp -x "$TERM"` 导出 terminfo。镜像在基础 APT 后、Debian setup 前写入终端 ENV，并由容器用户用 `tic -x` 编译到 `/home/${user}/.terminfo`；这些后置终端参数的变化不影响此前基础 APT 层，但会影响后续 setup 层的缓存。
 
