@@ -68,7 +68,7 @@ main() {
     fi
 
     docker build \
-        -qt "dev-container:$IMAGE_TAG" \
+        -t "dev-container:$IMAGE_TAG" \
         -f './Dockerfile' \
         --build-arg "user=$USER" \
         --build-arg "lang=${LANG%.*}" \
