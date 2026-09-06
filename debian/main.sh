@@ -13,6 +13,7 @@ export CODE_RUST="${CODE_RUST:-0}"
 
 export APP_CLAUDE="${APP_CLAUDE:-0}"
 export APP_DOCKER="${APP_DOCKER:-0}"
+export APP_GHOSTTY="${APP_GHOSTTY:-0}"
 export APP_GIT="${APP_GIT:-0}"
 export APP_NEOVIM="${APP_NEOVIM:-0}"
 export APP_TMUX="${APP_TMUX:-0}"
@@ -58,6 +59,10 @@ parse_args() {
             --app-docker)
                 APP_DOCKER=1
                 shift # shift once since flags have no values
+                ;;
+            --app-ghostty)
+                APP_GHOSTTY=1
+                shift
                 ;;
             --app-git)
                 APP_GIT=1

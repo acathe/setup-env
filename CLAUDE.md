@@ -35,7 +35,7 @@ Debian 首次安装 Homebrew 前通过 APT 安装官方前置依赖。根入口�
 4. 无条件基线按依赖顺序执行；可选组件按 command、code、app 分组且组内按字母排序。
 5. `command/`、`code/` 和 `app/` 下的每个可选组件自行安装或保护其所需命令；container target 不在此保证内。除明确集成契约外，不得依赖另一可选标志。
 
-普通可运行组件的导出块、parser case、`main()` 保护条件和 README 表应作为同一接口的四个有序视图同步维护；上文列出的 README 偏差不是新增接口的先例。Debian `APP_VSCODE` 是纯集成例外：有导出、parser 和 README 标志，但没有叶脚本或 `main()` 保护；OMZ 用它选择插件和 `02-vscode.zsh`，不要为对称性虚构空保护。
+普通可运行组件的导出块、parser case、`main()` 保护条件和 README 表应作为同一接口的四个有序视图同步维护；上文列出的 README 偏差不是新增接口的先例。Debian `APP_VSCODE` 和 `APP_GHOSTTY` 是纯集成例外：有导出、parser 和 README 标志，但没有对应的 app 叶脚本或 `main()` 保护。OMZ 用 `APP_VSCODE` 选择插件和 `02-vscode.zsh`；`APP_GHOSTTY` 不安装 Ghostty、不自动启用 Claude／tmux，也不根据当前终端自动开启，而由 SSH、tmux 和 Claude 按各自所有权消费。不要为对称性虚构空保护。
 
 跨组件读取只在双方启用时增加集成行为：
 
@@ -43,7 +43,9 @@ Debian 首次安装 Homebrew 前通过 APT 安装官方前置依赖。根入口�
 | --- | --- |
 | Debian OMZ 写入器 | `COMMAND_MODERN_CLI`、`CODE_GO`、`CODE_PROTOBUF`、`CODE_PYTHON`、`CODE_RUST`、`APP_DOCKER`、`APP_GIT`、`APP_TMUX`、`APP_VSCODE`、`APP_YAZI` |
 | macOS OMZ 写入器 | `COMMAND_SSH`、`APP_VSCODE` |
-| Claude app | `CODE_GO`、`CODE_PYTHON`、`CODE_RUST`、`APP_GIT` |
+| Debian SSH 写入器 | `APP_GHOSTTY` |
+| Debian tmux | `APP_CLAUDE`、`APP_GHOSTTY` |
+| Claude app | `CODE_GO`、`CODE_PYTHON`、`CODE_RUST`、`APP_GHOSTTY`、`APP_GIT` |
 | Yazi | `COMMAND_MODERN_CLI`、`CODE_MARKDOWN` |
 | Debian classic CLI | `COMMAND_MODERN_CLI` |
 
@@ -173,9 +175,13 @@ Atuin 和 fzf 都没有仓库原生配置：流程不导入 Atuin 历史或账�
 
 ### tmux 与 Ghostty
 
-`--app-tmux` 每次下载并执行未固定的 `gpakosz/.tmux` `master/install.sh`，patch 上游生成文件后无查重追加 `debian/app/tmux/ghostty.tmux.conf`；该制品无条件启用 passthrough、extended keys 和仅限 `xterm-ghostty` 的 terminal features。上游会把活动配置移为时间戳备份再重建，正常重跑不在活动文件累积区块，但会保留备份且行为可能随上游变化。
+`--app-tmux` 每次下载并执行未固定的 `gpakosz/.tmux` `master/install.sh`，patch 上游生成文件后，按 `APP_CLAUDE` 和 `APP_GHOSTTY` 独立选择并无查重追加 `debian/app/tmux/claude.tmux.conf`、`ghostty.tmux.conf`，两者均开启时按 Claude → Ghostty 顺序追加。Claude 片段拥有通用 passthrough、extended keys 和 `xterm*` 的 extkeys 声明；Ghostty 片段只声明 `xterm-ghostty` 的 terminal features。上游会把活动配置移为时间戳备份再重建，正常重跑只追加本次选中的区块，不在活动文件累积区块，但会保留备份且行为可能随上游变化。
 
 Micro 使用内部剪贴板；tmux 制品不设置 `set-clipboard`／`get-clipboard`，Ghostty 制品不放宽 `clipboard-read`。仓库不提供 Micro、tmux 与 Ghostty 间的系统剪贴板联动。
+
+### Debian SSH
+
+Debian 基线始终调用 `command/ssh/main.sh`，但写入器仅在 `APP_GHOSTTY=1` 时部署 `90-ghostty-env.conf`，由 SSH 组件拥有终端环境接收配置。脚本不安装或重载 SSH 服务；关闭标志只跳过安装，不删除既有 drop-in，配置生效仍取决于 sshd 加载它。
 
 ### macOS SSH
 
@@ -193,11 +199,11 @@ lazygit schema 和 renderer 以 `debian/app/git/lazygit.config.yml` 为事实来
 
 ### Claude Code 与 copilot-api
 
-`debian/app/claude/main.sh` 通过 Homebrew 安装 Claude Code，并由 APT 提供 sandbox／JSON／socket 依赖；通用 Homebrew updater 负责升级，不调用 `claude update`。流程先以 `settings.json` 替换基础设置，启用 copilot-api 时再定点合并 gateway 值并安装其插件，最后安装通用插件，以保留两组 `enabledPlugins`。插件清单以脚本为准；语言插件必须与对应语言服务器成对启用并依赖更早的语言组件，Git 插件只在 `APP_GIT=1` 时安装。
+`debian/app/claude/main.sh` 通过 Homebrew 安装 Claude Code，并由 APT 提供 sandbox／JSON／socket 依赖；通用 Homebrew updater 负责升级，不调用 `claude update`。流程先以 `settings.json` 替换基础设置，仅在 `APP_GHOSTTY=1` 时定点设置 `preferredNotifChannel=ghostty`，随后在启用 copilot-api 时定点合并 gateway 值并安装其插件，最后安装通用插件，以保留两组 `enabledPlugins`。插件清单以脚本为准；语言插件必须与对应语言服务器成对启用并依赖更早的语言组件，Git 插件只在 `APP_GIT=1` 时安装。
 
 脚本在首次交互启动前添加官方 marketplace；随后 `jq` 仅删除 `extraKnownMarketplaces["claude-plugins-official"]`，仅在父对象为空时删除父对象，并保留 `enabledPlugins`、其他 marketplace 和独立 registry 状态。不要用作用域更广的 marketplace 生命周期命令替换这一定点 JSON 清理，除非已审查 scope、缓存和已安装插件影响。
 
-`copilot_api.sh` 将三个模型值原样写入，不查询 `/v1/models` 或验证可用性；模型默认空，base URL 默认 `http://localhost:4141`，token 默认刻意使用非机密 `dummy`。`install_settings()` 以目录 700、文件 600 部署 `debian/app/claude/settings.json`，合并脚本再写入 `ANTHROPIC_*`；两者分别是静态设置和动态 gateway 值的事实来源。
+`copilot_api.sh` 将三个模型值原样写入，不查询 `/v1/models` 或验证可用性；模型默认空，base URL 默认 `http://localhost:4141`，token 默认刻意使用非机密 `dummy`。`install_settings()` 以目录 700、文件 600 部署 `debian/app/claude/settings.json`，条件通知键由 `debian/app/claude/main.sh` 管理，合并脚本再写入 `ANTHROPIC_*`；静态设置、条件通知渠道和动态 gateway 值分别以这些文件为事实来源。静态基线不固定通知渠道；关闭 Ghostty 后重装 Claude 会以基线覆盖旧设置，不再生成该键，但不提供单独卸载，也不保留重装前的自定义 JSON。
 
 仅当底层 model、provider、账户和 gateway 实际支持 1M context 时使用 `[1m]`，后缀本身不会赋予能力。非第一方 `ANTHROPIC_BASE_URL` 默认使用预加载 fallback；仅当 gateway 确实转发 `tool_reference` 时才设 `ENABLE_TOOL_SEARCH=true`。copilot marketplace 插件需要 Node，由该集成安装；Node 不是独立 Debian 组件。
 
@@ -210,6 +216,8 @@ lazygit schema 和 renderer 以 `debian/app/git/lazygit.config.yml` 为事实来
 ```bash
 bash /mnt/setup/main.sh --unattended "${setup_args[@]}"
 ```
+
+dev-container 复用 Debian 的集成默认值；launcher 的 Ghostty 预检不会自动启用 `APP_GHOSTTY`，需要这些 Debian 适配时须显式转发 `--app-ghostty`。
 
 launcher 只检查 Ghostty 标记和构建变量，不验证当前是否为 SSH 或 login shell：它要求 `TERM_PROGRAM=ghostty`，且 `USER`、`LANG`、`TERM`、`COLORTERM`、`TERM_PROGRAM_VERSION` 非空，并以 `infocmp -x "$TERM"` 导出 terminfo。镜像在基础 APT 和完整 setup 后才写入终端 ENV，并由容器用户用 `tic -x` 编译到 `/home/${user}/.terminfo`，从而避免终端变化使 APT／setup 缓存失效。
 

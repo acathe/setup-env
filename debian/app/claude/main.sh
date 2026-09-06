@@ -7,6 +7,7 @@ CODE_PYTHON="${CODE_PYTHON:-0}"
 CODE_RUST="${CODE_RUST:-0}"
 
 APP_CLAUDE_COPILOT_API="${APP_CLAUDE_COPILOT_API:-0}"
+APP_GHOSTTY="${APP_GHOSTTY:-0}"
 APP_GIT="${APP_GIT:-0}"
 
 parse_args() {
@@ -29,6 +30,13 @@ install_settings() {
     mkdir -p "$HOME/.claude"
     chmod 700 "$HOME/.claude"
     install -m 600 './settings.json' "$HOME/.claude/settings.json"
+
+    if [[ $APP_GHOSTTY == '1' ]]; then
+        local tmp
+        tmp="$(mktemp)"
+        jq '.preferredNotifChannel = "ghostty"' "$HOME/.claude/settings.json" > "$tmp"
+        cp "$tmp" "$HOME/.claude/settings.json"
+    fi
 }
 
 install_plugin() {
