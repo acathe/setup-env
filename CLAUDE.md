@@ -35,9 +35,9 @@ Debian 首次安装 Homebrew 前通过 APT 安装官方前置依赖。根入口�
 4. 无条件基线按依赖顺序执行；可选组件按 command、code、app 分组且组内按字母排序。
 5. `command/`、`code/` 和 `app/` 下的每个可选组件自行安装或保护其所需命令；container target 不在此保证内。除明确集成契约外，不得依赖另一可选标志。
 
-普通可运行组件的导出块、parser case、`main()` 保护条件和 README 表应作为同一接口的四个有序视图同步维护；上文列出的 README 偏差不是新增接口的先例。Debian `APP_VSCODE` 和 `APP_GHOSTTY` 是纯集成例外：有导出、parser 和 README 标志，但没有对应的 app 叶脚本或 `main()` 保护。OMZ 用 `APP_VSCODE` 选择插件和 `02-vscode.zsh`；`APP_GHOSTTY` 不安装 Ghostty、不自动启用 Claude／tmux，也不根据当前终端自动开启，而由 SSH、tmux 和 Claude 按各自所有权消费。不要为对称性虚构空保护。
+普通可运行组件的导出块、parser case、`main()` 保护条件和 README 表应作为同一接口的四个有序视图同步维护；上文列出的 README 偏差不是新增接口的先例。Debian `APP_VSCODE` 和 `APP_GHOSTTY` 是纯集成例外：有导出、parser 和 README 标志，但没有对应的 app 叶脚本或 `main()` 保护。OMZ 用 `APP_VSCODE` 选择插件和 `02-vscode.zsh`；`APP_GHOSTTY` 不安装 Ghostty、不自动启用 SSH／Claude／tmux，也不根据当前终端自动开启，而由 SSH、tmux 和 Claude 按各自所有权消费。不要为对称性虚构空保护。
 
-跨组件读取只在双方启用时增加集成行为：
+可选组件之间的正向集成要求双方启用；无条件基线可读取标志选择配置：
 
 | 消费者 | 读取的上游标志 |
 | --- | --- |
@@ -64,8 +64,10 @@ set -- "${POSITIONAL[@]+"${POSITIONAL[@]}"}"
 从仓库根运行以下非破坏性检查；要求 `bash`、`git`、`jq`、`shellcheck`、`shfmt` 和 `zsh` 在 `PATH` 中，Debian `--code-bash` 提供 ShellCheck 和 shfmt：
 
 ```bash
+bash -e <<'CHECKS'
 find . \( -path './.git' -o -path './.claude' \) -prune -o \
-    -type f -name '*.sh' -exec bash -n {} \;
+    -type f -name '*.sh' \
+    -exec bash -c 'for file in "$@"; do bash -n "$file" || exit; done' _ {} +
 sh -n debian/command/classic_cli/nanom
 jq empty debian/app/claude/settings.json \
     debian/command/modern_cli/micro.settings.json
@@ -75,15 +77,17 @@ shellcheck -s sh --rcfile './.shellcheckrc' debian/command/classic_cli/nanom
 find . \( -path './.git' -o -path './.claude' \) -prune -o -type f -name '*.sh' \
     -exec shfmt -d -i 4 -bn -ci -s -sr {} +
 find . \( -path './.git' -o -path './.claude' \) -prune -o -type f -name '*.zsh' \
-    -exec zsh -n {} +
+    -exec bash -c 'for file in "$@"; do zsh -n "$file" || exit; done' _ {} +
 git diff --check
 git diff --cached --check
+CHECKS
 ```
 
 PATH 中的 Bash 不能证明 Bash 3.2 兼容；根目录或 macOS 改动还须在 macOS 运行：
 
 ```bash
-find main.sh macos -type f -name '*.sh' -exec /bin/bash -n {} \;
+find main.sh macos -type f -name '*.sh' \
+    -exec /bin/bash -c 'for file in "$@"; do /bin/bash -n "$file" || exit; done' _ {} +
 ```
 
 严格 JSON 检查刻意不包含采用 JSONC 的 `debian/vscode/settings.json`。ShellCheck 使用 `-x`，因为 `debian/app/docker.sh` 动态 source `/etc/os-release`；`.shellcheckrc` 禁用 `SC2016`，供字面量 `jq`／`sed` 程序和生成内容保留美元符号。
@@ -95,7 +99,7 @@ OMZ 改动除仓库制品的 `zsh -n` 外，还需在一次性 `HOME`、`ZSH_CUS
 1. 用 OMZ 模板初始化 `.zshrc`，桩化 `git`；Linux 模拟 macOS 时增加 BSD `sed` 垫片。
 2. 导出全部组件变量（包括 `APP_VSCODE`），从对应平台的 `command/omz/` 依次运行 `install_plugin.sh`、`update.sh`、`plugin.sh`、`custom.sh`，不要运行 `command/omz/main.sh` 或 `install_omz`。
 3. 断言只有一个有序 `plugins=(...)`，且 custom、plugin、updater 的 basename 集合符合标志。
-4. 对生成 `.zshrc`、custom／updater 及 `pre-eza`、`brew-rustup` 运行 `zsh -n`；验证 `99-gh-login.zsh` 先删自身再只调用一次 `gh auth login`。
+4. 对生成 `.zshrc`、custom／updater 及 `pre-eza`、`brew-rustup` 运行 `zsh -n`；桩化 `gh` 后验证 `99-gh-login.zsh` 先删自身再只调用一次 `gh auth login`，不得触发真实认证。
 5. updater 调度在 `zsh -f` 中桩化 `sudo`、`brew`、`tldr`、`uv`、`rustup`、`ya`、`omz`；存在 `98-copilot-api.zsh` 时再桩化 `curl` 和 `bash`。
 
 没有 Homebrew／Starship 桩时不要运行 `command/starship.sh`，也不要直接调用真实 `update-all-in-one`。fzf 改动须在一次性环境的 `zsh -f` 中检查 `${(z)FZF_CTRL_T_OPTS}` 和 `${(z)FZF_ALT_C_OPTS}`；插件顺序改动还需真实 ZLE／PTY 测试，确保普通 Tab、`**<Tab>`、Ctrl-T 和 Alt-C 各只调用一次，且 `fzf_default_completion=fzf-tab-complete`。
@@ -157,7 +161,7 @@ OMZ 先初始化补全和库，再按 `plugins=()` source 插件、按字典序 
 
 配置须用实际安装的软件包验证，而不是针对上游 master；Lazygit 和 Micro 可能静默忽略未知键或迁移文件，未知 bat／fzf／delta 选项则会直接失败。Micro 真彩色只由 `micro.settings.json` 的 `"truecolor": "on"` 管理，不设置 `MICRO_TRUECOLOR`；`BAT_THEME` 会覆盖受管 bat 配置，也不得设置。
 
-Debian Nano 依赖系统 nanorc 加载软件包语法，不增加重复 include glob；选项面向 Nano 5.3+，避免加入会改变文件内容或与终端选择冲突的设置。classic CLI 只在未启用 modern CLI 时部署配置和 `nanom`，但不安装 Nano。新 home 中 classic 选择 `00-nano.zsh`，modern 选择后加载的 `01-micro.zsh`；重跑不删除未选片段，因此 modern → classic 必须显式删除旧 Micro 片段。macOS 不管理 Nano。
+Debian Nano 依赖系统 nanorc 加载软件包语法，不增加重复 include glob；nanorc 的 `minibar` 要求 Nano 5.5+，`nanom` 的 `-/` 要求 Nano 8.0+，避免加入会改变文件内容或与终端选择冲突的设置。classic CLI 只在未启用 modern CLI 时部署配置和 `nanom`，但不安装 Nano。新 home 中 classic 选择 `00-nano.zsh`，modern 选择后加载的 `01-micro.zsh`；重跑不删除未选片段，因此 modern → classic 必须显式删除旧 Micro 片段。macOS 不管理 Nano。
 
 ## 组件特有契约
 
@@ -181,7 +185,7 @@ Micro 使用内部剪贴板；tmux 制品不设置 `set-clipboard`／`get-clipbo
 
 ### Debian SSH
 
-Debian 基线始终调用 `command/ssh/main.sh`，但写入器仅在 `APP_GHOSTTY=1` 时部署 `90-ghostty-env.conf`，由 SSH 组件拥有终端环境接收配置。脚本不安装或重载 SSH 服务；关闭标志只跳过安装，不删除既有 drop-in，配置生效仍取决于 sshd 加载它。
+Debian `--command-ssh` 默认关闭，仅在 `COMMAND_SSH=1` 时调用 `command/ssh/main.sh`；写入器仅在同时启用 `APP_GHOSTTY=1` 时部署 `90-ghostty-env.conf`，由 SSH 组件拥有终端环境接收配置。脚本不安装或重载 SSH 服务；关闭任一标志只跳过安装，不删除既有 drop-in，配置生效仍取决于 sshd 加载它。
 
 ### macOS SSH
 
@@ -217,9 +221,9 @@ lazygit schema 和 renderer 以 `debian/app/git/lazygit.config.yml` 为事实来
 bash /mnt/setup/main.sh --unattended "${setup_args[@]}"
 ```
 
-dev-container 复用 Debian 的集成默认值；launcher 的 Ghostty 预检不会自动启用 `APP_GHOSTTY`，需要这些 Debian 适配时须显式转发 `--app-ghostty`。
+dev-container 复用 Debian 的集成默认值；launcher 的 Ghostty 预检不会自动启用 `APP_GHOSTTY`，需要这些 Debian 适配时须显式转发 `--app-ghostty`，其中 SSH 环境接收配置还须启用 `--command-ssh`。
 
-launcher 只检查 Ghostty 标记和构建变量，不验证当前是否为 SSH 或 login shell：它要求 `TERM_PROGRAM=ghostty`，且 `USER`、`LANG`、`TERM`、`COLORTERM`、`TERM_PROGRAM_VERSION` 非空，并以 `infocmp -x "$TERM"` 导出 terminfo。镜像在基础 APT 和完整 setup 后才写入终端 ENV，并由容器用户用 `tic -x` 编译到 `/home/${user}/.terminfo`，从而避免终端变化使 APT／setup 缓存失效。
+launcher 只检查 Ghostty 标记和构建变量，不验证当前是否为 SSH 或 login shell：它要求 `TERM_PROGRAM=ghostty`，且 `USER`、`LANG`、`TERM`、`COLORTERM`、`TERM_PROGRAM_VERSION` 非空，并以 `infocmp -x "$TERM"` 导出 terminfo。镜像在基础 APT 后、Debian setup 前写入终端 ENV，并由容器用户用 `tic -x` 编译到 `/home/${user}/.terminfo`；这些后置终端参数的变化不影响此前基础 APT 层，但会影响后续 setup 层的缓存。
 
 `setup_args_b64` 和 `terminfo_b64` 只编码数据，不提供保密性。前者不得承载 `--app-claude-auth-token` 或其他秘密，否则会通过 build ARG 进入镜像并可能写入用户设置；引入 Docker secret 或运行时注入前，不得扩展此通道传递凭据。宿主直接传入 `--app-claude-auth-token` 也可能暴露在 shell history 和 process argv 中，并以明文写入 0600 设置文件；文件权限只保护落盘后的访问，不构成秘密注入通道。
 

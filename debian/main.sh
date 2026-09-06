@@ -3,6 +3,7 @@
 set -euo pipefail
 
 export COMMAND_MODERN_CLI="${COMMAND_MODERN_CLI:-0}"
+export COMMAND_SSH="${COMMAND_SSH:-0}"
 
 export CODE_BASH="${CODE_BASH:-0}"
 export CODE_GO="${CODE_GO:-0}"
@@ -26,6 +27,10 @@ parse_args() {
         case "$1" in
             --command-modern-cli)
                 COMMAND_MODERN_CLI=1
+                shift
+                ;;
+            --command-ssh)
+                COMMAND_SSH=1
                 shift
                 ;;
             --code-bash)
@@ -99,9 +104,9 @@ main() {
     bash './command/omz/main.sh' "$@"
     bash './command/starship.sh' "$@"
     bash './command/classic_cli/main.sh' "$@"
-    bash './command/ssh/main.sh' "$@"
 
     [[ $COMMAND_MODERN_CLI == '1' ]] && bash './command/modern_cli/main.sh' "$@"
+    [[ $COMMAND_SSH == '1' ]] && bash './command/ssh/main.sh' "$@"
 
     [[ $CODE_BASH == '1' ]] && bash './code/bash.sh' "$@"
     [[ $CODE_GO == '1' ]] && bash './code/go.sh' "$@"

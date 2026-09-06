@@ -35,6 +35,7 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
 | main args              | script args                             |
 | ---------------------- | --------------------------------------- |
 | `--command-modern-cli` |                                         |
+| `--command-ssh`        |                                         |
 | `--code-bash`          |                                         |
 | `--code-go`            |                                         |
 | `--code-markdown`      |                                         |
