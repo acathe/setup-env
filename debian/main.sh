@@ -94,6 +94,7 @@ main() {
     bash './command/omz/main.sh' "$@"
     bash './command/starship.sh' "$@"
     bash './command/classic_cli/main.sh' "$@"
+    bash './command/ssh/main.sh' "$@"
 
     [[ $COMMAND_MODERN_CLI == '1' ]] && bash './command/modern_cli/main.sh' "$@"
 
