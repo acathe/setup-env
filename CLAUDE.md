@@ -217,11 +217,7 @@ launcher 只检查 Ghostty 标记和构建变量，不验证当前是否为 SSH 
 
 构建上下文仅为 `debian/`，镜像配置不能依赖树外文件。系统 `python3` 是基线，独立于可选 uv／py-spy；精简镜像须在 Dockerfile 显式补齐基线包。launcher 假定 Linux/systemd 与 `timedatectl`，并实际要求 `LANG` 为 `<locale>.<encoding>`，现有预检只验证非空；支持 macOS 宿主或 `LANG=C` 时须同步修改预检、拆分逻辑和 `localedef`。
 
-无人值守安装 OMZ 但不启动它，并更改登录 shell；dev-container 可通过 `docker exec` 或 SSH 进入交互式 Zsh，非交互命令不保证发现 Homebrew。同名容器已存在时 launcher 拒绝启动。
-
-launcher 将宿主 `id -u` 和 `id -g` 作为 build args，使容器用户与宿主用户的数值 UID/GID 一致；`~/Projects` bind mount 因而沿用同一所有权。宿主 `$HOME/.ssh/authorized_keys` 被单文件只读挂载到容器用户的标准路径，整个 `.ssh` 和私钥不会进入容器；launcher 不校验该文件，路径缺失时沿用 Docker `--volume` 的默认行为，SSH 公钥登录不会可用。Dockerfile 只创建 0700 `.ssh` 目录，sshd 使用 Debian `openssh-server` 的默认配置和包安装时生成的 host keys，并以前台模式作为主服务；仓库不额外定制认证策略或 host key 生命周期，同一镜像创建的容器会共享 SSH host fingerprint。
-
-launcher 固定将 `0.0.0.0:2222` 发布到容器 TCP 22，因此同一宿主同时只能有一个实例占用该 SSH 端口。新容器使用 `--privileged`、`unless-stopped`、`NOPASSWD:ALL` 并可写挂载宿主 `~/Projects`，SSH 用户可取得容器 root 权限且两侧属于同一高信任边界；必须只允许可信网络访问 TCP 2222，并使用宿主防火墙限制来源。authorized_keys 的只读挂载不改变这一信任边界。
+无人值守安装 OMZ 但不启动它，并更改登录 shell；dev-container 预期通过 `docker exec` 进入交互式 Zsh，非交互命令不保证发现 Homebrew。同名容器已存在时 launcher 拒绝启动。新容器使用 `--privileged`、`unless-stopped`、`NOPASSWD:ALL` 并可写挂载宿主 `~/Projects`，两侧属于同一信任边界；未对齐数值 UID/GID，bind mount 可能产生所有权差异。
 
 ### copilot-api 服务
 
