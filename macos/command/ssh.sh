@@ -113,7 +113,9 @@ add_config() {
     {
         echo "Host $COMMAND_SSH_HOST"
         echo "    HostName $COMMAND_SSH_HOSTNAME"
-        echo "    User $COMMAND_SSH_USER"
+        if [[ $COMMAND_SSH_USER != "$USER" ]]; then
+            echo "    User $COMMAND_SSH_USER"
+        fi
         if [[ -n $COMMAND_SSH_IDENTITY_FILE ]]; then
             echo "    IdentityFile ~/.ssh/$COMMAND_SSH_IDENTITY_FILE"
             echo "    IdentitiesOnly yes"

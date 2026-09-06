@@ -67,7 +67,7 @@ RUN mkdir -p "/home/${user}/.terminfo" \
     && rm -rf /tmp/*
 
 ARG setup_args_b64
-RUN --mount=type=bind,source=.,target=/mnt/setup,readonly \
+RUN --mount=target=/mnt/setup \
     mapfile -d '' -t setup_args < <(printf '%s' "$setup_args_b64" | base64 -d) \
     && bash /mnt/setup/main.sh --unattended "${setup_args[@]}" \
     && rm -rf /tmp/*

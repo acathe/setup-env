@@ -47,7 +47,7 @@ main() {
     fi
 
     docker build \
-        -t 'copilot-api-config:latest' \
+        -t 'copilot-api-config' \
         '.'
 
     docker run \
@@ -56,7 +56,7 @@ main() {
         -e "API_KEY_GENERATION_COUNT=$API_KEY_GENERATION_COUNT" \
         -e "API_KEY_TO_ADD=$API_KEY_TO_ADD" \
         -v "$HOME/.copilot-api:/root/.copilot-api" \
-        'copilot-api-config:latest'
+        'copilot-api-config'
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
