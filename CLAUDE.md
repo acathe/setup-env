@@ -25,7 +25,7 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
 
 Debian 首次安装 Homebrew 前通过 APT 安装官方前置依赖。根入口刻意不消费 `--unattended`：`debian/command/homebrew.sh` 用它设置 `NONINTERACTIVE=1`，OMZ 安装器将它传给上游并以 `sudo -n` 更改登录 shell。父脚本随后求值 `/home/linuxbrew/.linuxbrew/bin/brew shellenv bash` 供后代安装器发现 formula；交互式 Zsh 由 `brew` 插件配置，不写 `.zshenv`。Go 沿用该 PATH 契约；Go 和 Protobuf 标志分别让 OMZ 安装 `$HOME/go/bin` 与 keg-only `clang-format` 的交互式 PATH 片段。
 
-`debian/vscode/` 仅为参考数据，不由分发器安装。Debian `--app-vscode` 是纯 OMZ 集成：在 VS Code 运行时选择 `code --wait`，且不输出 `VISUAL`。脚本应通过 `bash` 调用，不依赖可执行位。根 `main.sh` 和 `macos/` 必须兼容 Apple Bash 3.2；Debian 和容器代码可使用更新的 Bash。
+`debian/vscode/` 仅为参考数据，不由分发器安装。Debian `--app-vscode` 是纯 OMZ 集成：在 VS Code 运行时选择 `code -w`，且不输出 `VISUAL`。脚本应通过 `bash` 调用，不依赖可执行位。根 `main.sh` 和 `macos/` 必须兼容 Apple Bash 3.2；Debian 和容器代码可使用更新的 Bash。
 
 各层 parser 遵循同一数据流：
 
@@ -145,7 +145,7 @@ OMZ 先初始化补全和库，再按 `plugins=()` source 插件、按字典序 
 
 不要用 `\<z\>` 删除插件名：连字符不是单词字符，可能匹配 `fancy-ctrl-z` 尾部并粘连相邻名称。必须以空格和括号限定；macOS 使用 BSD `sed -i ''`，Debian 使用 GNU `sed -i`。
 
-配置脚本使用 `#!/usr/bin/env bash` 和 `set -euo pipefail`。独立命令 `debian/command/classic_cli/nanom` 是 POSIX 例外，以 `#!/bin/sh` 和 `exec /usr/bin/nano --modernbindings "$@"` 透明替换自身。字面量使用单引号；仅在 shell 必须展开时用双引号，`${VAR:-default}` 的默认值不加字面引号。
+配置脚本使用 `#!/usr/bin/env bash` 和 `set -euo pipefail`。独立命令 `debian/command/classic_cli/nanom` 是 POSIX 例外，以 `#!/bin/sh` 和 `exec /usr/bin/nano -/ "$@"` 透明替换自身。字面量使用单引号；仅在 shell 必须展开时用双引号，`${VAR:-default}` 的默认值不加字面引号。
 
 编号 custom 和 updater 均为仓库静态 `.zsh` 制品；直接编辑并保留在 Zsh source 时展开的 `$PATH`、`$HOME`、`$EDITOR` 和 fzf 占位符。fzf 预览的嵌套引号决定 option tokenization，且必须保留 `-- {}` 防止以 `-` 开头的候选被当作选项。
 
@@ -165,7 +165,7 @@ Debian Nano 依赖系统 nanorc 加载软件包语法，不增加重复 include 
 
 Debian 在 OMZ 和 Starship 后无条件运行 classic CLI：Less 始终部署，Nano 与 `nanom` 仅在非 modern 模式部署，且不以 alias 改变 `nano`。modern CLI 的 formula、补全链接、bat／Micro 配置和 Micro 插件以 `debian/command/modern_cli/main.sh` 为准；`man-db` 是 Debian 基线，精简 dev-container 显式补齐。
 
-Atuin 和 fzf 都没有仓库原生配置：流程不导入 Atuin 历史或账户／同步设置，fzf 由受管 shell 片段派生 Ctrl-T／Alt-C 命令和预览。安装阶段不预热 tealdeer；只有 updater 运行 `tldr --update -q`，不在片段内吞掉失败。Markdown 组件拥有 Glow 配置，zoxide 只由 OMZ 初始化一次。
+Atuin 和 fzf 都没有仓库原生配置：流程不导入 Atuin 历史或账户／同步设置，fzf 由受管 shell 片段派生 Ctrl-T／Alt-C 命令和预览。安装阶段不预热 tealdeer；只有 updater 运行 `tldr -uq`，不在片段内吞掉失败。Markdown 组件拥有 Glow 配置，zoxide 只由 OMZ 初始化一次。
 
 ### Yazi
 
@@ -241,7 +241,7 @@ launcher 只检查 Ghostty 标记和构建变量，不验证当前是否为 SSH 
 
 ## macOS 特有约束与变更门禁
 
-macOS 没有 Debian 的条件 PATH、Atuin、fzf 或一次性登录片段；`APP_VSCODE=1` 时选择 `code --wait`。macOS 的 `01-zsh-autosuggestions.zsh`、`02-zsh-syntax-highlighting.zsh`、`03-you-should-use.zsh`、`04-z.zsh` 必须分别与 Debian 的 `05-zsh-autosuggestions.zsh`、`06-zsh-syntax-highlighting.zsh`、`07-you-should-use.zsh`、`08-z.zsh` 逐字节相同；不要抽到根目录，因为只使用 Debian 的 Docker 构建上下文无法看到树外文件。
+macOS 没有 Debian 的条件 PATH、Atuin、fzf 或一次性登录片段；`APP_VSCODE=1` 时选择 `code -w`。macOS 的 `01-zsh-autosuggestions.zsh`、`02-zsh-syntax-highlighting.zsh`、`03-you-should-use.zsh`、`04-z.zsh` 必须分别与 Debian 的 `05-zsh-autosuggestions.zsh`、`06-zsh-syntax-highlighting.zsh`、`07-you-should-use.zsh`、`08-z.zsh` 逐字节相同；不要抽到根目录，因为只使用 Debian 的 Docker 构建上下文无法看到树外文件。
 
 `macos/main.sh` 在配置进程中固定求值 `/opt/homebrew/bin/brew shellenv` 供子安装器发现 Homebrew，交互式发现由 OMZ `brew` 插件负责。路径缺失时内层命令会报错，但外层 `eval` 仍可能成功，strict mode 不保证中止；泛化前缀或改为强制失败须同步更新并验证。
 

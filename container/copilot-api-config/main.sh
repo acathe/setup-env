@@ -47,8 +47,7 @@ main() {
     fi
 
     docker build \
-        -q \
-        -t 'copilot-api-config' \
+        -qt 'copilot-api-config' \
         '.'
 
     docker run \

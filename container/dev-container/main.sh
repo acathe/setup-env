@@ -68,9 +68,8 @@ main() {
     fi
 
     docker build \
-        -q \
-        --tag "dev-container:$IMAGE_TAG" \
-        --file './Dockerfile' \
+        -qt "dev-container:$IMAGE_TAG" \
+        -f './Dockerfile' \
         --build-arg "user=$USER" \
         --build-arg "lang=${LANG%.*}" \
         --build-arg "encoding=${LANG#*.}" \
@@ -87,17 +86,16 @@ main() {
     mkdir -p "$HOME/Projects"
 
     docker run \
-        -q \
-        --detach \
+        -qd \
         --privileged \
         --init \
         --restart unless-stopped \
         --shm-size=2g \
         --ulimit nofile=1048576:1048576 \
         --tmpfs /tmp:exec \
-        --hostname "$CONTAINER" \
+        -h "$CONTAINER" \
         --name "$CONTAINER" \
-        --volume "$HOME/Projects:/home/$USER/Projects" \
+        -v "$HOME/Projects:/home/$USER/Projects" \
         "dev-container:$IMAGE_TAG"
 }
 

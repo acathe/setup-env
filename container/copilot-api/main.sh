@@ -22,7 +22,7 @@ parse_args() {
 }
 
 get_copilot_api_latest() {
-    curl -fsSIL -o /dev/null -w '%{url_effective}' 'https://github.com/caozhiyuan/copilot-api/releases/latest' | sed -E 's#.*/tag/v?([^/]+)$#\1#'
+    curl -fsSILo /dev/null -w '%{url_effective}' 'https://github.com/caozhiyuan/copilot-api/releases/latest' | sed -E 's#.*/tag/v?([^/]+)$#\1#'
 }
 
 build_image() {
@@ -33,8 +33,7 @@ build_image() {
     fi
 
     docker build \
-        -q \
-        -t "copilot-api:$version" \
+        -qt "copilot-api:$version" \
         "https://github.com/caozhiyuan/copilot-api.git#v$version" >&2
 }
 
@@ -45,11 +44,10 @@ auth() {
         return 1
     fi
 
-    sudo install -d -m 700 -o root -g root "$HOME/.copilot-api"
+    sudo install -dm 700 -o root -g root "$HOME/.copilot-api"
     docker run \
-        -q \
+        -qit \
         --rm \
-        -it \
         -v "$HOME/.copilot-api:/root/.local/share/copilot-api" \
         "$image" \
         --auth < /dev/tty
@@ -67,8 +65,7 @@ run_container() {
     fi
 
     docker run \
-        -q \
-        -d \
+        -qd \
         --name 'copilot-api' \
         --restart unless-stopped \
         -p 4141:4141 \

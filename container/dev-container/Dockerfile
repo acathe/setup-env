@@ -14,11 +14,11 @@ ENV TZ=${tz}
 
 RUN apt-get -qq update \
     && apt-get -qq install locales \
-    && localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8 \
-    && if [[ ${lang}.${encoding} != "en_US.UTF-8" ]]; then localedef -i ${lang} -c -f ${encoding} -A /usr/share/locale/locale.alias ${lang}.${encoding}; fi
+    && localedef -i en_US -cf UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8 \
+    && if [[ ${lang}.${encoding} != "en_US.UTF-8" ]]; then localedef -i ${lang} -cf ${encoding} -A /usr/share/locale/locale.alias ${lang}.${encoding}; fi
 
 ARG user
-RUN useradd -m -s "$(command -v bash)" "${user}"
+RUN useradd -ms "$(command -v bash)" "${user}"
 
 RUN apt-get -qq update \
     && apt-get -qq install sudo \
@@ -63,7 +63,7 @@ ENV TERM_PROGRAM_VERSION=${term_program_version}
 ARG terminfo_b64
 RUN mkdir -p "/home/${user}/.terminfo" \
     && printf '%s' "$terminfo_b64" | base64 -d > /tmp/terminfo.src \
-    && tic -x -o "/home/${user}/.terminfo" /tmp/terminfo.src \
+    && tic -xo "/home/${user}/.terminfo" /tmp/terminfo.src \
     && rm -rf /tmp/*
 
 ARG setup_args_b64
