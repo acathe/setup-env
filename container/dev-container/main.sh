@@ -36,18 +36,13 @@ parse_args() {
 }
 
 main() {
-    if [[ $TERM_PROGRAM != 'ghostty' ]]; then
-        echo 'Run from a Ghostty SSH login shell with TERM_PROGRAM exported.' >&2
+    if [[ -z $USER || -z $LANG ]]; then
+        echo 'USER or LANG is not set.' >&2
         return 1
     fi
 
-    if [[ -z $USER || -z $LANG || -z $TERM || -z $COLORTERM || -z $TERM_PROGRAM_VERSION ]]; then
-        echo 'USER, LANG, TERM, COLORTERM, or TERM_PROGRAM_VERSION is not set.' >&2
-        return 1
-    fi
-
-    if ! command -v docker > /dev/null 2>&1 || ! command -v infocmp > /dev/null 2>&1; then
-        echo 'docker or infocmp is not installed.' >&2
+    if ! command -v docker > /dev/null 2>&1; then
+        echo 'docker is not installed.' >&2
         return 1
     fi
 
@@ -57,31 +52,16 @@ main() {
         return 1
     fi
 
-    local setup_args_b64
-    setup_args_b64="$(for arg; do printf '%s\0' "$arg"; done | base64 | tr -d '\n')"
-
-    local terminfo_b64
-    terminfo_b64="$(infocmp -x "$TERM" | base64 | tr -d '\n')"
-    if [[ -z $terminfo_b64 ]]; then
-        echo "Failed to export terminfo for '$TERM'." >&2
-        return 1
-    fi
-
     docker build \
         -qt "dev-container:$IMAGE_TAG" \
-        -f './Dockerfile' \
         --build-arg "user=$USER" \
+        --build-arg "uid=$(id -u)" \
+        --build-arg "gid=$(id -g)" \
         --build-arg "lang=${LANG%.*}" \
         --build-arg "encoding=${LANG#*.}" \
         --build-arg "language=${LANGUAGE:-}" \
         --build-arg "tz=$(timedatectl show -p Timezone --value)" \
-        --build-arg "term=$TERM" \
-        --build-arg "colorterm=$COLORTERM" \
-        --build-arg "term_program=$TERM_PROGRAM" \
-        --build-arg "term_program_version=$TERM_PROGRAM_VERSION" \
-        --build-arg "terminfo_b64=$terminfo_b64" \
-        --build-arg "setup_args_b64=$setup_args_b64" \
-        '../../debian'
+        '.'
 
     mkdir -p "$HOME/Projects"
 
@@ -95,6 +75,8 @@ main() {
         --tmpfs /tmp:exec \
         -h "$CONTAINER" \
         --name "$CONTAINER" \
+        -p '2222:22' \
+        -v "$HOME/.ssh/authorized_keys:/home/$USER/.ssh/authorized_keys:ro" \
         -v "$HOME/Projects:/home/$USER/Projects" \
         "dev-container:$IMAGE_TAG"
 }

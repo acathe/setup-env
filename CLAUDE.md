@@ -4,7 +4,7 @@
 
 本仓库只面向全新且环境明确的 macOS、Debian 和仓库定义的容器流程；无需兼容未知旧环境、非目标发行版或非目标平台，但必须遵守本文明确列出的 Bash 3.2 等约束。仓库由 Bash 配置脚本和静态制品组成，没有统一构建目标或自动化测试套件；容器流程会构建 Docker 镜像。
 
-机械清单以对应 dispatcher、叶脚本和静态制品为事实来源；本文只维护跨文件架构、所有权、失败状态、安全边界和无法从单个文件判断的约束。`README.md` 只保留公开调用和参数简表，目前仍含手动安装 VS Code 扩展的命令，并用未排除 `--app-claude-auth-token` 的 `(debian-flag)` 表示 dev-container 转发参数。这些是已知文档偏差，不是接口或安全先例。
+机械清单以对应 dispatcher、叶脚本和静态制品为事实来源；本文只维护跨文件架构、所有权、失败状态、安全边界和无法从单个文件判断的约束。`README.md` 只保留公开调用和参数简表，目前仍含手动安装 VS Code 扩展的命令；这是已知文档偏差，不是接口先例。
 
 ## 架构、入口与分发器契约
 
@@ -18,8 +18,8 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
 根 `main.sh` 只消费默认值为 `macos` 的 `--setup`，浅克隆远端 HEAD 指向的默认分支后分发到 `<setup>/main.sh`。管道下载的 bootstrap 固定来自调用 URL 中的 `master`；若远端默认分支改变，bootstrap 与 payload 可能来自不同分支。macOS 缺少 Command Line Tools 目录时只触发 `xcode-select --install`，不会等待或验证完成；Debian／container 未发现 Git 时通过 APT 安装。克隆不会自动删除。根入口必须在 `curl | bash` 中无条件执行，是唯一没有 `BASH_SOURCE` 末尾保护的配置脚本，也是根级 `--setup` 的解析事实来源。
 
 - `macos/` 配置终端客户端／跳板机，不作为开发机配置，也不包含 Git 或 classic CLI。
-- `debian/` 配置开发环境；Homebrew、Zsh、Oh My Zsh、Starship 和不安装外部软件包的 classic CLI 基线无条件执行，其余组件可选。
-- `container/main.sh` 消费默认值为 `dev-container` 的 `--image` 并直接执行 `./$IMAGE/main.sh`；公开支持 `dev-container`、`copilot-api` 和一次性 `copilot-api-config`，但 parser 本身没有 allowlist。dev-container 使用 `debian/` 作为构建上下文。
+- `debian/` 配置开发环境；Homebrew、Zsh、Oh My Zsh、Starship 和不安装外部软件包的 classic CLI 无条件执行；SSH 写入器也始终调用，但仅在 `APP_GHOSTTY=1` 时部署 Ghostty 配置，其余组件可选。
+- `container/main.sh` 消费默认值为 `dev-container` 的 `--image` 并直接执行 `./$IMAGE/main.sh`；公开支持 `dev-container`、`copilot-api` 和一次性 `copilot-api-config`，但 parser 本身没有 allowlist。dev-container 使用 `container/dev-container/` 作为构建上下文，只构建可通过 SSH 访问的 Debian 基础环境，不在镜像构建期运行 Debian setup。
 
 下文未带平台前缀的 `command/`、`code/` 和 `app/` 路径均相对于所讨论的平台树。
 
@@ -116,6 +116,7 @@ macOS SSH 只能使用一次性 HOME 和 `ssh-keygen`／`ssh-copy-id` 桩，覆�
 | 别名、集成函数、`compdef`、运行时变量、编辑器选择 | `$ZSH_CUSTOM/<custom basename>` |
 | 聚合更新函数及平台更新片段 | `$ZSH_CUSTOM/plugins/update-all-in-one/` |
 | 一次性 GitHub CLI 登录 | `$ZSH_CUSTOM/99-gh-login.zsh` |
+| Ghostty SSH 环境变量 allowlist | `/etc/ssh/sshd_config.d/90-ghostty-env.conf` |
 
 `custom.sh` 从平台 `command/omz/custom/` 选择静态 Zsh 制品，保留源 basename 安装，由字典序决定加载顺序；文件名已承担区块标识，正文不重复标题。读取时机决定设置属于加载前插件还是加载后编号片段。
 
@@ -181,7 +182,7 @@ Micro 使用内部剪贴板；tmux 制品不设置 `set-clipboard`／`get-clipbo
 
 ### Debian SSH
 
-Debian 基线始终调用 `command/ssh/main.sh`，但写入器仅在 `APP_GHOSTTY=1` 时部署 `90-ghostty-env.conf`，由 SSH 组件拥有终端环境接收配置。脚本不安装或重载 SSH 服务；关闭标志只跳过安装，不删除既有 drop-in，配置生效仍取决于 sshd 加载它。
+Debian 基线始终调用 `command/ssh/main.sh`，但写入器仅在 `APP_GHOSTTY=1` 时以 root、0644 完整覆盖 `/etc/ssh/sshd_config.d/90-ghostty-env.conf`，额外允许 sshd 接收 `TERM_PROGRAM` 和 `TERM_PROGRAM_VERSION`；`TERM` 由 SSH PTY 协议独立处理。关闭标志只跳过安装，不删除既有 drop-in。组件只部署静态文件，不安装或探测 `openssh-server`，也不运行 `sshd -t`、reload 或 restart；`install -D` 允许在尚无 server 的 Debian 上提前创建目录。当前连接不会追溯获得变量，运行中的 sshd 也不会自动读取新文件，须由外部 reload／restart 后的新连接使用。该配置不改变认证、host key、监听地址、端口、防火墙或网络信任边界。
 
 ### macOS SSH
 
@@ -211,21 +212,17 @@ lazygit schema 和 renderer 以 `debian/app/git/lazygit.config.yml` 为事实来
 
 ### dev-container
 
-`container/dev-container/main.sh` 将转发的 Debian 参数做 NUL 编码后再 base64 编码，以 `setup_args_b64` 传入。Dockerfile 只读 bind mount Debian 构建上下文，以 `mapfile -d ''` 解码数组并运行：
+`container/dev-container/main.sh` 只消费 `--container` 和 `--image-tag`；parser 仍按统一数据流恢复 unknown token，但 `main()` 不再消费它们，因此 Debian flags 或其他额外参数不会影响镜像构建。launcher 的环境和命令预检只要求 `USER`、`LANG` 与 `docker`，并拒绝创建同名容器。它从 `container/dev-container/` 构建，只传入 user、UID、GID、locale、language 和 timezone；Dockerfile 没有 `COPY`、`ADD` 或 setup bind mount，也没有 setup 参数或秘密的 build-arg 通道。
 
-```bash
-bash /mnt/setup/main.sh --unattended "${setup_args[@]}"
-```
+镜像只创建以 Bash 为登录 shell 的用户并安装基础 SSH 开发环境，不预装 Homebrew、Zsh、OMZ、Starship 或 Debian 可选组件。系统 `python3` 是独立于可选 uv／py-spy 的基线；`file`、`man-db` 和 `ncurses-bin` 等基线包须由 Dockerfile 显式提供，其中 `ncurses-bin` 的 `tic` 供 Ghostty 在 SSH 连接时安装 terminfo。
 
-dev-container 复用 Debian 的集成默认值；launcher 的 Ghostty 预检不会自动启用 `APP_GHOSTTY`，需要这些 Debian 适配时须显式转发 `--app-ghostty`。
+终端变量和 terminfo 属于 SSH 会话的运行时状态，不作为镜像 build args 或默认 ENV。仓库管理的 Ghostty 配置启用 `ssh-env,ssh-terminfo`；用户通过该 SSH 集成进入容器后，再按独立 Debian 接口交互执行 setup。容器不会自动启用 `APP_GHOSTTY`，需要这些 Debian 适配时须在该 setup 调用中显式传入 `--app-ghostty`。安装结果只写入容器可写层，不会回写镜像；容器重启会保留，删除容器则会丢失，`~/Projects` 等挂载内容除外。普通 `docker exec` 不保证获得 Ghostty 终端环境，后续 setup 的参数和秘密也不得重新引入镜像构建通道。
 
-launcher 只检查 Ghostty 标记和构建变量，不验证当前是否为 SSH 或 login shell：它要求 `TERM_PROGRAM=ghostty`，且 `USER`、`LANG`、`TERM`、`COLORTERM`、`TERM_PROGRAM_VERSION` 非空，并以 `infocmp -x "$TERM"` 导出 terminfo。镜像在基础 APT 和完整 setup 后才写入终端 ENV，并由容器用户用 `tic -x` 编译到 `/home/${user}/.terminfo`，从而避免终端变化使 APT／setup 缓存失效。
+launcher 假定 Linux/systemd 与 `timedatectl`，并实际要求 `LANG` 为 `<locale>.<encoding>`，现有预检只验证非空。Dockerfile 始终生成 `en_US.UTF-8`，供 SSH 客户端转发对应 `LC_*` 时兜底；仅在主 locale 与其不同时额外生成主 locale，避免重复执行 `localedef`。支持 macOS 宿主或 `LANG=C` 时须同步修改预检、拆分逻辑和 `localedef`。
 
-`setup_args_b64` 和 `terminfo_b64` 只编码数据，不提供保密性。前者不得承载 `--app-claude-auth-token` 或其他秘密，否则会通过 build ARG 进入镜像并可能写入用户设置；引入 Docker secret 或运行时注入前，不得扩展此通道传递凭据。宿主直接传入 `--app-claude-auth-token` 也可能暴露在 shell history 和 process argv 中，并以明文写入 0600 设置文件；文件权限只保护落盘后的访问，不构成秘密注入通道。
+launcher 将宿主 `id -u` 和 `id -g` 作为 build args，使容器用户与宿主用户的数值 UID/GID 一致；`~/Projects` bind mount 因而沿用同一所有权。宿主 `$HOME/.ssh/authorized_keys` 被单文件只读挂载到容器用户的标准路径，整个 `.ssh` 和私钥不会进入容器；launcher 不校验该文件，路径缺失时沿用 Docker `--volume` 的默认行为，SSH 公钥登录不会可用。Dockerfile 只创建 0700 `.ssh` 目录，sshd 初始使用 Debian `openssh-server` 的默认配置和包安装时生成的 host keys，并以前台模式作为主服务；在容器内执行 Debian setup 并启用 `--app-ghostty` 后，部署的 SSH drop-in 须由外部 reload／restart 才会加载。仓库不额外定制认证策略或 host key 生命周期，同一镜像创建的容器会共享 SSH host fingerprint。
 
-构建上下文仅为 `debian/`，镜像配置不能依赖树外文件。系统 `python3` 是基线，独立于可选 uv／py-spy；精简镜像须在 Dockerfile 显式补齐基线包。launcher 假定 Linux/systemd 与 `timedatectl`，并实际要求 `LANG` 为 `<locale>.<encoding>`，现有预检只验证非空；支持 macOS 宿主或 `LANG=C` 时须同步修改预检、拆分逻辑和 `localedef`。
-
-无人值守安装 OMZ 但不启动它，并更改登录 shell；dev-container 预期通过 `docker exec` 进入交互式 Zsh，非交互命令不保证发现 Homebrew。同名容器已存在时 launcher 拒绝启动。新容器使用 `--privileged`、`unless-stopped`、`NOPASSWD:ALL` 并可写挂载宿主 `~/Projects`，两侧属于同一信任边界；未对齐数值 UID/GID，bind mount 可能产生所有权差异。
+launcher 未指定宿主绑定地址，并将宿主 TCP 2222 发布到容器 TCP 22；实际绑定地址遵循 Docker daemon 的默认策略，因此同一宿主同时只能有一个实例占用该 SSH 端口。新容器使用 `--privileged`、`unless-stopped`、`NOPASSWD:ALL` 并可写挂载宿主 `~/Projects`，SSH 用户可取得容器 root 权限且两侧属于同一高信任边界；必须只允许可信网络访问 TCP 2222，并使用宿主防火墙限制来源。authorized_keys 的只读挂载不改变这一信任边界。
 
 ### copilot-api 服务
 
@@ -241,7 +238,7 @@ launcher 只检查 Ghostty 标记和构建变量，不验证当前是否为 SSH 
 
 ## macOS 特有约束与变更门禁
 
-macOS 没有 Debian 的条件 PATH、Atuin、fzf 或一次性登录片段；`APP_VSCODE=1` 时选择 `code -w`。macOS 的 `01-zsh-autosuggestions.zsh`、`02-zsh-syntax-highlighting.zsh`、`03-you-should-use.zsh`、`04-z.zsh` 必须分别与 Debian 的 `05-zsh-autosuggestions.zsh`、`06-zsh-syntax-highlighting.zsh`、`07-you-should-use.zsh`、`08-z.zsh` 逐字节相同；不要抽到根目录，因为只使用 Debian 的 Docker 构建上下文无法看到树外文件。
+macOS 没有 Debian 的条件 PATH、Atuin、fzf 或一次性登录片段；`APP_VSCODE=1` 时选择 `code -w`。macOS 的 `01-zsh-autosuggestions.zsh`、`02-zsh-syntax-highlighting.zsh`、`03-you-should-use.zsh`、`04-z.zsh` 必须分别与 Debian 的 `05-zsh-autosuggestions.zsh`、`06-zsh-syntax-highlighting.zsh`、`07-you-should-use.zsh`、`08-z.zsh` 逐字节相同；两平台仍各自保留并部署这些制品。
 
 `macos/main.sh` 在配置进程中固定求值 `/opt/homebrew/bin/brew shellenv` 供子安装器发现 Homebrew，交互式发现由 OMZ `brew` 插件负责。路径缺失时内层命令会报错，但外层 `eval` 仍可能成功，strict mode 不保证中止；泛化前缀或改为强制失败须同步更新并验证。
 

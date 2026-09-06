@@ -1,7 +1,7 @@
 FROM debian:13
 
 SHELL ["/usr/bin/bash", "-c"]
-CMD ["sleep", "infinity"]
+CMD ["sudo", "/usr/sbin/sshd", "-D", "-e"]
 
 ARG lang
 ARG encoding
@@ -18,12 +18,20 @@ RUN apt-get -qq update \
     && if [[ ${lang}.${encoding} != "en_US.UTF-8" ]]; then localedef -i ${lang} -cf ${encoding} -A /usr/share/locale/locale.alias ${lang}.${encoding}; fi
 
 ARG user
-RUN useradd -ms "$(command -v bash)" "${user}"
+ARG uid
+ARG gid
+RUN groupadd -g "${gid}" "${user}" \
+    && useradd -mu "${uid}" -g "${gid}" -s "$(command -v bash)" "${user}"
 
 RUN apt-get -qq update \
     && apt-get -qq install sudo \
     && echo "${user} ALL=(ALL) NOPASSWD:ALL" > "/etc/sudoers.d/${user}" \
     && chmod 0440 "/etc/sudoers.d/${user}"
+
+RUN apt-get -qq update \
+    && apt-get -qq install openssh-server \
+    && install -dm 700 -o "${user}" -g "${user}" "/home/${user}/.ssh" \
+    && install -dm 755 /run/sshd
 
 RUN apt-get -qq update \
     && apt-get -qq install \
@@ -49,25 +57,3 @@ RUN apt-get -qq update \
 WORKDIR /home/${user}
 USER ${user}
 ENV USER=${user}
-
-ARG term=xterm-256color
-ARG colorterm=truecolor
-ARG term_program
-ARG term_program_version
-
-ENV TERM=${term}
-ENV COLORTERM=${colorterm}
-ENV TERM_PROGRAM=${term_program}
-ENV TERM_PROGRAM_VERSION=${term_program_version}
-
-ARG terminfo_b64
-RUN mkdir -p "/home/${user}/.terminfo" \
-    && printf '%s' "$terminfo_b64" | base64 -d > /tmp/terminfo.src \
-    && tic -xo "/home/${user}/.terminfo" /tmp/terminfo.src \
-    && rm -rf /tmp/*
-
-ARG setup_args_b64
-RUN --mount=target=/mnt/setup \
-    mapfile -d '' -t setup_args < <(printf '%s' "$setup_args_b64" | base64 -d) \
-    && bash /mnt/setup/main.sh --unattended "${setup_args[@]}" \
-    && rm -rf /tmp/*
