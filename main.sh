@@ -33,8 +33,8 @@ macos() {
 
 debian() {
     if ! command -v git > /dev/null 2>&1; then
-        sudo apt-get update
-        sudo apt-get install -y git
+        sudo apt-get -qq update
+        sudo apt-get -qq install git
     fi
 }
 
@@ -55,9 +55,8 @@ main() {
     local tmpdir
     tmpdir="$(mktemp -du '/tmp/setup_env.XXXXXX')"
 
-    git clone 'https://github.com/acathe/setup-env.git' "$tmpdir" \
-        --depth 1 \
-        --single-branch
+    git clone -q 'https://github.com/acathe/setup-env.git' "$tmpdir" \
+        --depth 1
 
     bash "$tmpdir/$SETUP/main.sh" "$@"
 }

@@ -1,3 +1,3 @@
-brew update \
-    && brew upgrade --greedy \
-    && brew cleanup
+brew update -q \
+    && brew upgrade -qg \
+    && brew cleanup -q

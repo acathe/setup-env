@@ -3,8 +3,8 @@
 set -euo pipefail
 
 main() {
-    brew install 'rustup'
-    rustup default stable
+    brew install -q 'rustup'
+    rustup -q default stable
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then

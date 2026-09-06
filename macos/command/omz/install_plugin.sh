@@ -6,7 +6,7 @@ ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
 
 install_community_plugin() {
     local repo="$1" plugin="$2"
-    git clone "https://github.com/$repo" "$ZSH_CUSTOM/plugins/$plugin"
+    git clone -q "https://github.com/$repo" "$ZSH_CUSTOM/plugins/$plugin"
 }
 
 main() {

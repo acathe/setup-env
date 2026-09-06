@@ -25,7 +25,7 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
 
 Debian 首次安装 Homebrew 前通过 APT 安装官方前置依赖。根入口刻意不消费 `--unattended`：`debian/command/homebrew.sh` 用它设置 `NONINTERACTIVE=1`，OMZ 安装器将它传给上游并以 `sudo -n` 更改登录 shell。父脚本随后求值 `/home/linuxbrew/.linuxbrew/bin/brew shellenv bash` 供后代安装器发现 formula；交互式 Zsh 由 `brew` 插件配置，不写 `.zshenv`。Go 沿用该 PATH 契约；Go 和 Protobuf 标志分别让 OMZ 安装 `$HOME/go/bin` 与 keg-only `clang-format` 的交互式 PATH 片段。
 
-`debian/vscode/` 仅为参考数据，不由分发器安装。Debian `--app-vscode` 是纯 OMZ 集成：在 VS Code 运行时选择 `code --wait`，且不输出 `VISUAL`。脚本应通过 `bash` 调用，不依赖可执行位。根 `main.sh` 和 `macos/` 必须兼容 Apple Bash 3.2；Debian 和容器代码可使用更新的 Bash。
+`debian/vscode/` 仅为参考数据，不由分发器安装。Debian `--app-vscode` 是纯 OMZ 集成：在 VS Code 运行时选择 `code -w`，且不输出 `VISUAL`。脚本应通过 `bash` 调用，不依赖可执行位。根 `main.sh` 和 `macos/` 必须兼容 Apple Bash 3.2；Debian 和容器代码可使用更新的 Bash。
 
 各层 parser 遵循同一数据流：
 
@@ -35,7 +35,7 @@ Debian 首次安装 Homebrew 前通过 APT 安装官方前置依赖。根入口�
 4. 无条件基线按依赖顺序执行；可选组件按 command、code、app 分组且组内按字母排序。
 5. `command/`、`code/` 和 `app/` 下的每个可选组件自行安装或保护其所需命令；container target 不在此保证内。除明确集成契约外，不得依赖另一可选标志。
 
-普通可运行组件的导出块、parser case、`main()` 保护条件和 README 表应作为同一接口的四个有序视图同步维护；上文列出的 README 偏差不是新增接口的先例。Debian `APP_VSCODE` 是纯集成例外：有导出、parser 和 README 标志，但没有叶脚本或 `main()` 保护；OMZ 用它选择插件和 `02-vscode.zsh`，不要为对称性虚构空保护。
+普通可运行组件的导出块、parser case、`main()` 保护条件和 README 表应作为同一接口的四个有序视图同步维护；上文列出的 README 偏差不是新增接口的先例。Debian `APP_VSCODE` 和 `APP_GHOSTTY` 是纯集成例外：有导出、parser 和 README 标志，但没有对应的 app 叶脚本或 `main()` 保护。OMZ 用 `APP_VSCODE` 选择插件和 `02-vscode.zsh`；`APP_GHOSTTY` 不安装 Ghostty、不自动启用 Claude／tmux，也不根据当前终端自动开启，而由 SSH、tmux 和 Claude 按各自所有权消费。不要为对称性虚构空保护。
 
 跨组件读取只在双方启用时增加集成行为：
 
@@ -43,7 +43,9 @@ Debian 首次安装 Homebrew 前通过 APT 安装官方前置依赖。根入口�
 | --- | --- |
 | Debian OMZ 写入器 | `COMMAND_MODERN_CLI`、`CODE_GO`、`CODE_PROTOBUF`、`CODE_PYTHON`、`CODE_RUST`、`APP_DOCKER`、`APP_GIT`、`APP_TMUX`、`APP_VSCODE`、`APP_YAZI` |
 | macOS OMZ 写入器 | `COMMAND_SSH`、`APP_VSCODE` |
-| Claude app | `CODE_GO`、`CODE_PYTHON`、`CODE_RUST`、`APP_GIT` |
+| Debian SSH 写入器 | `APP_GHOSTTY` |
+| Debian tmux | `APP_CLAUDE`、`APP_GHOSTTY` |
+| Claude app | `CODE_GO`、`CODE_PYTHON`、`CODE_RUST`、`APP_GHOSTTY`、`APP_GIT` |
 | Yazi | `COMMAND_MODERN_CLI`、`CODE_MARKDOWN` |
 | Debian classic CLI | `COMMAND_MODERN_CLI` |
 
@@ -143,13 +145,13 @@ OMZ 先初始化补全和库，再按 `plugins=()` source 插件、按字典序 
 
 不要用 `\<z\>` 删除插件名：连字符不是单词字符，可能匹配 `fancy-ctrl-z` 尾部并粘连相邻名称。必须以空格和括号限定；macOS 使用 BSD `sed -i ''`，Debian 使用 GNU `sed -i`。
 
-配置脚本使用 `#!/usr/bin/env bash` 和 `set -euo pipefail`。独立命令 `debian/command/classic_cli/nanom` 是 POSIX 例外，以 `#!/bin/sh` 和 `exec /usr/bin/nano --modernbindings "$@"` 透明替换自身。字面量使用单引号；仅在 shell 必须展开时用双引号，`${VAR:-default}` 的默认值不加字面引号。
+配置脚本使用 `#!/usr/bin/env bash` 和 `set -euo pipefail`。独立命令 `debian/command/classic_cli/nanom` 是 POSIX 例外，以 `#!/bin/sh` 和 `exec /usr/bin/nano -/ "$@"` 透明替换自身。字面量使用单引号；仅在 shell 必须展开时用双引号，`${VAR:-default}` 的默认值不加字面引号。
 
 编号 custom 和 updater 均为仓库静态 `.zsh` 制品；直接编辑并保留在 Zsh source 时展开的 `$PATH`、`$HOME`、`$EDITOR` 和 fzf 占位符。fzf 预览的嵌套引号决定 option tokenization，且必须保留 `-- {}` 防止以 `-` 开头的候选被当作选项。
 
 函数最后一条语句若是求值为 false 的 `[[ ... ]] && command`，会返回 1 并在 `set -e` 调用方中止；改用 `if` 或显式 `return 0`。原地 `sed` 没有匹配仍成功，修改上游模板时须验证标记和结果；`ln -sf` 前须验证来源，避免悬空链接。
 
-对未由当前组件或明确前置组件保证的命令先用 `command -v`。多数网络失败在 strict mode 下中止，`tldr --update || true` 是显式非致命例外。两平台 Homebrew／OMZ 安装器先在命令替换中下载再执行，下载失败可能变成执行空脚本并返回成功，不能视为致命保证。
+对未由当前组件或明确前置组件保证的命令先用 `command -v`。多数网络失败在 strict mode 下中止。两平台 Homebrew／OMZ 安装器先在命令替换中下载再执行，下载失败可能变成执行空脚本并返回成功，不能视为致命保证。
 
 `compinit` 只发现 `_*` 文件并按首个 `#compdef` 注册命令，链接名不会改变声明。OMZ 在 `compinit` 前加入 `$ZSH_CUSTOM/completions`，而 `brew` 插件更晚才加入 Homebrew `site-functions`；modern CLI 必须通过动态 `brew --prefix` 提前创建受控链接。逐个验证来源；后续失败不会回滚已建链接，不得硬编码 Linuxbrew／Cellar 前缀或产生悬空链接。
 
@@ -163,7 +165,7 @@ Debian Nano 依赖系统 nanorc 加载软件包语法，不增加重复 include 
 
 Debian 在 OMZ 和 Starship 后无条件运行 classic CLI：Less 始终部署，Nano 与 `nanom` 仅在非 modern 模式部署，且不以 alias 改变 `nano`。modern CLI 的 formula、补全链接、bat／Micro 配置和 Micro 插件以 `debian/command/modern_cli/main.sh` 为准；`man-db` 是 Debian 基线，精简 dev-container 显式补齐。
 
-Atuin 和 fzf 都没有仓库原生配置：流程不导入 Atuin 历史或账户／同步设置，fzf 由受管 shell 片段派生 Ctrl-T／Alt-C 命令和预览。安装阶段不预热 tealdeer；只有 updater 非致命运行 `tldr --update`。Markdown 组件拥有 Glow 配置，zoxide 只由 OMZ 初始化一次。
+Atuin 和 fzf 都没有仓库原生配置：流程不导入 Atuin 历史或账户／同步设置，fzf 由受管 shell 片段派生 Ctrl-T／Alt-C 命令和预览。安装阶段不预热 tealdeer；只有 updater 运行 `tldr -uq`，不在片段内吞掉失败。Markdown 组件拥有 Glow 配置，zoxide 只由 OMZ 初始化一次。
 
 ### Yazi
 
@@ -173,9 +175,13 @@ Atuin 和 fzf 都没有仓库原生配置：流程不导入 Atuin 历史或账�
 
 ### tmux 与 Ghostty
 
-`--app-tmux` 每次下载并执行未固定的 `gpakosz/.tmux` `master/install.sh`，patch 上游生成文件后无查重追加 `debian/app/tmux/ghostty.tmux.conf`；该制品无条件启用 passthrough、extended keys 和仅限 `xterm-ghostty` 的 terminal features。上游会把活动配置移为时间戳备份再重建，正常重跑不在活动文件累积区块，但会保留备份且行为可能随上游变化。
+`--app-tmux` 每次下载并执行未固定的 `gpakosz/.tmux` `master/install.sh`，patch 上游生成文件后，按 `APP_CLAUDE` 和 `APP_GHOSTTY` 独立选择并无查重追加 `debian/app/tmux/claude.tmux.conf`、`ghostty.tmux.conf`，两者均开启时按 Claude → Ghostty 顺序追加。Claude 片段拥有通用 passthrough、extended keys 和 `xterm*` 的 extkeys 声明；Ghostty 片段只声明 `xterm-ghostty` 的 terminal features。上游会把活动配置移为时间戳备份再重建，正常重跑只追加本次选中的区块，不在活动文件累积区块，但会保留备份且行为可能随上游变化。
 
 Micro 使用内部剪贴板；tmux 制品不设置 `set-clipboard`／`get-clipboard`，Ghostty 制品不放宽 `clipboard-read`。仓库不提供 Micro、tmux 与 Ghostty 间的系统剪贴板联动。
+
+### Debian SSH
+
+Debian 基线始终调用 `command/ssh/main.sh`，但写入器仅在 `APP_GHOSTTY=1` 时部署 `90-ghostty-env.conf`，由 SSH 组件拥有终端环境接收配置。脚本不安装或重载 SSH 服务；关闭标志只跳过安装，不删除既有 drop-in，配置生效仍取决于 sshd 加载它。
 
 ### macOS SSH
 
@@ -193,11 +199,11 @@ lazygit schema 和 renderer 以 `debian/app/git/lazygit.config.yml` 为事实来
 
 ### Claude Code 与 copilot-api
 
-`debian/app/claude/main.sh` 通过 Homebrew 安装 Claude Code，并由 APT 提供 sandbox／JSON／socket 依赖；通用 Homebrew updater 负责升级，不调用 `claude update`。流程先以 `settings.json` 替换基础设置，启用 copilot-api 时再定点合并 gateway 值并安装其插件，最后安装通用插件，以保留两组 `enabledPlugins`。插件清单以脚本为准；语言插件必须与对应语言服务器成对启用并依赖更早的语言组件，Git 插件只在 `APP_GIT=1` 时安装。
+`debian/app/claude/main.sh` 通过 Homebrew 安装 Claude Code，并由 APT 提供 sandbox／JSON／socket 依赖；通用 Homebrew updater 负责升级，不调用 `claude update`。流程先以 `settings.json` 替换基础设置，仅在 `APP_GHOSTTY=1` 时定点设置 `preferredNotifChannel=ghostty`，随后在启用 copilot-api 时定点合并 gateway 值并安装其插件，最后安装通用插件，以保留两组 `enabledPlugins`。插件清单以脚本为准；语言插件必须与对应语言服务器成对启用并依赖更早的语言组件，Git 插件只在 `APP_GIT=1` 时安装。
 
 脚本在首次交互启动前添加官方 marketplace；随后 `jq` 仅删除 `extraKnownMarketplaces["claude-plugins-official"]`，仅在父对象为空时删除父对象，并保留 `enabledPlugins`、其他 marketplace 和独立 registry 状态。不要用作用域更广的 marketplace 生命周期命令替换这一定点 JSON 清理，除非已审查 scope、缓存和已安装插件影响。
 
-`copilot_api.sh` 将三个模型值原样写入，不查询 `/v1/models` 或验证可用性；模型默认空，base URL 默认 `http://localhost:4141`，token 默认刻意使用非机密 `dummy`。`install_settings()` 以目录 700、文件 600 部署 `debian/app/claude/settings.json`，合并脚本再写入 `ANTHROPIC_*`；两者分别是静态设置和动态 gateway 值的事实来源。
+`copilot_api.sh` 将三个模型值原样写入，不查询 `/v1/models` 或验证可用性；模型默认空，base URL 默认 `http://localhost:4141`，token 默认刻意使用非机密 `dummy`。`install_settings()` 以目录 700、文件 600 部署 `debian/app/claude/settings.json`，条件通知键由 `debian/app/claude/main.sh` 管理，合并脚本再写入 `ANTHROPIC_*`；静态设置、条件通知渠道和动态 gateway 值分别以这些文件为事实来源。静态基线不固定通知渠道；关闭 Ghostty 后重装 Claude 会以基线覆盖旧设置，不再生成该键，但不提供单独卸载，也不保留重装前的自定义 JSON。
 
 仅当底层 model、provider、账户和 gateway 实际支持 1M context 时使用 `[1m]`，后缀本身不会赋予能力。非第一方 `ANTHROPIC_BASE_URL` 默认使用预加载 fallback；仅当 gateway 确实转发 `tool_reference` 时才设 `ENABLE_TOOL_SEARCH=true`。copilot marketplace 插件需要 Node，由该集成安装；Node 不是独立 Debian 组件。
 
@@ -210,6 +216,8 @@ lazygit schema 和 renderer 以 `debian/app/git/lazygit.config.yml` 为事实来
 ```bash
 bash /mnt/setup/main.sh --unattended "${setup_args[@]}"
 ```
+
+dev-container 复用 Debian 的集成默认值；launcher 的 Ghostty 预检不会自动启用 `APP_GHOSTTY`，需要这些 Debian 适配时须显式转发 `--app-ghostty`。
 
 launcher 只检查 Ghostty 标记和构建变量，不验证当前是否为 SSH 或 login shell：它要求 `TERM_PROGRAM=ghostty`，且 `USER`、`LANG`、`TERM`、`COLORTERM`、`TERM_PROGRAM_VERSION` 非空，并以 `infocmp -x "$TERM"` 导出 terminfo。镜像在基础 APT 和完整 setup 后才写入终端 ENV，并由容器用户用 `tic -x` 编译到 `/home/${user}/.terminfo`，从而避免终端变化使 APT／setup 缓存失效。
 
@@ -233,7 +241,7 @@ launcher 只检查 Ghostty 标记和构建变量，不验证当前是否为 SSH 
 
 ## macOS 特有约束与变更门禁
 
-macOS 没有 Debian 的条件 PATH、Atuin、fzf 或一次性登录片段；`APP_VSCODE=1` 时选择 `code --wait`。macOS 的 `01-zsh-autosuggestions.zsh`、`02-zsh-syntax-highlighting.zsh`、`03-you-should-use.zsh`、`04-z.zsh` 必须分别与 Debian 的 `05-zsh-autosuggestions.zsh`、`06-zsh-syntax-highlighting.zsh`、`07-you-should-use.zsh`、`08-z.zsh` 逐字节相同；不要抽到根目录，因为只使用 Debian 的 Docker 构建上下文无法看到树外文件。
+macOS 没有 Debian 的条件 PATH、Atuin、fzf 或一次性登录片段；`APP_VSCODE=1` 时选择 `code -w`。macOS 的 `01-zsh-autosuggestions.zsh`、`02-zsh-syntax-highlighting.zsh`、`03-you-should-use.zsh`、`04-z.zsh` 必须分别与 Debian 的 `05-zsh-autosuggestions.zsh`、`06-zsh-syntax-highlighting.zsh`、`07-you-should-use.zsh`、`08-z.zsh` 逐字节相同；不要抽到根目录，因为只使用 Debian 的 Docker 构建上下文无法看到树外文件。
 
 `macos/main.sh` 在配置进程中固定求值 `/opt/homebrew/bin/brew shellenv` 供子安装器发现 Homebrew，交互式发现由 OMZ `brew` 插件负责。路径缺失时内层命令会报错，但外层 `eval` 仍可能成功，strict mode 不保证中止；泛化前缀或改为强制失败须同步更新并验证。
 

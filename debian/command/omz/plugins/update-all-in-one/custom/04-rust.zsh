@@ -1,1 +1,1 @@
-rustup update
+rustup -q update

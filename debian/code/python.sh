@@ -3,8 +3,8 @@
 set -euo pipefail
 
 main() {
-    brew install 'uv'
-    uv tool install 'py-spy'
+    brew install -q 'uv'
+    uv tool install -q 'py-spy'
 
     mkdir -p "$HOME/.config/Beslogic"
     curl -fsSL 'https://raw.githubusercontent.com/BesLogic/Beslogic-Ruff-Config/refs/heads/main/ruff.toml' \

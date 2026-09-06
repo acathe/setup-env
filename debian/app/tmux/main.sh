@@ -2,6 +2,9 @@
 
 set -euo pipefail
 
+APP_CLAUDE="${APP_CLAUDE:-0}"
+APP_GHOSTTY="${APP_GHOSTTY:-0}"
+
 install_oh_my_tmux() {
     mkdir -p "$HOME/.config"
 
@@ -16,13 +19,20 @@ configure_tmux() {
     sed -i 's/^#set -g history-limit .*/set -g history-limit 10000/' "$HOME/.config/tmux/tmux.conf.local"
 
     {
-        echo
-        cat './ghostty.tmux.conf'
+        if [[ $APP_CLAUDE == '1' ]]; then
+            echo
+            cat './claude.tmux.conf'
+        fi
+
+        if [[ $APP_GHOSTTY == '1' ]]; then
+            echo
+            cat './ghostty.tmux.conf'
+        fi
     } >> "$HOME/.config/tmux/tmux.conf.local"
 }
 
 main() {
-    brew install 'tmux'
+    brew install -q 'tmux'
 
     install_oh_my_tmux
     configure_tmux

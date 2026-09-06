@@ -28,7 +28,7 @@ install_config() {
 }
 
 main() {
-    brew install 'yazi'
+    brew install -q 'yazi'
 
     install_plugins
     install_config "$@"

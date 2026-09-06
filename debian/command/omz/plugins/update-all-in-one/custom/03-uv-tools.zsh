@@ -1,1 +1,1 @@
-uv tool upgrade --all
+uv tool upgrade -q --all

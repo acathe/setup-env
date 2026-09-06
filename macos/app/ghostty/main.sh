@@ -3,7 +3,7 @@
 set -euo pipefail
 
 main() {
-    brew install --cask 'ghostty'
+    brew install -q --cask 'ghostty'
 
     mkdir -p "$HOME/.config/ghostty"
     install -m 644 './config.ghostty' "$HOME/.config/ghostty/config.ghostty"

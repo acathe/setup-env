@@ -10,7 +10,6 @@
     "defaultMode": "auto"
   },
   "language": "Chinese",
-  "preferredNotifChannel": "ghostty",
   "tui": "fullscreen",
   "workflowSizeGuideline": "unrestricted"
 }

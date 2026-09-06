@@ -1,1 +1,1 @@
-alias tree='eza --tree'
+alias tree='eza -T'

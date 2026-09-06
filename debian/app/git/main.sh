@@ -56,7 +56,7 @@ setup_git() {
 }
 
 main() {
-    brew install 'gh' 'git-delta' 'lazygit'
+    brew install -q 'gh' 'git-delta' 'lazygit'
     setup_git
 }
 

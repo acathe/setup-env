@@ -3,7 +3,7 @@
 set -euo pipefail
 
 main() {
-    brew install 'neovim'
+    brew install -q 'neovim'
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then

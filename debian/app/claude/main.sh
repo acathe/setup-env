@@ -7,6 +7,7 @@ CODE_PYTHON="${CODE_PYTHON:-0}"
 CODE_RUST="${CODE_RUST:-0}"
 
 APP_CLAUDE_COPILOT_API="${APP_CLAUDE_COPILOT_API:-0}"
+APP_GHOSTTY="${APP_GHOSTTY:-0}"
 APP_GIT="${APP_GIT:-0}"
 
 parse_args() {
@@ -29,6 +30,13 @@ install_settings() {
     mkdir -p "$HOME/.claude"
     chmod 700 "$HOME/.claude"
     install -m 600 './settings.json' "$HOME/.claude/settings.json"
+
+    if [[ $APP_GHOSTTY == '1' ]]; then
+        local tmp
+        tmp="$(mktemp)"
+        jq '.preferredNotifChannel = "ghostty"' "$HOME/.claude/settings.json" > "$tmp"
+        cp "$tmp" "$HOME/.claude/settings.json"
+    fi
 }
 
 install_plugin() {
@@ -49,12 +57,12 @@ install_plugin() {
 
     if [[ $CODE_PYTHON == '1' ]]; then
         export PATH="$HOME/.local/bin:$PATH"
-        uv tool install 'pyright[nodejs]'
+        uv tool install -q 'pyright[nodejs]'
         claude plugin install 'pyright-lsp@claude-plugins-official'
     fi
 
     if [[ $CODE_RUST == '1' ]]; then
-        rustup component add rust-analyzer
+        rustup -q component add rust-analyzer
         claude plugin install 'rust-analyzer-lsp@claude-plugins-official'
     fi
 
@@ -67,10 +75,10 @@ install_plugin() {
 }
 
 main() {
-    sudo apt-get update
-    sudo apt-get install -y bubblewrap jq socat
+    sudo apt-get -qq update
+    sudo apt-get -qq install bubblewrap jq socat
 
-    brew install --cask 'claude-code@latest'
+    brew install -q --cask 'claude-code@latest'
 
     install_settings
 

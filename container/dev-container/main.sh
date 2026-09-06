@@ -68,7 +68,7 @@ main() {
     fi
 
     docker build \
-        -t "dev-container:$IMAGE_TAG" \
+        -qt "dev-container:$IMAGE_TAG" \
         -f './Dockerfile' \
         --build-arg "user=$USER" \
         --build-arg "lang=${LANG%.*}" \
@@ -86,14 +86,14 @@ main() {
     mkdir -p "$HOME/Projects"
 
     docker run \
-        -d \
+        -qd \
         --privileged \
         --init \
         --restart unless-stopped \
         --shm-size=2g \
         --ulimit nofile=1048576:1048576 \
         --tmpfs /tmp:exec \
-        --hostname "$CONTAINER" \
+        -h "$CONTAINER" \
         --name "$CONTAINER" \
         -v "$HOME/Projects:/home/$USER/Projects" \
         "dev-container:$IMAGE_TAG"

@@ -1,5 +1,8 @@
 FROM debian:13
 
+SHELL ["/usr/bin/bash", "-c"]
+CMD ["sleep", "infinity"]
+
 ARG lang
 ARG encoding
 ARG language
@@ -9,23 +12,21 @@ ENV LANG=${lang}.${encoding}
 ENV LANGUAGE=${language}
 ENV TZ=${tz}
 
-SHELL ["/usr/bin/bash", "-c"]
+RUN apt-get -qq update \
+    && apt-get -qq install locales \
+    && localedef -i en_US -cf UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8 \
+    && if [[ ${lang}.${encoding} != "en_US.UTF-8" ]]; then localedef -i ${lang} -cf ${encoding} -A /usr/share/locale/locale.alias ${lang}.${encoding}; fi
 
 ARG user
-RUN apt-get update \
-    && apt-get install -y locales sudo \
-    && localedef -i ${lang} -c -f ${encoding} -A /usr/share/locale/locale.alias ${lang}.${encoding} \
-    && useradd -m -s "$(command -v bash)" "${user}" \
+RUN useradd -ms "$(command -v bash)" "${user}"
+
+RUN apt-get -qq update \
+    && apt-get -qq install sudo \
     && echo "${user} ALL=(ALL) NOPASSWD:ALL" > "/etc/sudoers.d/${user}" \
-    && chmod 0440 "/etc/sudoers.d/${user}" \
-    && rm -rf /var/lib/apt/lists/* /tmp/*
+    && chmod 0440 "/etc/sudoers.d/${user}"
 
-WORKDIR /home/${user}
-USER ${user}
-ENV USER=${user}
-
-RUN sudo apt-get update \
-    && sudo apt-get install -y \
+RUN apt-get -qq update \
+    && apt-get -qq install \
     bzip2 \
     ca-certificates \
     curl \
@@ -43,29 +44,30 @@ RUN sudo apt-get update \
     psmisc \
     python3 \
     vim-tiny \
-    xz-utils \
-    && sudo rm -rf /var/lib/apt/lists/* /tmp/*
+    xz-utils
 
-ARG setup_args_b64=""
-RUN --mount=type=bind,source=.,target=/mnt/setup,readonly \
-    mapfile -d '' -t setup_args < <(printf '%s' "$setup_args_b64" | base64 -d) \
-    && bash /mnt/setup/main.sh --unattended "${setup_args[@]}" \
-    && sudo rm -rf /var/lib/apt/lists/* /tmp/*
-
-ARG terminfo_b64=""
-RUN mkdir -p "/home/${user}/.terminfo" \
-    && printf '%s' "$terminfo_b64" | base64 -d > /tmp/terminfo.src \
-    && tic -x -o "/home/${user}/.terminfo" /tmp/terminfo.src \
-    && rm /tmp/terminfo.src
+WORKDIR /home/${user}
+USER ${user}
+ENV USER=${user}
 
 ARG term=xterm-256color
 ARG colorterm=truecolor
-ARG term_program=""
-ARG term_program_version=""
+ARG term_program
+ARG term_program_version
 
 ENV TERM=${term}
 ENV COLORTERM=${colorterm}
 ENV TERM_PROGRAM=${term_program}
 ENV TERM_PROGRAM_VERSION=${term_program_version}
 
-CMD ["sleep", "infinity"]
+ARG terminfo_b64
+RUN mkdir -p "/home/${user}/.terminfo" \
+    && printf '%s' "$terminfo_b64" | base64 -d > /tmp/terminfo.src \
+    && tic -xo "/home/${user}/.terminfo" /tmp/terminfo.src \
+    && rm -rf /tmp/*
+
+ARG setup_args_b64
+RUN --mount=target=/mnt/setup \
+    mapfile -d '' -t setup_args < <(printf '%s' "$setup_args_b64" | base64 -d) \
+    && bash /mnt/setup/main.sh --unattended "${setup_args[@]}" \
+    && rm -rf /tmp/*

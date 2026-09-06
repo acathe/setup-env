@@ -3,7 +3,7 @@
 set -euo pipefail
 
 main() {
-    brew install 'go'
+    brew install -q 'go'
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then

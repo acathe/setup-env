@@ -10,7 +10,7 @@ main() {
 
     # nano
     if [[ $COMMAND_MODERN_CLI != '1' ]]; then
-        install -Dm 755 './nanom' "$HOME/.local/bin/nanom"
+        install -D './nanom' "$HOME/.local/bin/nanom"
         install -Dm 644 './nano.nanorc' "$HOME/.config/nano/nanorc"
     fi
 }

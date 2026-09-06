@@ -3,8 +3,8 @@
 set -euo pipefail
 
 add_repo() {
-    sudo apt-get update
-    sudo apt-get install -y ca-certificates curl
+    sudo apt-get -qq update
+    sudo apt-get -qq install ca-certificates curl
     sudo install -m 0755 -d '/etc/apt/keyrings'
     sudo curl -fsSL 'https://download.docker.com/linux/debian/gpg' \
         -o '/etc/apt/keyrings/docker.asc'
@@ -16,8 +16,8 @@ add_repo() {
 }
 
 install_docker() {
-    sudo apt-get update
-    sudo apt-get install -y \
+    sudo apt-get -qq update
+    sudo apt-get -qq install \
         docker-ce \
         docker-ce-cli \
         containerd.io \
@@ -39,7 +39,7 @@ main() {
     install_docker
     add_group
 
-    brew install 'lazydocker'
+    brew install -q 'lazydocker'
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
