@@ -68,6 +68,7 @@ main() {
     fi
 
     docker build \
+        -q \
         --tag "dev-container:$IMAGE_TAG" \
         --file './Dockerfile' \
         --build-arg "user=$USER" \
@@ -86,6 +87,7 @@ main() {
     mkdir -p "$HOME/Projects"
 
     docker run \
+        -q \
         --detach \
         --privileged \
         --init \

@@ -20,7 +20,7 @@ set_completion() {
 }
 
 main() {
-    brew install \
+    brew install -q \
         'atuin' \
         'bat' \
         'btop' \

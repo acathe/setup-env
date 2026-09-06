@@ -79,7 +79,7 @@ update_settings() {
 }
 
 install_plugins() {
-    brew install 'node'
+    brew install -q 'node'
 
     claude plugin marketplace add 'https://github.com/caozhiyuan/copilot-api.git'
     claude plugin install 'agent-inject@copilot-api-marketplace'

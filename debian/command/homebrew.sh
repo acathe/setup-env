@@ -26,8 +26,8 @@ main() {
         return 0
     fi
 
-    sudo apt-get update
-    sudo apt-get install -y build-essential procps curl file git
+    sudo apt-get -qq update
+    sudo apt-get -qq install build-essential procps curl file git
 
     # Ref. https://docs.brew.sh/Homebrew-on-Linux
     if [[ $UNATTENDED == '1' ]]; then

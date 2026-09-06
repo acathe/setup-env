@@ -151,7 +151,7 @@ OMZ 先初始化补全和库，再按 `plugins=()` source 插件、按字典序 
 
 函数最后一条语句若是求值为 false 的 `[[ ... ]] && command`，会返回 1 并在 `set -e` 调用方中止；改用 `if` 或显式 `return 0`。原地 `sed` 没有匹配仍成功，修改上游模板时须验证标记和结果；`ln -sf` 前须验证来源，避免悬空链接。
 
-对未由当前组件或明确前置组件保证的命令先用 `command -v`。多数网络失败在 strict mode 下中止，`tldr --update || true` 是显式非致命例外。两平台 Homebrew／OMZ 安装器先在命令替换中下载再执行，下载失败可能变成执行空脚本并返回成功，不能视为致命保证。
+对未由当前组件或明确前置组件保证的命令先用 `command -v`。多数网络失败在 strict mode 下中止。两平台 Homebrew／OMZ 安装器先在命令替换中下载再执行，下载失败可能变成执行空脚本并返回成功，不能视为致命保证。
 
 `compinit` 只发现 `_*` 文件并按首个 `#compdef` 注册命令，链接名不会改变声明。OMZ 在 `compinit` 前加入 `$ZSH_CUSTOM/completions`，而 `brew` 插件更晚才加入 Homebrew `site-functions`；modern CLI 必须通过动态 `brew --prefix` 提前创建受控链接。逐个验证来源；后续失败不会回滚已建链接，不得硬编码 Linuxbrew／Cellar 前缀或产生悬空链接。
 
@@ -165,7 +165,7 @@ Debian Nano 依赖系统 nanorc 加载软件包语法，不增加重复 include 
 
 Debian 在 OMZ 和 Starship 后无条件运行 classic CLI：Less 始终部署，Nano 与 `nanom` 仅在非 modern 模式部署，且不以 alias 改变 `nano`。modern CLI 的 formula、补全链接、bat／Micro 配置和 Micro 插件以 `debian/command/modern_cli/main.sh` 为准；`man-db` 是 Debian 基线，精简 dev-container 显式补齐。
 
-Atuin 和 fzf 都没有仓库原生配置：流程不导入 Atuin 历史或账户／同步设置，fzf 由受管 shell 片段派生 Ctrl-T／Alt-C 命令和预览。安装阶段不预热 tealdeer；只有 updater 非致命运行 `tldr --update`。Markdown 组件拥有 Glow 配置，zoxide 只由 OMZ 初始化一次。
+Atuin 和 fzf 都没有仓库原生配置：流程不导入 Atuin 历史或账户／同步设置，fzf 由受管 shell 片段派生 Ctrl-T／Alt-C 命令和预览。安装阶段不预热 tealdeer；只有 updater 运行 `tldr --update -q`，不在片段内吞掉失败。Markdown 组件拥有 Glow 配置，zoxide 只由 OMZ 初始化一次。
 
 ### Yazi
 

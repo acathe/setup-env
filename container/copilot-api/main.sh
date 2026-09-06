@@ -33,6 +33,7 @@ build_image() {
     fi
 
     docker build \
+        -q \
         -t "copilot-api:$version" \
         "https://github.com/caozhiyuan/copilot-api.git#v$version" >&2
 }
@@ -46,6 +47,7 @@ auth() {
 
     sudo install -d -m 700 -o root -g root "$HOME/.copilot-api"
     docker run \
+        -q \
         --rm \
         -it \
         -v "$HOME/.copilot-api:/root/.local/share/copilot-api" \
@@ -65,6 +67,7 @@ run_container() {
     fi
 
     docker run \
+        -q \
         -d \
         --name 'copilot-api' \
         --restart unless-stopped \

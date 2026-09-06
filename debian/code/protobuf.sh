@@ -3,7 +3,7 @@
 set -euo pipefail
 
 main() {
-    brew install 'clang-format' 'protobuf'
+    brew install -q 'clang-format' 'protobuf'
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then

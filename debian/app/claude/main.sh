@@ -57,12 +57,12 @@ install_plugin() {
 
     if [[ $CODE_PYTHON == '1' ]]; then
         export PATH="$HOME/.local/bin:$PATH"
-        uv tool install 'pyright[nodejs]'
+        uv tool install -q 'pyright[nodejs]'
         claude plugin install 'pyright-lsp@claude-plugins-official'
     fi
 
     if [[ $CODE_RUST == '1' ]]; then
-        rustup component add rust-analyzer
+        rustup -q component add rust-analyzer
         claude plugin install 'rust-analyzer-lsp@claude-plugins-official'
     fi
 
@@ -75,10 +75,10 @@ install_plugin() {
 }
 
 main() {
-    sudo apt-get update
-    sudo apt-get install -y bubblewrap jq socat
+    sudo apt-get -qq update
+    sudo apt-get -qq install bubblewrap jq socat
 
-    brew install --cask 'claude-code@latest'
+    brew install -q --cask 'claude-code@latest'
 
     install_settings
 

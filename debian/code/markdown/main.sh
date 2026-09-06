@@ -3,7 +3,7 @@
 set -euo pipefail
 
 main() {
-    brew install 'glow' 'markdownlint-cli'
+    brew install -q 'glow' 'markdownlint-cli'
 
     install -Dm 644 './glow.yml' "$HOME/.config/glow/glow.yml"
 }

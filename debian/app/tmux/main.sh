@@ -32,7 +32,7 @@ configure_tmux() {
 }
 
 main() {
-    brew install 'tmux'
+    brew install -q 'tmux'
 
     install_oh_my_tmux
     configure_tmux

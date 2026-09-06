@@ -50,8 +50,8 @@ install_omz() {
 }
 
 main() {
-    sudo apt-get update
-    sudo apt-get install -y zsh
+    sudo apt-get -qq update
+    sudo apt-get -qq install zsh
 
     install_omz
 

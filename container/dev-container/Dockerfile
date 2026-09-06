@@ -12,21 +12,21 @@ ENV LANG=${lang}.${encoding}
 ENV LANGUAGE=${language}
 ENV TZ=${tz}
 
-RUN apt-get update \
-    && apt-get install -y locales \
+RUN apt-get -qq update \
+    && apt-get -qq install locales \
     && localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8 \
     && if [[ ${lang}.${encoding} != "en_US.UTF-8" ]]; then localedef -i ${lang} -c -f ${encoding} -A /usr/share/locale/locale.alias ${lang}.${encoding}; fi
 
 ARG user
 RUN useradd -m -s "$(command -v bash)" "${user}"
 
-RUN apt-get update \
-    && apt-get install -y sudo \
+RUN apt-get -qq update \
+    && apt-get -qq install sudo \
     && echo "${user} ALL=(ALL) NOPASSWD:ALL" > "/etc/sudoers.d/${user}" \
     && chmod 0440 "/etc/sudoers.d/${user}"
 
-RUN apt-get update \
-    && apt-get install -y \
+RUN apt-get -qq update \
+    && apt-get -qq install \
     bzip2 \
     ca-certificates \
     curl \

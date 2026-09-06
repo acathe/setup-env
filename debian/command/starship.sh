@@ -3,7 +3,7 @@
 set -euo pipefail
 
 main() {
-    brew install 'starship'
+    brew install -q 'starship'
 
     mkdir -p "$HOME/.config"
     starship preset nerd-font-symbols -o "$HOME/.config/starship.toml"

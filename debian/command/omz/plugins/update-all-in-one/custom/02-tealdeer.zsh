@@ -1,1 +1,1 @@
-tldr --update || true
+tldr --update -q

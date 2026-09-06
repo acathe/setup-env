@@ -47,10 +47,12 @@ main() {
     fi
 
     docker build \
+        -q \
         -t 'copilot-api-config' \
         '.'
 
     docker run \
+        -q \
         --rm \
         -e "CLEAR_API_KEYS=$CLEAR_API_KEYS" \
         -e "API_KEY_GENERATION_COUNT=$API_KEY_GENERATION_COUNT" \
