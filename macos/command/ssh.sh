@@ -116,6 +116,7 @@ add_config() {
         echo "    User $COMMAND_SSH_USER"
         if [[ -n $COMMAND_SSH_IDENTITY_FILE ]]; then
             echo "    IdentityFile ~/.ssh/$COMMAND_SSH_IDENTITY_FILE"
+            echo "    IdentitiesOnly yes"
         fi
     } >> "$config_file"
 }
