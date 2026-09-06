@@ -68,8 +68,8 @@ main() {
     fi
 
     docker build \
-        -t "dev-container:$IMAGE_TAG" \
-        -f './Dockerfile' \
+        --tag "dev-container:$IMAGE_TAG" \
+        --file './Dockerfile' \
         --build-arg "user=$USER" \
         --build-arg "lang=${LANG%.*}" \
         --build-arg "encoding=${LANG#*.}" \
@@ -86,7 +86,7 @@ main() {
     mkdir -p "$HOME/Projects"
 
     docker run \
-        -d \
+        --detach \
         --privileged \
         --init \
         --restart unless-stopped \
@@ -95,7 +95,7 @@ main() {
         --tmpfs /tmp:exec \
         --hostname "$CONTAINER" \
         --name "$CONTAINER" \
-        -v "$HOME/Projects:/home/$USER/Projects" \
+        --volume "$HOME/Projects:/home/$USER/Projects" \
         "dev-container:$IMAGE_TAG"
 }
 
