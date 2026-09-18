@@ -1,6 +1,5 @@
 anthropic.claude-code
 charliermarsh.ruff
-christian-kohler.path-intellisense
 davidanson.vscode-markdownlint
 docker.docker
 drblury.protobuf-vsc
@@ -8,7 +7,6 @@ eamodio.gitlens
 fill-labs.dependi
 golang.go
 kshetline.ligatures-limited
-leosj29.bash-sh-runner
 mads-hartmann.bash-ide-vscode
 ms-azuretools.vscode-containers
 ms-ceintl.vscode-language-pack-zh-hans
@@ -23,7 +21,6 @@ ms-vscode.remote-explorer
 pkief.material-icon-theme
 redhat.vscode-yaml
 rust-lang.rust-analyzer
-shd101wyy.markdown-preview-enhanced
 streetsidesoftware.code-spell-checker
 tamasfe.even-better-toml
 tooltitudeteam.tooltitude
