@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-SMALL_MODEL="${SMALL_MODEL:-}"
+COPILOT_API_CONFIG_SMALL_MODEL="${COPILOT_API_CONFIG_SMALL_MODEL:-}"
 
 set_small_model() {
     local model="$1"
@@ -25,8 +25,8 @@ set_small_model() {
 }
 
 main() {
-    if [[ -n $SMALL_MODEL ]]; then
-        set_small_model "$SMALL_MODEL"
+    if [[ -n $COPILOT_API_CONFIG_SMALL_MODEL ]]; then
+        set_small_model "$COPILOT_API_CONFIG_SMALL_MODEL"
     fi
 }
 

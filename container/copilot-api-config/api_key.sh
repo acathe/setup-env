@@ -2,9 +2,9 @@
 
 set -euo pipefail
 
-CLEAR_API_KEYS="${CLEAR_API_KEYS:-0}"
-API_KEY_GENERATION_COUNT="${API_KEY_GENERATION_COUNT:-0}"
-API_KEY_TO_ADD="${API_KEY_TO_ADD:-}"
+COPILOT_API_CONFIG_CLEAR_API_KEYS="${COPILOT_API_CONFIG_CLEAR_API_KEYS:-0}"
+COPILOT_API_CONFIG_GENERATE_API_KEYS="${COPILOT_API_CONFIG_GENERATE_API_KEYS:-0}"
+COPILOT_API_CONFIG_ADD_API_KEY="${COPILOT_API_CONFIG_ADD_API_KEY:-}"
 
 clear_api_keys() {
     local tmp
@@ -27,17 +27,17 @@ add_api_key() {
 }
 
 main() {
-    if [[ $CLEAR_API_KEYS == '1' ]]; then
+    if [[ $COPILOT_API_CONFIG_CLEAR_API_KEYS == '1' ]]; then
         clear_api_keys
     fi
 
     local i
-    for ((i = 0; i < API_KEY_GENERATION_COUNT; i++)); do
+    for ((i = 0; i < COPILOT_API_CONFIG_GENERATE_API_KEYS; i++)); do
         add_api_key "$(openssl rand -hex 32)"
     done
 
-    if [[ -n $API_KEY_TO_ADD ]]; then
-        add_api_key "$API_KEY_TO_ADD"
+    if [[ -n $COPILOT_API_CONFIG_ADD_API_KEY ]]; then
+        add_api_key "$COPILOT_API_CONFIG_ADD_API_KEY"
     fi
 }
 
