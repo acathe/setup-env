@@ -1,10 +1,10 @@
 # Setup Env
 
-- [1. MacOS](#1-macos)
+- [1. macOS](#1-macos)
 - [2. Debian](#2-debian)
 - [3. Container](#3-container)
 
-## 1. MacOS
+## 1. macOS
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
