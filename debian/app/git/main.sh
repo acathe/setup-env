@@ -10,24 +10,24 @@ parse_args() {
     while (($# > 0)); do
         case "$1" in
             --app-git-user-name)
-                numOfArgs=1 # number of switch arguments
+                numOfArgs=1
                 if (($# < numOfArgs + 1)); then
                     shift $#
                 else
                     APP_GIT_USER_NAME="$2"
-                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
+                    shift $((numOfArgs + 1))
                 fi
                 ;;
             --app-git-user-email)
-                numOfArgs=1 # number of switch arguments
+                numOfArgs=1
                 if (($# < numOfArgs + 1)); then
                     shift $#
                 else
                     APP_GIT_USER_EMAIL="$2"
-                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
+                    shift $((numOfArgs + 1))
                 fi
                 ;;
-            *) # unknown flag/switch
+            *)
                 POSITIONAL+=("$1")
                 shift
                 ;;
@@ -63,6 +63,6 @@ main() {
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
     cd "$(dirname "${BASH_SOURCE[0]}")"
     parse_args "$@"
-    set -- "${POSITIONAL[@]}" # restore positional params
+    set -- "${POSITIONAL[@]}"
     main "$@"
 fi

@@ -12,7 +12,7 @@ parse_args() {
                 UNATTENDED=1
                 shift
                 ;;
-            *) # unknown flag/switch
+            *)
                 POSITIONAL+=("$1")
                 shift
                 ;;
@@ -64,6 +64,6 @@ main() {
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
     cd "$(dirname "${BASH_SOURCE[0]}")"
     parse_args "$@"
-    set -- "${POSITIONAL[@]}" # restore positional params
+    set -- "${POSITIONAL[@]}"
     main "$@"
 fi

@@ -12,7 +12,7 @@ parse_args() {
                 UNATTENDED=1
                 shift
                 ;;
-            *) # unknown flag/switch
+            *)
                 POSITIONAL+=("$1")
                 shift
                 ;;
@@ -29,7 +29,6 @@ main() {
     sudo apt-get -qq update
     sudo apt-get -qq install build-essential procps curl file git
 
-    # Ref. https://docs.brew.sh/Homebrew-on-Linux
     if [[ $UNATTENDED == '1' ]]; then
         NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh')"
     else
@@ -40,6 +39,6 @@ main() {
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
     cd "$(dirname "${BASH_SOURCE[0]}")"
     parse_args "$@"
-    set -- "${POSITIONAL[@]}" # restore positional params
+    set -- "${POSITIONAL[@]}"
     main "$@"
 fi

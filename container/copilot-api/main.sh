@@ -18,12 +18,12 @@ parse_args() {
                 shift
                 ;;
             --add-api-key)
-                numOfArgs=1 # 参数值数量
+                numOfArgs=1
                 if (($# < numOfArgs + 1)); then
                     shift $#
                 else
                     COPILOT_API_ADD_API_KEY="$2"
-                    shift $((numOfArgs + 1)) # 跳过参数名及其值
+                    shift $((numOfArgs + 1))
                 fi
                 ;;
             --auth)
@@ -34,7 +34,7 @@ parse_args() {
                 COPILOT_API_ADD_UPDATE_CONFIG=1
                 shift
                 ;;
-            *) # 未识别参数
+            *)
                 POSITIONAL+=("$1")
                 shift
                 ;;
@@ -104,6 +104,6 @@ main() {
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
     cd "$(dirname "${BASH_SOURCE[0]}")"
     parse_args "$@"
-    set -- "${POSITIONAL[@]}" # restore positional params
+    set -- "${POSITIONAL[@]}"
     main "$@"
 fi
