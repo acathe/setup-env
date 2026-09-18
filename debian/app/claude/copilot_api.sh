@@ -13,51 +13,51 @@ parse_args() {
     while (($# > 0)); do
         case "$1" in
             --app-claude-base-url)
-                numOfArgs=1 # number of switch arguments
+                numOfArgs=1
                 if (($# < numOfArgs + 1)); then
                     shift $#
                 else
                     APP_CLAUDE_BASE_URL="$2"
-                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
+                    shift $((numOfArgs + 1))
                 fi
                 ;;
             --app-claude-auth-token)
-                numOfArgs=1 # number of switch arguments
+                numOfArgs=1
                 if (($# < numOfArgs + 1)); then
                     shift $#
                 else
                     APP_CLAUDE_AUTH_TOKEN="$2"
-                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
+                    shift $((numOfArgs + 1))
                 fi
                 ;;
             --app-claude-default-opus-model)
-                numOfArgs=1 # number of switch arguments
+                numOfArgs=1
                 if (($# < numOfArgs + 1)); then
                     shift $#
                 else
                     APP_CLAUDE_DEFAULT_OPUS_MODEL="$2"
-                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
+                    shift $((numOfArgs + 1))
                 fi
                 ;;
             --app-claude-default-sonnet-model)
-                numOfArgs=1 # number of switch arguments
+                numOfArgs=1
                 if (($# < numOfArgs + 1)); then
                     shift $#
                 else
                     APP_CLAUDE_DEFAULT_SONNET_MODEL="$2"
-                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
+                    shift $((numOfArgs + 1))
                 fi
                 ;;
             --app-claude-default-haiku-model)
-                numOfArgs=1 # number of switch arguments
+                numOfArgs=1
                 if (($# < numOfArgs + 1)); then
                     shift $#
                 else
                     APP_CLAUDE_DEFAULT_HAIKU_MODEL="$2"
-                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
+                    shift $((numOfArgs + 1))
                 fi
                 ;;
-            *) # unknown flag/switch
+            *)
                 POSITIONAL+=("$1")
                 shift
                 ;;
@@ -94,6 +94,6 @@ main() {
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
     cd "$(dirname "${BASH_SOURCE[0]}")"
     parse_args "$@"
-    set -- "${POSITIONAL[@]}" # restore positional params
+    set -- "${POSITIONAL[@]}"
     main "$@"
 fi

@@ -14,21 +14,21 @@ parse_args() {
         case "$1" in
             --command-ssh)
                 COMMAND_SSH=1
-                shift # shift once since flags have no values
+                shift
                 ;;
             --app-chatgpt)
                 APP_CHATGPT=1
-                shift # shift once since flags have no values
+                shift
                 ;;
             --app-ghostty)
                 APP_GHOSTTY=1
-                shift # shift once since flags have no values
+                shift
                 ;;
             --app-vscode)
                 APP_VSCODE=1
-                shift # shift once since flags have no values
+                shift
                 ;;
-            *) # unknown flag/switch
+            *)
                 POSITIONAL+=("$1")
                 shift
                 ;;
@@ -59,6 +59,6 @@ main() {
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
     cd "$(dirname "${BASH_SOURCE[0]}")"
     parse_args "$@"
-    set -- "${POSITIONAL[@]+"${POSITIONAL[@]}"}" # restore positional params
+    set -- "${POSITIONAL[@]+"${POSITIONAL[@]}"}"
     main "$@"
 fi

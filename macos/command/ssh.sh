@@ -14,55 +14,55 @@ parse_args() {
     while (($# > 0)); do
         case "$1" in
             --command-ssh-host)
-                numOfArgs=1 # number of switch arguments
+                numOfArgs=1
                 if (($# < numOfArgs + 1)); then
                     shift $#
                 else
                     COMMAND_SSH_HOST="$2"
-                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
+                    shift $((numOfArgs + 1))
                 fi
                 ;;
             --command-ssh-hostname)
-                numOfArgs=1 # number of switch arguments
+                numOfArgs=1
                 if (($# < numOfArgs + 1)); then
                     shift $#
                 else
                     COMMAND_SSH_HOSTNAME="$2"
-                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
+                    shift $((numOfArgs + 1))
                 fi
                 ;;
             --command-ssh-user)
-                numOfArgs=1 # number of switch arguments
+                numOfArgs=1
                 if (($# < numOfArgs + 1)); then
                     shift $#
                 else
                     COMMAND_SSH_USER="$2"
-                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
+                    shift $((numOfArgs + 1))
                 fi
                 ;;
             --command-ssh-identity-file)
-                numOfArgs=1 # number of switch arguments
+                numOfArgs=1
                 if (($# < numOfArgs + 1)); then
                     shift $#
                 else
                     COMMAND_SSH_IDENTITY_FILE="$2"
-                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
+                    shift $((numOfArgs + 1))
                 fi
                 ;;
             --command-ssh-comment)
-                numOfArgs=1 # number of switch arguments
+                numOfArgs=1
                 if (($# < numOfArgs + 1)); then
                     shift $#
                 else
                     COMMAND_SSH_COMMENT="$2"
-                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
+                    shift $((numOfArgs + 1))
                 fi
                 ;;
             --command-ssh-no-copy-key)
                 COMMAND_SSH_COPY_KEY=0
-                shift # shift once since flags have no values
+                shift
                 ;;
-            *) # unknown flag/switch
+            *)
                 POSITIONAL+=("$1")
                 shift
                 ;;
@@ -141,6 +141,6 @@ main() {
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
     cd "$(dirname "${BASH_SOURCE[0]}")"
     parse_args "$@"
-    set -- "${POSITIONAL[@]+"${POSITIONAL[@]}"}" # restore positional params
+    set -- "${POSITIONAL[@]+"${POSITIONAL[@]}"}"
     main "$@"
 fi

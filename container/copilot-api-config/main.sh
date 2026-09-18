@@ -18,43 +18,43 @@ parse_args() {
                 shift
                 ;;
             --generate-api-keys | --api-keys)
-                numOfArgs=1 # number of switch arguments
+                numOfArgs=1
                 if (($# < numOfArgs + 1)); then
                     shift $#
                 else
                     API_KEY_GENERATION_COUNT="$2"
-                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
+                    shift $((numOfArgs + 1))
                 fi
                 ;;
             --add-api-key)
-                numOfArgs=1 # number of switch arguments
+                numOfArgs=1
                 if (($# < numOfArgs + 1)); then
                     shift $#
                 else
                     API_KEY_TO_ADD="$2"
-                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
+                    shift $((numOfArgs + 1))
                 fi
                 ;;
             --model-mapping)
-                numOfArgs=2 # 参数值数量
+                numOfArgs=2
                 if (($# < numOfArgs + 1)); then
                     shift $#
                 else
                     MODEL_MAPPING_KEY="$2"
                     MODEL_MAPPING_VALUE="$3"
-                    shift $((numOfArgs + 1)) # 跳过参数名及其值
+                    shift $((numOfArgs + 1))
                 fi
                 ;;
             --small-model)
-                numOfArgs=1 # 参数值数量
+                numOfArgs=1
                 if (($# < numOfArgs + 1)); then
                     shift $#
                 else
                     SMALL_MODEL="$2"
-                    shift $((numOfArgs + 1)) # 跳过参数名及其值
+                    shift $((numOfArgs + 1))
                 fi
                 ;;
-            *) # unknown flag/switch
+            *)
                 POSITIONAL+=("$1")
                 shift
                 ;;
@@ -83,6 +83,6 @@ main() {
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
     cd "$(dirname "${BASH_SOURCE[0]}")"
     parse_args "$@"
-    set -- "${POSITIONAL[@]}" # restore positional params
+    set -- "${POSITIONAL[@]}"
     main "$@"
 fi

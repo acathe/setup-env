@@ -16,9 +16,9 @@ parse_args() {
         case "$1" in
             --app-claude-copilot-api)
                 APP_CLAUDE_COPILOT_API=1
-                shift # shift once since flags have no values
+                shift
                 ;;
-            *) # unknown flag/switch
+            *)
                 POSITIONAL+=("$1")
                 shift
                 ;;
@@ -90,6 +90,6 @@ main() {
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
     cd "$(dirname "${BASH_SOURCE[0]}")"
     parse_args "$@"
-    set -- "${POSITIONAL[@]}" # restore positional params
+    set -- "${POSITIONAL[@]}"
     main "$@"
 fi

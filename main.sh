@@ -9,15 +9,15 @@ parse_args() {
     while (($# > 0)); do
         case "$1" in
             --setup)
-                numOfArgs=1 # number of switch arguments
+                numOfArgs=1
                 if (($# < numOfArgs + 1)); then
                     shift $#
                 else
                     SETUP="$2"
-                    shift $((numOfArgs + 1)) # shift 'numOfArgs + 1' to bypass switch and its value
+                    shift $((numOfArgs + 1))
                 fi
                 ;;
-            *) # unknown flag/switch
+            *)
                 POSITIONAL+=("$1")
                 shift
                 ;;
@@ -63,5 +63,5 @@ main() {
 
 # Entry point
 parse_args "$@"
-set -- "${POSITIONAL[@]+"${POSITIONAL[@]}"}" # restore positional params
+set -- "${POSITIONAL[@]+"${POSITIONAL[@]}"}"
 main "$@"

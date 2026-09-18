@@ -9,7 +9,6 @@ set_small_model() {
     local tmp
     tmp="$(mktemp)"
 
-    # 保留上游会自动补回的源键，不覆盖目标模型已有设置。
     jq --arg model "$model" \
         '.smallModel = $model
         | .alphaSearchModel = $model
