@@ -2,9 +2,6 @@
     "[dockercompose]": {
         "editor.defaultFormatter": "redhat.vscode-yaml"
     },
-    "[github-actions-workflow]": {
-        "editor.defaultFormatter": "redhat.vscode-yaml"
-    },
     "[markdown]": {
         "editor.defaultFormatter": "DavidAnson.vscode-markdownlint"
     },
@@ -84,33 +81,24 @@
             "string": false
         }
     },
-    "markdown-preview-enhanced.codeBlockTheme": "vscode.css",
-    "markdown-preview-enhanced.previewTheme": "vscode.css",
-    "markdown-preview-enhanced.revealjsTheme": "vscode.css",
     "markdown.extension.toc.levels": "2..6",
     "oneDarkPro.bold": true,
     "protobuf.autoDetection.prompted": true,
-    "python.analysis.autoImportCompletions": true,
     "python.analysis.completeFunctionParens": true,
     "python.analysis.extraCommitChars": true,
-    "python.analysis.includeAliasesFromUserFiles": true,
     "python.analysis.inlayHints.callArgumentNames": "partial",
-    "python.analysis.inlayHints.functionReturnTypes": true,
-    "python.analysis.inlayHints.pytestParameters": true,
     "python.analysis.inlayHints.variableTypes": true,
     "python.analysis.languageServerMode": "full",
-    "python.analysis.regenerateStdLibIndices": true,
-    "python.analysis.showOnlyDirectDependenciesInAutoImport": true,
     "python.analysis.typeCheckingMode": "standard",
     "python.analysis.typeEvaluation.deprecateTypingAliases": true,
     "python.analysis.typeEvaluation.enableReachabilityAnalysis": true,
     "python.analysis.typeEvaluation.strictDictionaryInference": true,
     "python.analysis.typeEvaluation.strictListInference": true,
     "python.analysis.typeEvaluation.strictSetInference": true,
-    "python.analysis.userFileIndexingLimit": -1,
     "redhat.telemetry.enabled": false,
     "remote.autoForwardPortsSource": "hybrid",
     "ruff.configuration": "~/.config/Beslogic/ruff.toml",
+    "rust-analyzer.check.command": "clippy",
     "rust-analyzer.hover.actions.references.enable": true,
     "rust-analyzer.inlayHints.bindingModeHints.enable": true,
     "rust-analyzer.inlayHints.closureCaptureHints.enable": true,
@@ -125,7 +113,6 @@
     "rust-analyzer.inlayHints.lifetimeElisionHints.useParameterNames": true,
     "rust-analyzer.inlayHints.parameterHints.missingArguments.enable": true,
     "rust-analyzer.inlayHints.rangeExclusiveHints.enable": true,
-    "rust-analyzer.inlayHints.reborrowHints.enable": "mutable",
     "rust-analyzer.lens.references.adt.enable": true,
     "rust-analyzer.lens.references.enumVariant.enable": true,
     "rust-analyzer.lens.references.method.enable": true,
@@ -136,15 +123,5 @@
     "tooltitude.unusedParamsEnabled": true,
     "workbench.colorTheme": "One Dark Pro",
     "workbench.iconTheme": "material-icon-theme",
-    "workbench.tree.indent": 22,
-    "yaml.disableSchemaDetection": [
-        "**/docker-compose.yml",
-        "**/docker-compose.yaml",
-        "**/docker-compose.*.yml",
-        "**/docker-compose.*.yaml",
-        "**/compose.yml",
-        "**/compose.yaml",
-        "**/compose.*.yml",
-        "**/compose.*.yaml"
-    ]
+    "workbench.tree.indent": 22
 }
