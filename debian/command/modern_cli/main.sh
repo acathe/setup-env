@@ -19,6 +19,24 @@ set_completion() {
     ln -sf "$completion_dir/$completion" "$ZSH_CUSTOM/completions/$completion"
 }
 
+setup_bat() {
+    install -Dm 644 './bat.config' "$HOME/.config/bat/config"
+    set_completion '_bat'
+}
+
+setup_micro() {
+    micro -plugin install detectindent
+    install -Dm 644 './micro.settings.json' "$HOME/.config/micro/settings.json"
+}
+
+setup_fd() {
+    set_completion '_fd'
+}
+
+setup_tldr() {
+    set_completion '_tldr'
+}
+
 main() {
     brew install -q \
         'atuin' \
@@ -33,19 +51,10 @@ main() {
         'tealdeer' \
         'zoxide'
 
-    # bat
-    install -Dm 644 './bat.config' "$HOME/.config/bat/config"
-    set_completion '_bat'
-
-    # micro
-    micro -plugin install detectindent
-    install -Dm 644 './micro.settings.json' "$HOME/.config/micro/settings.json"
-
-    # fd
-    set_completion '_fd'
-
-    # tldr
-    set_completion '_tldr'
+    setup_bat
+    setup_micro
+    setup_fd
+    setup_tldr
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
