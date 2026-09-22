@@ -9,7 +9,10 @@
         "editor.codeActionsOnSave": {
             "source.fixAll": "explicit",
             "source.organizeImports": "explicit"
-        }
+        },
+        "editor.rulers": [
+            100
+        ]
     },
     "[shellscript]": {
         "editor.rulers": [
@@ -25,6 +28,7 @@
     "claudeCode.preferredLocation": "sidebar",
     "diffEditor.hideUnchangedRegions.enabled": true,
     "docker.extension.dockerEngineAvailabilityPrompt": false,
+    "docker.extension.enableComposeLanguageServer": true,
     "editor.fontFamily": "JetBrains Maple Mono",
     "editor.fontLigatures": true,
     "editor.formatOnSave": true,
@@ -97,7 +101,8 @@
     "python.analysis.typeEvaluation.strictSetInference": true,
     "redhat.telemetry.enabled": false,
     "remote.autoForwardPortsSource": "hybrid",
-    "ruff.configuration": "~/.config/Beslogic/ruff.toml",
+    "ruff.configuration": "~/.config/beslogic/ruff.toml",
+    "ruff.configurationPreference": "filesystemFirst",
     "rust-analyzer.check.command": "clippy",
     "rust-analyzer.hover.actions.references.enable": true,
     "rust-analyzer.inlayHints.bindingModeHints.enable": true,
@@ -123,5 +128,15 @@
     "tooltitude.unusedParamsEnabled": true,
     "workbench.colorTheme": "One Dark Pro",
     "workbench.iconTheme": "material-icon-theme",
-    "workbench.tree.indent": 22
+    "workbench.tree.indent": 22,
+    "yaml.disableSchemaDetection": [
+        "**/docker-compose.yml",
+        "**/docker-compose.yaml",
+        "**/docker-compose.*.yml",
+        "**/docker-compose.*.yaml",
+        "**/compose.yml",
+        "**/compose.yaml",
+        "**/compose.*.yml",
+        "**/compose.*.yaml"
+    ]
 }
