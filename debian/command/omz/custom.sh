@@ -6,6 +6,7 @@ COMMAND_MODERN_CLI="${COMMAND_MODERN_CLI:-0}"
 
 CODE_GO="${CODE_GO:-0}"
 CODE_PROTOBUF="${CODE_PROTOBUF:-0}"
+CODE_PYTHON="${CODE_PYTHON:-0}"
 CODE_RUST="${CODE_RUST:-0}"
 
 APP_DOCKER="${APP_DOCKER:-0}"
@@ -40,6 +41,7 @@ main() {
     [[ $APP_GIT == '1' ]] && install_custom '14-git.zsh'
     [[ $APP_YAZI == '1' ]] && install_custom '15-yazi.zsh'
     [[ $CODE_RUST == '1' ]] && install_custom '16-rust.zsh'
+    [[ $CODE_PYTHON == '1' ]] && install_custom '17-python.zsh'
     [[ $APP_GIT == '1' ]] && install_custom '99-gh-login.zsh'
 
     return 0
