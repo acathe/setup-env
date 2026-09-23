@@ -48,6 +48,11 @@ get_compose_file() {
         -o '/tmp/copilot-api/docker-compose.yaml'
 }
 
+cleanup() {
+    docker compose -f '/tmp/copilot-api/docker-compose.yaml' \
+        down --rmi all --remove-orphans
+}
+
 clear_config() {
     rm -f "$COPILOT_API_DATA_DIR/config.json"
 }
@@ -79,6 +84,7 @@ main() {
     export COPILOT_API_DATA_DIR="$HOME/.copilot-data"
 
     get_compose_file
+    cleanup
 
     if [[ $COPILOT_API_CLAER_CONFIG == '1' ]]; then
         clear_config
