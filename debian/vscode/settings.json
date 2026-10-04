@@ -101,8 +101,6 @@
     "python.analysis.typeEvaluation.strictSetInference": true,
     "redhat.telemetry.enabled": false,
     "remote.autoForwardPortsSource": "hybrid",
-    "ruff.configuration": "~/.config/beslogic/ruff.toml",
-    "ruff.configurationPreference": "filesystemFirst",
     "rust-analyzer.check.command": "clippy",
     "rust-analyzer.hover.actions.references.enable": true,
     "rust-analyzer.inlayHints.bindingModeHints.enable": true,
