@@ -11,5 +11,6 @@
   },
   "language": "Chinese",
   "tui": "fullscreen",
-  "workflowSizeGuideline": "unrestricted"
+  "workflowSizeGuideline": "unrestricted",
+  "ultracode": true
 }
