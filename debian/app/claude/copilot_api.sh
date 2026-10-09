@@ -70,9 +70,9 @@ update_settings() {
     tmp="$(mktemp)"
     jq --arg ANTHROPIC_BASE_URL "$APP_CLAUDE_BASE_URL" \
         --arg ANTHROPIC_AUTH_TOKEN "$APP_CLAUDE_AUTH_TOKEN" \
-        --arg ANTHROPIC_DEFAULT_OPUS_MODEL "$APP_CLAUDE_DEFAULT_OPUS_MODEL" \
-        --arg ANTHROPIC_DEFAULT_SONNET_MODEL "$APP_CLAUDE_DEFAULT_SONNET_MODEL" \
-        --arg ANTHROPIC_DEFAULT_HAIKU_MODEL "$APP_CLAUDE_DEFAULT_HAIKU_MODEL" \
+        --arg ANTHROPIC_DEFAULT_OPUS_MODEL "my-claude-$APP_CLAUDE_DEFAULT_OPUS_MODEL" \
+        --arg ANTHROPIC_DEFAULT_SONNET_MODEL "my-claude-$APP_CLAUDE_DEFAULT_SONNET_MODEL" \
+        --arg ANTHROPIC_DEFAULT_HAIKU_MODEL "my-claude-$APP_CLAUDE_DEFAULT_HAIKU_MODEL" \
         '.env += $ARGS.named' \
         "$HOME/.claude/settings.json" > "$tmp"
     cp "$tmp" "$HOME/.claude/settings.json"
