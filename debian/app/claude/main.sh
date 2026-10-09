@@ -41,7 +41,6 @@ install_settings() {
 
 install_plugin() {
     claude plugin marketplace add 'anthropics/claude-plugins-official'
-    claude plugin install 'claude-security@claude-plugins-official'
     claude plugin install 'superpowers@claude-plugins-official'
 
     if [[ $APP_GIT == '1' ]]; then
