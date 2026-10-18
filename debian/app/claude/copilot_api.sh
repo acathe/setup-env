@@ -4,6 +4,7 @@ set -euo pipefail
 
 APP_CLAUDE_BASE_URL="${APP_CLAUDE_BASE_URL:-http://localhost:4141}"
 APP_CLAUDE_AUTH_TOKEN="${APP_CLAUDE_AUTH_TOKEN:-dummy}"
+APP_CLAUDE_DEFAULT_FABLE_MODEL="${APP_CLAUDE_DEFAULT_FABLE_MODEL:-}"
 APP_CLAUDE_DEFAULT_OPUS_MODEL="${APP_CLAUDE_DEFAULT_OPUS_MODEL:-}"
 APP_CLAUDE_DEFAULT_SONNET_MODEL="${APP_CLAUDE_DEFAULT_SONNET_MODEL:-}"
 APP_CLAUDE_DEFAULT_HAIKU_MODEL="${APP_CLAUDE_DEFAULT_HAIKU_MODEL:-}"
@@ -27,6 +28,15 @@ parse_args() {
                     shift $#
                 else
                     APP_CLAUDE_AUTH_TOKEN="$2"
+                    shift $((numOfArgs + 1))
+                fi
+                ;;
+            --app-claude-default-fable-model)
+                numOfArgs=1
+                if (($# < numOfArgs + 1)); then
+                    shift $#
+                else
+                    APP_CLAUDE_DEFAULT_FABLE_MODEL="$2"
                     shift $((numOfArgs + 1))
                 fi
                 ;;
@@ -70,6 +80,7 @@ update_settings() {
     tmp="$(mktemp)"
     jq --arg ANTHROPIC_BASE_URL "$APP_CLAUDE_BASE_URL" \
         --arg ANTHROPIC_AUTH_TOKEN "$APP_CLAUDE_AUTH_TOKEN" \
+        --arg ANTHROPIC_DEFAULT_FABLE_MODEL "my-claude-$APP_CLAUDE_DEFAULT_FABLE_MODEL" \
         --arg ANTHROPIC_DEFAULT_OPUS_MODEL "my-claude-$APP_CLAUDE_DEFAULT_OPUS_MODEL" \
         --arg ANTHROPIC_DEFAULT_SONNET_MODEL "my-claude-$APP_CLAUDE_DEFAULT_SONNET_MODEL" \
         --arg ANTHROPIC_DEFAULT_HAIKU_MODEL "my-claude-$APP_CLAUDE_DEFAULT_HAIKU_MODEL" \
