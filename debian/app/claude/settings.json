@@ -3,7 +3,8 @@
   "env": {
     "CLAUDE_CODE_ATTRIBUTION_HEADER": "0",
     "CLAUDE_CODE_AUTO_SERVER": "0",
-    "CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY": "1"
+    "CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY": "1",
+    "ENABLE_TOOL_SEARCH": "false"
   },
   "sandbox": {
     "enabled": true
