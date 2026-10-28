@@ -12,7 +12,6 @@
   "permissions": {
     "defaultMode": "auto"
   },
-  "language": "Chinese",
   "tui": "fullscreen",
   "workflowSizeGuideline": "unrestricted",
   "ultracode": true
