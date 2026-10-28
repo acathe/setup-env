@@ -4,6 +4,7 @@ set -euo pipefail
 
 main() {
     brew install -q 'uv'
+    uv python install -q
     uv tool install -q 'py-spy'
 
     mkdir -p "$HOME/.config/ruff"
