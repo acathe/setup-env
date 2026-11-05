@@ -24,8 +24,6 @@
     "bashIde.shfmt.caseIndent": true,
     "bashIde.shfmt.simplifyCode": true,
     "bashIde.shfmt.spaceRedirects": true,
-    "claudeCode.disableLoginPrompt": true,
-    "claudeCode.preferredLocation": "sidebar",
     "diffEditor.hideUnchangedRegions.enabled": true,
     "docker.extension.dockerEngineAvailabilityPrompt": false,
     "docker.extension.enableComposeLanguageServer": true,
