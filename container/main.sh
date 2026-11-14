@@ -26,12 +26,11 @@ parse_args() {
 }
 
 main() {
-    if [[ "$IMAGE" == "copilot-api" ]]; then
-        bash "./$IMAGE/main.sh" "$@"
-    else
+    if [[ "$IMAGE" != "copilot-api" ]]; then
         printf 'Unsupported image: %s\n' "${IMAGE:-<empty>}" >&2
         return 1
     fi
+    bash "./$IMAGE/main.sh" "$@"
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
