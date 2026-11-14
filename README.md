@@ -34,6 +34,7 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
 
 | main args              | script args                             |
 | ---------------------- | --------------------------------------- |
+|                        | `--unattended`                          |
 | `--command-modern-cli` |                                         |
 | `--command-ssh`        |                                         |
 | `--code-bash`          |                                         |
@@ -45,6 +46,7 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
 | `--app-claude`         | `--app-claude-copilot-api`              |
 |                        | `--app-claude-base-url <v>`             |
 |                        | `--app-claude-auth-token <v>`           |
+|                        | `--app-claude-default-fable-model <v>`  |
 |                        | `--app-claude-default-opus-model <v>`   |
 |                        | `--app-claude-default-sonnet-model <v>` |
 |                        | `--app-claude-default-haiku-model <v>`  |
@@ -72,7 +74,7 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
 | ---------------------------- | ------------------------------- |
 | `--image dev-container`      | `--container <v>`               |
 |                              | `--image-tag <v>`               |
-|                              | `(debian-flag)`                 |
+|                              | [Debian args](#2-debian)        |
 | `--image copilot-api`        | `--clear-config`                |
 |                              | `--add-api-key <v>`             |
 |                              | `--auth`                        |
