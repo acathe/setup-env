@@ -1,2 +1,1 @@
-local config="${STARSHIP_CONFIG:-$HOME/.config/starship.toml}"
-starship preset nerd-font-symbols --force -o "$config"
+starship preset nerd-font-symbols --force -o "${STARSHIP_CONFIG:-$HOME/.config/starship.toml}"
