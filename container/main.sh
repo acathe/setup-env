@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-IMAGE="${IMAGE:-dev-container}"
+IMAGE="${IMAGE:-copilot-api}"
 
 parse_args() {
     POSITIONAL=()
