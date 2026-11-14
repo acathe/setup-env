@@ -32,32 +32,31 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
         [--flag]
 ```
 
-| main args               | script args                             |
-| ----------------------- | --------------------------------------- |
-|                         | `--unattended`                          |
-| `--command-classic-cli` |                                         |
-| `--command-modern-cli`  |                                         |
-| `--command-ssh`         |                                         |
-| `--code-bash`           |                                         |
-| `--code-go`             |                                         |
-| `--code-markdown`       |                                         |
-| `--code-protobuf`       |                                         |
-| `--code-python`         |                                         |
-| `--code-rust`           |                                         |
-| `--app-claude`          | `--app-claude-copilot-api`              |
-|                         | `--app-claude-base-url <v>`             |
-|                         | `--app-claude-auth-token <v>`           |
-|                         | `--app-claude-default-fable-model <v>`  |
-|                         | `--app-claude-default-opus-model <v>`   |
-|                         | `--app-claude-default-sonnet-model <v>` |
-|                         | `--app-claude-default-haiku-model <v>`  |
-| `--app-docker`          |                                         |
-| `--app-ghostty`         |                                         |
-| `--app-git`             | `--app-git-user-name <v>`               |
-|                         | `--app-git-user-email <v>`              |
-| `--app-tmux`            |                                         |
-| `--app-vscode`          |                                         |
-| `--app-yazi`            |                                         |
+| main args              | script args                             |
+| ---------------------- | --------------------------------------- |
+|                        | `--unattended`                          |
+| `--command-modern-cli` |                                         |
+| `--command-ssh`        |                                         |
+| `--code-bash`          |                                         |
+| `--code-go`            |                                         |
+| `--code-markdown`      |                                         |
+| `--code-protobuf`      |                                         |
+| `--code-python`        |                                         |
+| `--code-rust`          |                                         |
+| `--app-claude`         | `--app-claude-copilot-api`              |
+|                        | `--app-claude-base-url <v>`             |
+|                        | `--app-claude-auth-token <v>`           |
+|                        | `--app-claude-default-fable-model <v>`  |
+|                        | `--app-claude-default-opus-model <v>`   |
+|                        | `--app-claude-default-sonnet-model <v>` |
+|                        | `--app-claude-default-haiku-model <v>`  |
+| `--app-docker`         |                                         |
+| `--app-ghostty`        |                                         |
+| `--app-git`            | `--app-git-user-name <v>`               |
+|                        | `--app-git-user-email <v>`              |
+| `--app-tmux`           |                                         |
+| `--app-vscode`         |                                         |
+| `--app-yazi`           |                                         |
 
 ```bash
 xargs -L1 code --install-extension < debian/vscode/extensions.txt
