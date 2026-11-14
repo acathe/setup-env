@@ -16,6 +16,7 @@ main() {
     install -m 644 './plugins/update-all-in-one/update-all-in-one.plugin.zsh' \
         "$ZSH_CUSTOM/plugins/update-all-in-one/update-all-in-one.plugin.zsh"
     install_update '00-homebrew.zsh'
+    install_update '01-theme.zsh'
     install_update '99-oh-my-zsh.zsh'
 }
 
