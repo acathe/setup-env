@@ -28,6 +28,7 @@ main() {
     [[ $CODE_PYTHON == '1' ]] && install_update '03-python.zsh'
     [[ $CODE_RUST == '1' ]] && install_update '04-rust.zsh'
     [[ $APP_YAZI == '1' ]] && install_update '05-yazi.zsh'
+    install_update '06-theme.zsh'
     install_update '99-oh-my-zsh.zsh'
 }
 
