@@ -2,6 +2,7 @@
 
 set -euo pipefail
 
+COMMAND_CLASSIC_CLI="${COMMAND_CLASSIC_CLI:-0}"
 COMMAND_MODERN_CLI="${COMMAND_MODERN_CLI:-0}"
 
 CODE_GO="${CODE_GO:-0}"
@@ -22,7 +23,7 @@ install_custom() {
 }
 
 main() {
-    [[ $COMMAND_MODERN_CLI != '1' ]] && install_custom '00-nano.zsh'
+    [[ $COMMAND_CLASSIC_CLI == '1' ]] && install_custom '00-nano.zsh'
     [[ $COMMAND_MODERN_CLI == '1' ]] && install_custom '01-micro.zsh'
     [[ $APP_VSCODE == '1' ]] && install_custom '02-vscode.zsh'
     [[ $CODE_GO == '1' ]] && install_custom '03-go.zsh'
