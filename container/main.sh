@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-IMAGE="${IMAGE:-dev-container}"
+IMAGE="${IMAGE:-}"
 
 parse_args() {
     POSITIONAL=()
@@ -26,6 +26,10 @@ parse_args() {
 }
 
 main() {
+    if [[ "$IMAGE" != "copilot-api" ]]; then
+        printf 'Unsupported image: %s\n' "${IMAGE:-<empty>}" >&2
+        return 1
+    fi
     bash "./$IMAGE/main.sh" "$@"
 }
 

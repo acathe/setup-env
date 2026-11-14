@@ -2,31 +2,8 @@
 
 set -euo pipefail
 
-UNATTENDED="${UNATTENDED:-0}"
-
-parse_args() {
-    POSITIONAL=()
-    while (($# > 0)); do
-        case "$1" in
-            --unattended)
-                UNATTENDED=1
-                shift
-                ;;
-            *)
-                POSITIONAL+=("$1")
-                shift
-                ;;
-        esac
-    done
-}
-
 install_omz() {
-    if [[ $UNATTENDED == '1' ]]; then
-        sh -c "$(curl -fsSL 'https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh')" '' --unattended
-        sudo -n usermod -s "$(command -v zsh)" "$USER"
-    else
-        RUNZSH='no' sh -c "$(curl -fsSL 'https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh')"
-    fi
+    RUNZSH='no' sh -c "$(curl -fsSL 'https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh')"
 
     sed -i '\|^# export PATH=$HOME/bin|s/^# //' "$HOME/.zshrc"
 
@@ -63,7 +40,5 @@ main() {
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
     cd "$(dirname "${BASH_SOURCE[0]}")"
-    parse_args "$@"
-    set -- "${POSITIONAL[@]}"
     main "$@"
 fi

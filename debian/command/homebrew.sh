@@ -2,24 +2,6 @@
 
 set -euo pipefail
 
-UNATTENDED="${UNATTENDED:-0}"
-
-parse_args() {
-    POSITIONAL=()
-    while (($# > 0)); do
-        case "$1" in
-            --unattended)
-                UNATTENDED=1
-                shift
-                ;;
-            *)
-                POSITIONAL+=("$1")
-                shift
-                ;;
-        esac
-    done
-}
-
 main() {
     if command -v brew > /dev/null 2>&1; then
         echo 'Homebrew is already installed.'
@@ -29,16 +11,10 @@ main() {
     sudo apt-get -qq update
     sudo apt-get -qq install build-essential procps curl file git
 
-    if [[ $UNATTENDED == '1' ]]; then
-        NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh')"
-    else
-        /bin/bash -c "$(curl -fsSL 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh')"
-    fi
+    /bin/bash -c "$(curl -fsSL 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh')"
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
     cd "$(dirname "${BASH_SOURCE[0]}")"
-    parse_args "$@"
-    set -- "${POSITIONAL[@]}"
     main "$@"
 fi
