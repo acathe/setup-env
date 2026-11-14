@@ -75,7 +75,7 @@ parse_args() {
     done
 }
 
-update_settings() {
+main() {
     local tmp
     tmp="$(mktemp)"
     jq --arg ANTHROPIC_BASE_URL "$APP_CLAUDE_BASE_URL" \
@@ -87,19 +87,6 @@ update_settings() {
         '.env += $ARGS.named' \
         "$HOME/.claude/settings.json" > "$tmp"
     cp "$tmp" "$HOME/.claude/settings.json"
-}
-
-install_plugins() {
-    brew install -q 'node'
-
-    claude plugin marketplace add 'https://github.com/caozhiyuan/copilot-api.git'
-    claude plugin install 'agent-inject@copilot-api-marketplace'
-    claude plugin install 'tool-search@copilot-api-marketplace'
-}
-
-main() {
-    update_settings
-    install_plugins
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
