@@ -26,11 +26,12 @@ parse_args() {
 }
 
 main() {
-    if [[ -z "$IMAGE" || "$IMAGE" == "." || "$IMAGE" == ".." || "$IMAGE" == */* || ! -f "./$IMAGE/main.sh" ]]; then
-        printf 'Unsupported image: %s (expected a container subdirectory with main.sh)\n' "${IMAGE:-<empty>}" >&2
+    if [[ "$IMAGE" == "copilot-api" ]]; then
+        bash "./$IMAGE/main.sh" "$@"
+    else
+        printf 'Unsupported image: %s\n' "${IMAGE:-<empty>}" >&2
         return 1
     fi
-    bash "./$IMAGE/main.sh" "$@"
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
