@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-IMAGE="${IMAGE:-copilot-api}"
+IMAGE="${IMAGE:-}"
 
 parse_args() {
     POSITIONAL=()
@@ -26,6 +26,10 @@ parse_args() {
 }
 
 main() {
+    if [[ -z "$IMAGE" || "$IMAGE" == "." || "$IMAGE" == ".." || "$IMAGE" == */* || ! -f "./$IMAGE/main.sh" ]]; then
+        printf 'Unsupported image: %s (expected a container subdirectory with main.sh)\n' "${IMAGE:-<empty>}" >&2
+        return 1
+    fi
     bash "./$IMAGE/main.sh" "$@"
 }
 

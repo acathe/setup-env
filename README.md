@@ -66,7 +66,7 @@ xargs -L1 code --install-extension < debian/vscode/extensions.txt
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
-    | bash -s -- --setup container \
+    | bash -s -- --setup container --image copilot-api \
         [--flag]
 ```
 
