@@ -22,24 +22,24 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
         [--flag]
 ```
 
-| main args              | script args                             |
-| ---------------------- | --------------------------------------- |
-| `--command-modern-cli` |                                         |
-| `--command-ssh`        |                                         |
-| `--code-bash`          |                                         |
-| `--code-go`            |                                         |
-| `--code-markdown`      |                                         |
-| `--code-protobuf`      |                                         |
-| `--code-python`        |                                         |
-| `--code-rust`          |                                         |
-| `--app-claude`         |                                         |
-| `--app-docker`         |                                         |
-| `--app-ghostty`        |                                         |
-| `--app-git`            | `--app-git-user-name <v>`               |
-|                        | `--app-git-user-email <v>`              |
-| `--app-tmux`           |                                         |
-| `--app-vscode`         |                                         |
-| `--app-yazi`           |                                         |
+| main args              | script args                |
+| ---------------------- | -------------------------- |
+| `--command-modern-cli` |                            |
+| `--command-ssh`        |                            |
+| `--code-bash`          |                            |
+| `--code-go`            |                            |
+| `--code-markdown`      |                            |
+| `--code-protobuf`      |                            |
+| `--code-python`        |                            |
+| `--code-rust`          |                            |
+| `--app-claude`         |                            |
+| `--app-docker`         |                            |
+| `--app-ghostty`        |                            |
+| `--app-git`            | `--app-git-user-name <v>`  |
+|                        | `--app-git-user-email <v>` |
+| `--app-tmux`           |                            |
+| `--app-vscode`         |                            |
+| `--app-yazi`           |                            |
 
 ```bash
 xargs -L1 code --install-extension < debian/vscode/extensions.txt
@@ -48,9 +48,9 @@ xargs -L1 code --install-extension < debian/vscode/extensions.txt
 ```bash
 curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
     | bash -s -- --setup container \
-        [--flag]
+        --image magpie
 ```
 
-| main args        | script args           |
-| ---------------- | --------------------- |
-| `--image magpie` | `--add-update-config` |
+| main args        | script args |
+| ---------------- | ----------- |
+| `--image magpie` |             |
