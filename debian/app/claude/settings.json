@@ -17,5 +17,6 @@
     "defaultMode": "auto"
   },
   "tui": "fullscreen",
+  "workflowSizeGuideline": "unrestricted",
   "ultracode": true
 }
