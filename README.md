@@ -8,8 +8,7 @@
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
-    | bash -s -- [--setup macos] \
-        [--flag]
+    | bash -s -- [--setup macos] [--flag]
 ```
 
 | main args       | script args                       |
@@ -28,8 +27,7 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
-    | bash -s -- --setup debian \
-        [--flag]
+    | bash -s -- --setup debian [--flag]
 ```
 
 | main args              | script args                |
@@ -59,8 +57,7 @@ xargs -L1 code --install-extension < debian/vscode/extensions.txt
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
-    | bash -s -- --setup container \
-        --image magpie
+    | bash -s -- --setup container [--flag]
 ```
 
 | main args        | script args |
