@@ -61,7 +61,6 @@ main() {
     brew install -q --cask 'claude-code@latest'
 
     install_settings
-
     install_plugin
 }
 

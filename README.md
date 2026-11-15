@@ -1,3 +1,11 @@
+# Setup Env
+
+- [1. macOS](#1-macos)
+- [2. Debian](#2-debian)
+- [3. Container](#3-container)
+
+## 1. macOS
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
     | bash -s -- [--setup macos] \
@@ -15,6 +23,8 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
 | `--app-chatgpt` |                                   |
 | `--app-ghostty` |                                   |
 | `--app-vscode`  |                                   |
+
+## 2. Debian
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
@@ -44,6 +54,8 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
 ```bash
 xargs -L1 code --install-extension < debian/vscode/extensions.txt
 ```
+
+## 3. Container
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
