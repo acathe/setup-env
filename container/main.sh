@@ -30,6 +30,7 @@ main() {
         printf 'Unsupported image: %s\n' "${IMAGE:-<empty>}" >&2
         return 1
     fi
+
     bash "./$IMAGE/main.sh" "$@"
 }
 
