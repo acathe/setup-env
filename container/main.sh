@@ -26,10 +26,11 @@ parse_args() {
 }
 
 main() {
-    if [[ $IMAGE != "copilot-api" ]]; then
+    if [[ $IMAGE != "copilot-api" && $IMAGE != "magpie" ]]; then
         printf 'Unsupported image: %s\n' "${IMAGE:-<empty>}" >&2
         return 1
     fi
+
     bash "./$IMAGE/main.sh" "$@"
 }
 

@@ -69,9 +69,10 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
         [--flag]
 ```
 
-| main args                    | script args                     |
-| ---------------------------- | ------------------------------- |
-| `--image copilot-api`        | `--clear-config`                |
-|                              | `--add-api-key <v>`             |
-|                              | `--auth`                        |
-|                              | `--add-update-config`           |
+| main args             | script args           |
+| --------------------- | --------------------- |
+| `--image copilot-api` | `--clear-config`      |
+|                       | `--add-api-key <v>`   |
+|                       | `--auth`              |
+|                       | `--add-update-config` |
+| `--image magpie`      | `--add-update-config` |
