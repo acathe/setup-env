@@ -75,4 +75,4 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
 |                              | `--add-api-key <v>`             |
 |                              | `--auth`                        |
 |                              | `--add-update-config`           |
-| `--image magpie`              |                                 |
+| `--image magpie`              | `--add-update-config`           |
