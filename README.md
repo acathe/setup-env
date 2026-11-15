@@ -1,11 +1,3 @@
-# Setup Env
-
-- [1. macOS](#1-macos)
-- [2. Debian](#2-debian)
-- [3. Container](#3-container)
-
-## 1. macOS
-
 ```bash
 curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
     | bash -s -- [--setup macos] \
@@ -24,8 +16,6 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
 | `--app-ghostty` |                                   |
 | `--app-vscode`  |                                   |
 
-## 2. Debian
-
 ```bash
 curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
     | bash -s -- --setup debian \
@@ -42,13 +32,7 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
 | `--code-protobuf`      |                                         |
 | `--code-python`        |                                         |
 | `--code-rust`          |                                         |
-| `--app-claude`         | `--app-claude-copilot-api`              |
-|                        | `--app-claude-base-url <v>`             |
-|                        | `--app-claude-auth-token <v>`           |
-|                        | `--app-claude-default-fable-model <v>`  |
-|                        | `--app-claude-default-opus-model <v>`   |
-|                        | `--app-claude-default-sonnet-model <v>` |
-|                        | `--app-claude-default-haiku-model <v>`  |
+| `--app-claude`         |                                         |
 | `--app-docker`         |                                         |
 | `--app-ghostty`        |                                         |
 | `--app-git`            | `--app-git-user-name <v>`               |
@@ -61,18 +45,12 @@ curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
 xargs -L1 code --install-extension < debian/vscode/extensions.txt
 ```
 
-## 3. Container
-
 ```bash
 curl -fsSL https://raw.githubusercontent.com/acathe/setup-env/master/main.sh \
     | bash -s -- --setup container \
         [--flag]
 ```
 
-| main args             | script args           |
-| --------------------- | --------------------- |
-| `--image copilot-api` | `--clear-config`      |
-|                       | `--add-api-key <v>`   |
-|                       | `--auth`              |
-|                       | `--add-update-config` |
-| `--image magpie`      | `--add-update-config` |
+| main args        | script args           |
+| ---------------- | --------------------- |
+| `--image magpie` | `--add-update-config` |

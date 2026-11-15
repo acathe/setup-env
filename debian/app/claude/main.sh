@@ -6,25 +6,8 @@ CODE_GO="${CODE_GO:-0}"
 CODE_PYTHON="${CODE_PYTHON:-0}"
 CODE_RUST="${CODE_RUST:-0}"
 
-APP_CLAUDE_COPILOT_API="${APP_CLAUDE_COPILOT_API:-0}"
 APP_GHOSTTY="${APP_GHOSTTY:-0}"
 APP_GIT="${APP_GIT:-0}"
-
-parse_args() {
-    POSITIONAL=()
-    while (($# > 0)); do
-        case "$1" in
-            --app-claude-copilot-api)
-                APP_CLAUDE_COPILOT_API=1
-                shift
-                ;;
-            *)
-                POSITIONAL+=("$1")
-                shift
-                ;;
-        esac
-    done
-}
 
 install_settings() {
     mkdir -p "$HOME/.claude"
@@ -79,16 +62,10 @@ main() {
 
     install_settings
 
-    if [[ $APP_CLAUDE_COPILOT_API == '1' ]]; then
-        bash './copilot_api.sh' "$@"
-    fi
-
     install_plugin
 }
 
 if [[ $0 == "${BASH_SOURCE[0]}" ]]; then
     cd "$(dirname "${BASH_SOURCE[0]}")"
-    parse_args "$@"
-    set -- "${POSITIONAL[@]}"
     main "$@"
 fi

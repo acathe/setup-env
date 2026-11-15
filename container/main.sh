@@ -26,7 +26,7 @@ parse_args() {
 }
 
 main() {
-    if [[ $IMAGE != "copilot-api" && $IMAGE != "magpie" ]]; then
+    if [[ $IMAGE != "magpie" ]]; then
         printf 'Unsupported image: %s\n' "${IMAGE:-<empty>}" >&2
         return 1
     fi
