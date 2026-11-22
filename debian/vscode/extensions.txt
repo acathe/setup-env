@@ -19,7 +19,6 @@ ms-vscode.remote-explorer
 pkief.material-icon-theme
 redhat.vscode-yaml
 rust-lang.rust-analyzer
-streetsidesoftware.code-spell-checker
 tombi-toml.tombi
 tooltitudeteam.tooltitude
 usernamehw.errorlens
