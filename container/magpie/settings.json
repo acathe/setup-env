@@ -1,0 +1,27 @@
+{
+    "env": {
+        "ANTHROPIC_AUTH_TOKEN": "magpie",
+        "ANTHROPIC_BASE_URL": "http://127.0.0.1:3425",
+        "ANTHROPIC_DEFAULT_FABLE_MODEL": "copilot/gemini-4-carbon",
+        "ANTHROPIC_DEFAULT_HAIKU_MODEL": "copilot/gpt-6.1-terra[1m]",
+        "ANTHROPIC_DEFAULT_OPUS_MODEL": "copilot/gpt-6.2-sol[1m]",
+        "ANTHROPIC_DEFAULT_SONNET_MODEL": "copilot/gpt-6.2-sol[1m]",
+        "ANTHROPIC_SMALL_FAST_MODEL": "copilot/gpt-6.1-terra[1m]",
+        "CLAUDE_CODE_AUTO_MODE_MODEL": "copilot/gpt-6.1-sol",
+        "CLAUDE_CODE_AUTO_MODE_SERVER": "0",
+        "CLAUDE_CODE_ENABLE_EXPERIMENTAL_ADVISOR_TOOL": "1",
+        "CLAUDE_CODE_MAX_CONTEXT_TOKENS": "1050000",
+        "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "65536",
+        "CLAUDE_CODE_MODEL_CAPABILITIES": "copilot/gemini-4-carbon=effort;copilot/gpt-6.1-terra=effort,xhigh_effort,max_effort;copilot/gpt-6.2-sol=effort,xhigh_effort,max_effort;copilot/gpt-6.1-sol=effort,xhigh_effort,max_effort",
+        "ENABLE_TOOL_SEARCH": "true"
+    },
+    "advisorModel": "copilot/gemini-4-carbon",
+    "modelSettings": {
+        "copilot/gemini-4-carbon": {
+            "autoCompactWindow": 936000
+        },
+        "copilot/gpt-6.1-sol": {
+            "autoCompactWindow": 922000
+        }
+    }
+}
