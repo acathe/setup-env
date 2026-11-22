@@ -1,5 +1,11 @@
 # Claude Code
 .claude/*.local.json
 .claude/**/*.log
+.claude/worktrees/
 CLAUDE.local.md
-.claude/
+# .claude/
+
+# Agent tool output written into the project
+.playwright-mcp/
+.remember/
+.superpowers/
