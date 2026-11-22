@@ -50,9 +50,6 @@
     "editor.wordSegmenterLocales": [
         "zh-CN"
     ],
-    "errorLens.excludeBySource": [
-        "cSpell"
-    ],
     "files.readonlyInclude": {
         "**/.cargo/git/**": true, // Rust
         "**/.cargo/registry/**": true, // Rust
