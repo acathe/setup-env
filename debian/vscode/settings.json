@@ -64,6 +64,7 @@
     "git.autofetch": true,
     "git.confirmSync": false,
     "git.enableSmartCommit": true,
+    "gitlens.gitkraken.mcp.autoEnabled": false,
     "go.inlayHints.assignVariableTypes": true,
     "go.inlayHints.compositeLiteralFields": true,
     "go.inlayHints.compositeLiteralTypes": true,
@@ -116,6 +117,9 @@
     "rust-analyzer.lens.references.method.enable": true,
     "rust-analyzer.lens.references.trait.enable": true,
     "terminal.integrated.fontFamily": "JetBrainsMono Nerd Font",
+    "tombi.env": {
+        "TOMBI_SCHEMA_TRUSTED_HOSTS": "www.schemastore.org"
+    },
     "tooltitude.json.tags.style": "snakeCase",
     "tooltitude.shadowInspectionEnabled": true,
     "tooltitude.unusedParamsEnabled": true,
